@@ -3,7 +3,8 @@
 import { useEffect } from 'react';
 import Board from './Board';
 import { Banner, Ticker, Toasts, useAlerts } from './Effects';
-import { AnimatedNumber, GoalBar, Logo } from './bits';
+import { AnimatedNumber, GiftLegend, GoalBar, Logo } from './bits';
+import { useGiftMap } from '@/lib/gifts';
 import { ensureFont, fmt, safeUrl, themeVars } from '@/lib/format';
 import { useActiveSkin } from '@/lib/skins';
 
@@ -19,6 +20,7 @@ export default function Overlay({ config, state, byId, status, gifts, preview = 
   const th = config.theme;
   const { toasts, ticks, banner } = useAlerts(config, { confetti: !preview });
   const skin = useActiveSkin(th);
+  const giftMap = useGiftMap(gifts);
   useEffect(() => { ensureFont(th.fontFamily); ensureFont(th.titleFont); }, [th.fontFamily, th.titleFont]);
   // Toasts go to the side opposite the board when they would overlap.
   const toastSide = th.layout === 'list' && th.position === th.toastPosition ? (th.position === 'left' ? 'right' : 'left') : th.toastPosition;
@@ -39,6 +41,7 @@ export default function Overlay({ config, state, byId, status, gifts, preview = 
                 {th.showViewers && <span className="chip">👁 {fmt(status?.viewers || 0)}</span>}
               </div>
               <GoalBar total={state?.total || 0} goal={config.goal} compact />
+              {th.showGiftLegend !== false && <GiftLegend teams={config.teams} giftMap={giftMap} />}
             </div>
           </header>
         )}

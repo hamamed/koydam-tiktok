@@ -74,7 +74,11 @@ export function useAlerts(config, { confetti = true, toasts = true } = {}) {
           if (a.showJoins) addTick(team, [['', '👋 '], ['b', ev.user.nickname], ['', ` انضم إلى ${teamLabel(team)}`], ...(ev.points ? [['tp', ` +${fmt(ev.points)}`]] : [])]);
           break;
         case 'unassigned':
-          if (a.showUnassigned) addTick(null, [['b', ev.user.nickname], ['', ` أرسل ${ev.gift.name}. اكتب اسم فريقك في الشات لتُحسب! 🙏`]]);
+          if (a.showUnassigned) {
+            addTick(null, c.scoring?.giftMode === 'giftOnly'
+              ? [['b', ev.user.nickname], ['', ' أرسل '], ['g', ev.gift.name], ['', ' ولا تُحسب. أرسل هدية دولتك لتُحسب! 🎁']]
+              : [['b', ev.user.nickname], ['', ` أرسل ${ev.gift.name}. اكتب اسم فريقك في الشات لتُحسب! 🙏`]]);
+          }
           break;
         case 'takeover':
           if (team) {

@@ -112,3 +112,6 @@
 .team-gifts { display: inline-flex; align-items: center; gap: 2px; padding: 1px 6px; border-radius: 999px; background: rgba(0,0,0,.25); flex: none; }
 .tg-icon { width: calc(24px * var(--fs)); height: calc(24px * var(--fs)); object-fit: contain; filter: drop-shadow(0 2px 4px rgba(0,0,0,.45)); }
 .tick-gift { width: calc(26px * var(--fs)); height: calc(26px * var(--fs)); object-fit: contain; }
+.team-gifts { gap: 3px; padding: 2px 8px 2px 4px; border: 1px solid color-mix(in srgb, var(--gold) 45%, transparent); background: rgba(0,0,0,.32); }
+.tg-label { font-size: calc(11px * var(--fs)); font-weight: 800; color: var(--gold-2); }
+.tg-icon { width: calc(30px * var(--fs)); height: calc(30px * var(--fs)); }

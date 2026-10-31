@@ -79,3 +79,10 @@
 .banner .bphoto img { width: 100%; height: 100%; object-fit: cover; }
 .banner .btext { font-family: var(--title-font, var(--font)); font-weight: 900; font-size: calc(50px * var(--fs)); text-shadow: 0 4px 24px var(--team, var(--accent)); white-space: nowrap; }
 .banner .bsub { font-weight: 800; opacity: .9; font-size: calc(19px * var(--fs)); margin-top: 4px; }
+/* Gift legend: which gift supports which team */
+.gift-legend { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 4px; }
+.gl-item { display: inline-flex; align-items: center; gap: 4px; padding: 3px 8px 3px 4px; border-radius: 999px; background: rgba(0,0,0,.3); border: 1px solid color-mix(in srgb, var(--team) 60%, transparent); }
+.gl-flag { width: calc(24px * var(--fs)); height: calc(24px * var(--fs)); border-radius: 6px; overflow: hidden; display: grid; place-items: center; font-size: calc(18px * var(--fs)); }
+.gl-flag img { width: 100%; height: 100%; object-fit: cover; }
+.gl-eq { font-weight: 900; opacity: .7; font-size: calc(12px * var(--fs)); }
+.gl-gift { width: calc(26px * var(--fs)); height: calc(26px * var(--fs)); object-fit: contain; }

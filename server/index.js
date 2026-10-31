@@ -126,6 +126,7 @@ const DEFAULT_CONFIG = {
     chatVoteCooldownSec: 15,    // per-viewer cooldown for chat votes
     likePoints: 0,              // points per like for viewers with a team (0 = off)
     unassignedGiftPolicy: 'ignore', // 'ignore' | 'underdog' | 'leader'
+    giftMode: 'mixed',          // 'mixed': team gift OR viewer's chat team · 'giftOnly': only each team's own gifts count
   },
 
   alerts: {
@@ -146,7 +147,8 @@ const DEFAULT_CONFIG = {
     fontScale: 1,               // 0.6..1.6
     fontFamily: 'Cairo',        // main font: 17 bundled Arabic fonts (web/lib/fonts.js) or any Google font
     titleFont: '',              // display font for titles / team names / banner ('' = same as main)
-    showTeamGifts: true,        // small gift images on each team card
+    showTeamGifts: true,        // gift images on each team card
+    showGiftLegend: true,       // "🇲🇦 = 🌹" strip in the overlay header
     layout: 'list',             // 'list' | 'grid'
     position: 'right',          // 'left' | 'center' | 'right' (RTL default: right)
     width: 620,                 // px panel width (list layout)
@@ -341,6 +343,7 @@ function sanitizeConfig(input) {
     chatVoteCooldownSec: numIn(s.chatVoteCooldownSec, 0, 3600, DS.chatVoteCooldownSec),
     likePoints: numIn(s.likePoints, 0, 1000, DS.likePoints),
     unassignedGiftPolicy: oneOf(s.unassignedGiftPolicy, ['ignore', 'underdog', 'leader'], DS.unassignedGiftPolicy),
+    giftMode: oneOf(s.giftMode, ['mixed', 'giftOnly'], DS.giftMode),
   };
 
   // ---- Alerts ----
@@ -369,6 +372,7 @@ function sanitizeConfig(input) {
     fontFamily: str(th.fontFamily, 40).replace(/[^\w \-]/g, '').trim() || DT.fontFamily,
     titleFont: str(th.titleFont, 40).replace(/[^\w \-]/g, '').trim(),
     showTeamGifts: bool(th.showTeamGifts, DT.showTeamGifts),
+    showGiftLegend: bool(th.showGiftLegend, DT.showGiftLegend),
     layout: oneOf(th.layout, ['list', 'grid'], DT.layout),
     position: oneOf(th.position, ['left', 'center', 'right'], DT.position),
     width: numIn(th.width, 320, 1800, DT.width),
@@ -515,7 +519,7 @@ class ScoreBoard extends EventEmitter {
     this.match = buildMatcher(config.teams);
     // Gift name/id -> teamId lookup
     this.giftTeam = new Map();
-    for (const t of config.teams) for (const g of t.gifts) this.giftTeam.set(normalizeText(g), t.id);
+    for (const t of config.teams) for (const g of t.gifts) { const k = normalizeText(g); if (!this.giftTeam.has(k)) this.giftTeam.set(k, t.id); }
 
     const next = new Map();
     for (const t of config.teams) next.set(t.id, this.teams.get(t.id) || this._emptyTeam());
@@ -550,6 +554,8 @@ class ScoreBoard extends EventEmitter {
   resolveGiftTeam(gift) {
     const byGift = this.giftTeam.get(normalizeText(gift.name)) || this.giftTeam.get(String(gift.giftId));
     if (byGift) return { teamId: byGift, via: 'gift' };
+    // "Team gift only" mode: other gifts don't count (the ticker tells the viewer which gift to send).
+    if (this.config.scoring.giftMode === 'giftOnly') return { teamId: null, via: 'none' };
     const byUser = this.allegiance.get(gift.user.userId);
     if (byUser && this.teams.has(byUser)) return { teamId: byUser, via: 'allegiance' };
     const policy = this.config.scoring.unassignedGiftPolicy;

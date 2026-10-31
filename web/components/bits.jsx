@@ -51,6 +51,23 @@ export function GiftIcon({ gift, name, className = 'gift-icon', title }) {
   return <span className={`${className} emoji fallback`} title={label}>🎁</span>;
 }
 
+/** "🇲🇦 = 🌹" legend: which gift supports which team. */
+export function GiftLegend({ teams, giftMap, className = 'gift-legend' }) {
+  const items = (teams || []).filter((t) => t.gifts?.length);
+  if (!items.length) return null;
+  return (
+    <div className={className}>
+      {items.map((t) => (
+        <span key={t.id} className="gl-item" style={{ '--team': t.color }}>
+          <span className="gl-flag"><Flag team={t} /></span>
+          <span className="gl-eq">=</span>
+          {t.gifts.slice(0, 2).map((n) => <GiftIcon key={n} gift={giftMap?.get(String(n).toLowerCase())} name={n} className="gl-gift" />)}
+        </span>
+      ))}
+    </div>
+  );
+}
+
 export function Logo({ className = 'logo', small }) {
   // eslint-disable-next-line @next/next/no-img-element
   return <img className={className} src={small ? '/logo-sm.png' : '/logo.png'} alt="تحدي المليون" draggable={false} />;

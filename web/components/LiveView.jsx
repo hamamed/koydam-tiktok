@@ -110,8 +110,17 @@ export default function LiveView({ config, state, byId, status, gifts, connected
           <section className="surface how">
             <div className="surface-head"><h2>كيف تشارك؟</h2></div>
             <ol className="steps">
-              <li><b>اختر فريقك:</b> اكتب اسمه أو علمه في شات البث.</li>
-              <li><b>أرسل الهدايا:</b> كل هدية تضيف نقاطاً لفريقك.</li>
+              {config.scoring?.giftMode === 'giftOnly' ? (
+                <>
+                  <li><b>كل دولة لها هدية:</b> انظر الهدية بجانب علم دولتك أدناه.</li>
+                  <li><b>أرسل هدية دولتك:</b> كل هدية تضيف نقاطاً لدولتك تلقائياً.</li>
+                </>
+              ) : (
+                <>
+                  <li><b>أرسل هدية فريقك</b> (أدناه) فتُحسب له تلقائياً،</li>
+                  <li><b>أو اكتب اسم فريقك</b> في الشات ثم أرسل أي هدية.</li>
+                </>
+              )}
               <li><b>ساعد فريقك على الوصول للمليون!</b> 🏆</li>
             </ol>
             <div className="team-chips">

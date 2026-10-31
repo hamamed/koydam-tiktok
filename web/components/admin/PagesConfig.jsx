@@ -25,6 +25,51 @@ function UploadBtn({ max = 512, onDone, children = 'رفع صورة', variant = 
   return <Btn variant={variant} size={size} icon="plus" busy={busy} onClick={go}>{children}</Btn>;
 }
 
+// Cheap, well-known gifts first when auto-assigning one distinct gift per team.
+const POPULAR_GIFTS = ['Rose', 'TikTok', 'Heart Me', 'GG', 'Ice Cream Cone', 'Finger Heart', 'Weights', 'Perfume', 'Doughnut', 'Hand Hearts', 'Cap', 'Sunglasses', 'Corgi', 'Money Gun', 'Galaxy', 'Lion'];
+
+/** Overview: each team's gift(s), conflicts, and one-click distinct assignment. */
+function TeamGiftsOverview({ d, edit, live, onPick }) {
+  const giftMap = useGiftMap(live.gifts);
+  const owner = new Map();
+  const dup = new Set();
+  const dupNames = new Set();
+  d.teams.forEach((t) => t.gifts.forEach((g) => { const k = g.toLowerCase(); if (owner.has(k)) { dup.add(k); dupNames.add(g); } else owner.set(k, t.id); }));
+  const missing = d.teams.filter((t) => !t.gifts.length);
+  const autoAssign = () => {
+    if (!confirm('توزيع هدية مختلفة لكل فريق؟ سيستبدل هذا هدايا الفرق الحالية.')) return;
+    const names = live.gifts.length
+      ? [...POPULAR_GIFTS.filter((n) => giftMap.has(n.toLowerCase())).map((n) => giftMap.get(n.toLowerCase()).name),
+         ...live.gifts.filter((g) => !POPULAR_GIFTS.some((n) => n.toLowerCase() === g.name.toLowerCase())).map((g) => g.name)]
+      : POPULAR_GIFTS;
+    edit((c) => { c.teams.forEach((t, i) => { t.gifts = names[i] ? [names[i]] : []; }); });
+  };
+  return (
+    <Section title="🎁 هدية كل دولة" className="span-2"
+      desc="كل من يرسل هدية الدولة تُحسب نقاطه لتلك الدولة تلقائياً. اجعل لكل دولة هدية مختلفة."
+      actions={<Btn size="sm" variant="ghost" icon="dice" onClick={autoAssign}>توزيع تلقائي</Btn>}>
+      {dup.size > 0 && <div className="a-alert warn"><Icon name="close" />نفس الهدية عند أكثر من دولة: <b className="num-latin">{[...dupNames].join('، ')}</b>. تُحسب للدولة الأولى في القائمة فقط.</div>}
+      {missing.length > 0 && <div className="a-alert warn"><Icon name="gift" />بدون هدية: {missing.map((t) => t.name).join('، ')}</div>}
+      <div className="a-gift-map">
+        {d.teams.map((t, i) => (
+          <button key={t.id || i} type="button" className="a-gm-item" style={{ '--team': t.color }} onClick={() => onPick(i)} title="اضغط لاختيار الهدايا">
+            <span className="a-gm-flag"><Flag team={t} /></span>
+            <b>{t.name}</b>
+            <span className="a-gm-eq">=</span>
+            <span className="a-gm-gifts">
+              {t.gifts.length ? t.gifts.map((n) => (
+                <span key={n} className={`a-gm-gift${dup.has(n.toLowerCase()) && owner.get(n.toLowerCase()) !== t.id ? ' bad' : ''}`}>
+                  <GiftIcon gift={findGift(giftMap, n)} name={n} className="a-gm-img" /><small className="num-latin">{n}</small>
+                </span>
+              )) : <span className="a-muted">+ اختر هدية</span>}
+            </span>
+          </button>
+        ))}
+      </div>
+    </Section>
+  );
+}
+
 const splitList = (s) => String(s).split(/[,،]/).map((x) => x.trim()).filter(Boolean);
 
 /** Comma-separated list input that keeps what you type (e.g. a trailing comma). */
@@ -63,6 +108,8 @@ export function Teams({ live, draft, edit }) {
           <Field label="نص الهدف"><Text value={d.goal.label} onChange={(v) => edit((c) => { c.goal.label = v; })} /></Field>
         </div>
       </Section>
+
+      <TeamGiftsOverview d={d} edit={edit} live={live} onPick={setPickFor} />
 
       <Section title="قوالب جاهزة" desc="تستبدل قائمة الفرق الحالية (لا يُحفظ شيء قبل الضغط على «حفظ»)" className="span-2">
         <div className="a-row">
@@ -141,6 +188,9 @@ export function Scoring({ live, draft, edit, dirty }) {
           <Field label="نقاط لكل ماسة 💎"><Num value={s.pointsPerDiamond} step="0.1" min={0} onChange={set('pointsPerDiamond')} /></Field>
           <Field label="المضاعف العام"><Num value={s.globalMultiplier} step="0.1" min={0} onChange={set('globalMultiplier')} /></Field>
           <Field label="قيمة هدية مجهولة السعر"><Num value={s.unknownGiftValue} min={0} onChange={set('unknownGiftValue')} /></Field>
+          <Field label="طريقة احتساب الهدايا" hint="«هدية الدولة فقط»: كل دولة تُدعم بهديتها فقط، والهدايا الأخرى لا تُحسب">
+            <Select value={s.giftMode || 'mixed'} onChange={set('giftMode')} options={[['mixed', 'هدية الدولة + اختيار الفريق من الشات'], ['giftOnly', 'هدية الدولة فقط']]} />
+          </Field>
           <Field label="هدية من مشاهد بلا فريق">
             <Select value={s.unassignedGiftPolicy} onChange={set('unassignedGiftPolicy')} options={[['ignore', 'تجاهل (واطلب منه اختيار فريق)'], ['underdog', 'تُمنح للأخير'], ['leader', 'تُمنح للمتصدر']]} />
           </Field>
@@ -384,6 +434,7 @@ export function Theme({ live, draft, edit }) {
           <Toggle label="إظهار الشريط الإخباري" checked={t.showTicker} onChange={set('showTicker')} />
           <Toggle label="إظهار عدد المشاهدين" checked={t.showViewers} onChange={set('showViewers')} />
           <Toggle label="صور هدايا كل فريق على بطاقته" checked={t.showTeamGifts !== false} onChange={set('showTeamGifts')} />
+          <Toggle label="دليل «العلم = الهدية» في رأس OBS" checked={t.showGiftLegend !== false} onChange={set('showGiftLegend')} />
         </div>
       </Section>
 

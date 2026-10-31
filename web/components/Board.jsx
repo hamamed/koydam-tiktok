@@ -69,7 +69,7 @@ const Card = memo(function Card({ team, data, rank, isLeader, barPct, share, gap
           <div className="row1">
             <span className="name">{team.name}</span>
             {score > 0 && MEDALS[rank] && <span className="medal emoji">{MEDALS[rank]}</span>}
-            {teamGifts?.length > 0 && <span className="team-gifts">{teamGifts.map((g) => <GiftIcon key={g.id} gift={g} className="tg-icon" />)}</span>}
+            {teamGifts?.length > 0 && <span className="team-gifts"><span className="tg-label">أرسل</span>{teamGifts.map((g) => <GiftIcon key={g.id} gift={g} className="tg-icon" />)}</span>}
             <span className="share">{share}</span>
           </div>
           <div className="bar"><div className="fill" style={{ width: `${barPct}%` }} /></div>

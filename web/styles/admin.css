@@ -338,3 +338,17 @@ select.a-input { cursor: pointer; }
 .a-fetch-stats { display: flex; align-items: baseline; gap: 6px; font-weight: 700; color: var(--muted); }
 .a-fetch-stats b { color: var(--gold-2); font-size: 18px; }
 .a-fetch-stats span + b { margin-inline-start: 12px; }
+
+/* ---- Each country's gift ---- */
+.a-gift-map { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 10px; }
+.a-gm-item { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 14px; border: 1px solid var(--line-2); border-inline-start: 4px solid var(--team); background: linear-gradient(270deg, color-mix(in srgb, var(--team) 14%, var(--panel-2)), var(--panel-2) 70%); color: var(--text); cursor: pointer; text-align: start; }
+.a-gm-item:hover { border-color: var(--gold); }
+.a-gm-flag { width: 38px; height: 38px; border-radius: 9px; overflow: hidden; display: grid; place-items: center; font-size: 26px; flex: none; }
+.a-gm-flag img { width: 100%; height: 100%; object-fit: cover; }
+.a-gm-item b { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 110px; }
+.a-gm-eq { color: var(--muted); font-weight: 900; }
+.a-gm-gifts { display: flex; gap: 6px; flex-wrap: wrap; }
+.a-gm-gift { display: flex; flex-direction: column; align-items: center; }
+.a-gm-gift small { font-size: 10.5px; color: var(--muted); }
+.a-gm-gift.bad { opacity: .45; text-decoration: line-through; }
+.a-gm-img { width: 38px; height: 38px; object-fit: contain; font-size: 24px; display: grid; place-items: center; }

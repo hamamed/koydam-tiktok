@@ -96,3 +96,5 @@
 .chip-gift .gift-icon.sm { width: 22px; height: 22px; }
 .chip-gift small { font-weight: 600; opacity: .8; direction: ltr; }
 .feed-gift.fallback { font-size: 22px; width: 34px; text-align: center; }
+.team-chip { display: inline-flex; align-items: center; gap: 6px; padding: 8px 14px; font-size: 15px; }
+.chip-gift .gift-icon.sm { width: 30px; height: 30px; }
