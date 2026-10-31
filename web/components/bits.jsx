@@ -41,6 +41,16 @@ export function Flag({ team }) {
   return <span className="emoji">{team.emoji || '🏳️'}</span>;
 }
 
+/** Real TikTok gift image (from the catalog), or a 🎁 when the image isn't known yet. */
+export function GiftIcon({ gift, name, className = 'gift-icon', title }) {
+  const [failed, setFailed] = useState(false);
+  const url = safeUrl(gift?.image);
+  const label = title ?? (gift?.name || name || '');
+  // eslint-disable-next-line @next/next/no-img-element
+  if (url && !failed) return <img className={className} src={url} alt={label} title={label} referrerPolicy="no-referrer" loading="lazy" onError={() => setFailed(true)} />;
+  return <span className={`${className} emoji fallback`} title={label}>🎁</span>;
+}
+
 export function Logo({ className = 'logo', small }) {
   // eslint-disable-next-line @next/next/no-img-element
   return <img className={className} src={small ? '/logo-sm.png' : '/logo.png'} alt="تحدي المليون" draggable={false} />;

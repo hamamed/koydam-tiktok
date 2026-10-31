@@ -5,12 +5,13 @@
  * next change mid-way). Used by the OBS overlay, the live page and the admin preview.
  */
 import { memo, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import { AnimatedNumber, Avatar, Flag } from './bits';
+import { AnimatedNumber, Avatar, Flag, GiftIcon } from './bits';
+import { findGift, useGiftMap } from '@/lib/gifts';
 import { fmt } from '@/lib/format';
 
 const MEDALS = { 2: '🥈', 3: '🥉' };
 
-const Card = memo(function Card({ team, data, rank, isLeader, barPct, share, gapText, hidden, x, y, showContributors, contributorsCount, cardRef }) {
+const Card = memo(function Card({ team, data, rank, isLeader, barPct, share, gapText, hidden, x, y, showContributors, contributorsCount, cardRef, teamGifts }) {
   const inner = useRef(null);
   const [pluses, setPluses] = useState([]);
   const prevScore = useRef(null);
@@ -68,6 +69,7 @@ const Card = memo(function Card({ team, data, rank, isLeader, barPct, share, gap
           <div className="row1">
             <span className="name">{team.name}</span>
             {score > 0 && MEDALS[rank] && <span className="medal emoji">{MEDALS[rank]}</span>}
+            {teamGifts?.length > 0 && <span className="team-gifts">{teamGifts.map((g) => <GiftIcon key={g.id} gift={g} className="tg-icon" />)}</span>}
             <span className="share">{share}</span>
           </div>
           <div className="bar"><div className="fill" style={{ width: `${barPct}%` }} /></div>
@@ -94,7 +96,8 @@ const Card = memo(function Card({ team, data, rank, isLeader, barPct, share, gap
   );
 });
 
-export default function Board({ config, state, byId, layout = 'list', maxVisible = 16, showContributors = true, contributorsCount = 3, minColWidth = 440, flagShape = 'rounded' }) {
+export default function Board({ config, state, byId, layout = 'list', maxVisible = 16, showContributors = true, contributorsCount = 3, minColWidth = 440, flagShape = 'rounded', gifts, showTeamGifts = true }) {
+  const giftMap = useGiftMap(gifts);
   const order = useRef([]);
   const wrap = useRef(null);
   const firstCard = useRef(null);
@@ -158,6 +161,7 @@ export default function Board({ config, state, byId, layout = 'list', maxVisible
             y={row * (cardH + gap)}
             showContributors={showContributors}
             contributorsCount={contributorsCount}
+            teamGifts={showTeamGifts ? r.t.gifts.map((n) => findGift(giftMap, n)).filter((g) => g && g.image).slice(0, 3) : null}
           />
         );
       })}

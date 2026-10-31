@@ -61,7 +61,7 @@ export function useAlerts(config, { confetti = true, toasts = true } = {}) {
             });
             arm(key);
           }
-          addTick(team, [['b', ev.user.nickname], ['', ' '], ['g', `${ev.gift.name} ×${ev.gift.count}`], ['', ` ← ${teamLabel(team)} `], ['tp', `+${fmt(ev.points)}`]]);
+          addTick(team, [['b', ev.user.nickname], ['', ' '], ...(safeUrl(ev.gift.image) ? [['img', ev.gift.image]] : []), ['g', `${ev.gift.name} ×${ev.gift.count}`], ['', ` ← ${teamLabel(team)} `], ['tp', `+${fmt(ev.points)}`]]);
           if (ev.major && confetti) {
             const el = document.querySelector(`[data-team-card="${ev.teamId}"]`);
             const r = el && el.offsetParent ? el.getBoundingClientRect() : null;
@@ -123,7 +123,7 @@ export function Ticker({ ticks }) {
       <div className="ticker-items">
         {ticks.map((t) => (
           <span key={t.id} className="tick" style={{ '--team': t.team?.color }}>
-            {t.parts.map(([cls, text], i) => (cls === 'b' ? <b key={i}>{text}</b> : cls === 'g' ? <bdi key={i} dir="ltr" className="tg">{text}</bdi> : cls ? <span key={i} className={cls}>{text}</span> : <span key={i}>{text}</span>))}
+            {t.parts.map(([cls, text], i) => (cls === 'b' ? <b key={i}>{text}</b> : cls === 'g' ? <bdi key={i} dir="ltr" className="tg">{text}</bdi> : cls === 'img' ? <img key={i} className="tick-gift" src={text} alt="" referrerPolicy="no-referrer" /> : cls ? <span key={i} className={cls}>{text}</span> : <span key={i}>{text}</span>))}
           </span>
         ))}
       </div>

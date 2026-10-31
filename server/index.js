@@ -144,7 +144,9 @@ const DEFAULT_CONFIG = {
     blur: 16,                   // px backdrop blur
     radius: 22,                 // px card corner radius
     fontScale: 1,               // 0.6..1.6
-    fontFamily: 'Cairo',        // bundled: Cairo / Tajawal; any other = Google font
+    fontFamily: 'Cairo',        // main font: 17 bundled Arabic fonts (web/lib/fonts.js) or any Google font
+    titleFont: '',              // display font for titles / team names / banner ('' = same as main)
+    showTeamGifts: true,        // small gift images on each team card
     layout: 'list',             // 'list' | 'grid'
     position: 'right',          // 'left' | 'center' | 'right' (RTL default: right)
     width: 620,                 // px panel width (list layout)
@@ -365,6 +367,8 @@ function sanitizeConfig(input) {
     radius: numIn(th.radius, 0, 48, DT.radius),
     fontScale: numIn(th.fontScale, 0.6, 1.6, DT.fontScale),
     fontFamily: str(th.fontFamily, 40).replace(/[^\w \-]/g, '').trim() || DT.fontFamily,
+    titleFont: str(th.titleFont, 40).replace(/[^\w \-]/g, '').trim(),
+    showTeamGifts: bool(th.showTeamGifts, DT.showTeamGifts),
     layout: oneOf(th.layout, ['list', 'grid'], DT.layout),
     position: oneOf(th.position, ['left', 'center', 'right'], DT.position),
     width: numIn(th.width, 320, 1800, DT.width),
@@ -472,7 +476,7 @@ function normalizeGift(raw, catalog) {
   const gd = isObj(raw.giftDetails) ? raw.giftDetails : {};
   const ext = isObj(raw.extendedGiftInfo) ? raw.extendedGiftInfo : {};
   const giftId = num(raw.giftId ?? gd.id ?? ext.id ?? raw.gift?.gift_id, 0);
-  const known = catalog.byId.get(giftId);
+  const known = catalog.find(giftId, gd.giftName || raw.giftName || ext.name);
   const diamonds = num(gd.diamondCount ?? raw.diamondCount ?? ext.diamond_count ?? ext.diamondCount, NaN);
   return {
     user: normalizeUser(raw),
@@ -483,7 +487,7 @@ function normalizeGift(raw, catalog) {
     repeatCount: Math.max(1, Math.floor(num(raw.repeatCount ?? raw.gift?.repeat_count, 1))),
     repeatEnd: Boolean(raw.repeatEnd ?? raw.gift?.repeat_end),
     groupId: str(raw.groupId ?? '', 40),
-    image: imageUrl(gd.giftImage) || safeUrl(raw.giftPictureUrl) || imageUrl(ext.image) || (known ? known.image : ''),
+    image: imageUrl(gd.giftImage) || safeUrl(raw.giftPictureUrl) || imageUrl(ext.image) || (known ? known.remote : ''),
   };
 }
 
@@ -705,18 +709,66 @@ class ScoreBoard extends EventEmitter {
 /* ----------------------------------------------------------------------------
  * 7. Gift catalog (gift names, diamond costs and images, for the setup panel)
  * ------------------------------------------------------------------------- */
+/**
+ * Gift catalog: names, diamond costs and REAL TikTok gift images.
+ * - Saved to data/gifts.json, so images survive restarts and offline time.
+ * - Each image is downloaded once from TikTok's CDN into data/gift-images and
+ *   served from /gift-img/<id>.<ext> (fast, and OBS never depends on TikTok's CDN).
+ * - Filled from: the room gift list when connected, every received gift,
+ *   and the panel's "fetch gifts" button (any account that is live).
+ */
+const GIFTS_FILE = path.join(SETTINGS.dataDir, 'gifts.json');
+const GIFT_IMG_DIR = path.join(SETTINGS.dataDir, 'gift-images');
+const GIFT_IMG_RE = /^\/gift-img\/(\d{1,20})\.(png|jpg|webp|gif)$/;
+// Only download from TikTok's image servers (gift URLs come from TikTok, but never fetch arbitrary hosts).
+const GIFT_HOST_RE = /(^|\.)(tiktokcdn(-us|-eu)?|ibyteimg|byteimg|muscdn|tiktokv|ttwstatic)\.com$/i;
+const giftHostOk = (u) => { try { const h = new URL(u).hostname; return GIFT_HOST_RE.test(h) || (process.env.GIFT_IMG_ALLOW_LOCAL === '1' && /^(127\.0\.0\.1|localhost)$/.test(h)); } catch { return false; } };
+
 class GiftCatalog extends EventEmitter {
-  constructor() { super(); this.byId = new Map(); this._notify = debounce(() => this.emit('change'), 500); }
+  constructor() {
+    super();
+    this.byId = new Map();
+    this.byName = new Map();
+    this.queue = [];
+    this.active = 0;
+    this.failed = new Set();
+    this._notify = debounce(() => this.emit('change'), 500);
+    this._save = debounce(() => writeJsonAtomic(GIFTS_FILE, [...this.byId.values()]).catch((e) => log.warn('Gift catalog save failed:', e.message)), 2000);
+  }
+
+  load() {
+    const arr = readJsonSafe(GIFTS_FILE);
+    if (!Array.isArray(arr)) return;
+    for (const g of arr) {
+      if (!isObj(g) || !g.name) continue;
+      const local = typeof g.local === 'string' && GIFT_IMG_RE.test(g.local) && fs.existsSync(path.join(GIFT_IMG_DIR, path.basename(g.local))) ? g.local : '';
+      const e = { id: num(g.id, 0), name: str(g.name, 48), diamonds: num(g.diamonds, 0), remote: safeUrl(g.remote), local };
+      this.byId.set(e.id, e); this.byName.set(e.name.toLowerCase(), e.id);
+      if (!e.local && e.remote) this._enqueue(e);
+    }
+    log.info(`Gift catalog: ${this.byId.size} gifts (${[...this.byId.values()].filter((e) => e.local).length} images cached)`);
+  }
+
   add(g) {
     const id = num(g.id, 0);
     const name = str(g.name, 48).trim();
-    if (!name) return;
+    if (!name || /^Gift #/.test(name) && this.byId.has(id)) return;
     const prev = this.byId.get(id);
-    const entry = { id, name, diamonds: num(g.diamonds, prev ? prev.diamonds : 0), image: safeUrl(g.image) || (prev ? prev.image : '') };
-    if (prev && prev.name === entry.name && prev.diamonds === entry.diamonds && prev.image === entry.image) return;
+    const remote = safeUrl(g.image) || (prev ? prev.remote : '');
+    const entry = { id, name, diamonds: num(g.diamonds, 0) || (prev ? prev.diamonds : 0), remote, local: prev ? prev.local : '' };
+    if (prev && prev.name === entry.name && prev.diamonds === entry.diamonds && prev.remote === entry.remote) return;
     this.byId.set(id, entry);
-    this._notify();
+    this.byName.set(name.toLowerCase(), id);
+    if (remote && !entry.local) this._enqueue(entry);
+    this._notify(); this._save();
   }
+
+  /** Finds a gift by id, then by name (case-insensitive). */
+  find(id, name) {
+    return this.byId.get(num(id, -1)) || this.byId.get(this.byName.get(String(name || '').toLowerCase()));
+  }
+  imageFor(id, name) { const e = this.find(id, name); return e ? e.local || e.remote : ''; }
+
   /** Accepts the connector's gift list in any of the shapes it has used. */
   ingest(list) {
     let arr = [];
@@ -725,12 +777,51 @@ class GiftCatalog extends EventEmitter {
       arr = list.gifts || list.giftList || list.gift_list || [];
       if (Array.isArray(list.pages)) for (const p of list.pages) arr = arr.concat(p.gifts || []);
     }
+    let n = 0;
     for (const g of arr) {
       if (!isObj(g)) continue;
-      this.add({ id: g.id, name: g.name || g.giftName, diamonds: g.diamond_count ?? g.diamondCount, image: imageUrl(g.image || g.icon) });
+      this.add({ id: g.id, name: g.name || g.giftName, diamonds: g.diamond_count ?? g.diamondCount, image: imageUrl(g.image || g.icon || g.giftImage) });
+      n++;
+    }
+    return n;
+  }
+
+  list() {
+    return [...this.byId.values()]
+      .map((e) => ({ id: e.id, name: e.name, diamonds: e.diamonds, image: e.local || e.remote }))
+      .sort((a, b) => a.diamonds - b.diamonds || a.name.localeCompare(b.name));
+  }
+
+  _enqueue(e) {
+    if (this.failed.has(e.id) || this.queue.includes(e) || !giftHostOk(e.remote)) return;
+    this.queue.push(e);
+    this._pump();
+  }
+  _pump() {
+    while (this.active < 4 && this.queue.length) {
+      const e = this.queue.shift();
+      this.active++;
+      this._download(e).finally(() => { this.active--; this._pump(); });
     }
   }
-  list() { return [...this.byId.values()].sort((a, b) => a.diamonds - b.diamonds || a.name.localeCompare(b.name)); }
+  async _download(e) {
+    try {
+      const r = await fetch(e.remote, { signal: AbortSignal.timeout(15000), headers: { 'User-Agent': 'Mozilla/5.0' } });
+      if (!r.ok) throw new Error(`HTTP ${r.status}`);
+      const buf = Buffer.from(await r.arrayBuffer());
+      if (buf.length > 2 * 1024 * 1024) throw new Error('too large');
+      const type = imageType(buf);
+      if (!type) throw new Error('not an image');
+      await fsp.mkdir(GIFT_IMG_DIR, { recursive: true });
+      const name = `${e.id}.${type}`;
+      await fsp.writeFile(path.join(GIFT_IMG_DIR, name), buf);
+      e.local = `/gift-img/${name}`;
+      this._notify(); this._save();
+    } catch (err) {
+      this.failed.add(e.id);
+      log.warn(`Gift image download failed (${e.name}): ${err.message}`);
+    }
+  }
 }
 
 /* ----------------------------------------------------------------------------
@@ -789,7 +880,7 @@ class Pipeline extends EventEmitter {
     if (!teamId) {
       this.emit('event', {
         kind: 'unassigned', user: gift.user,
-        gift: { name: gift.name, image: gift.image, count: gift.repeatCount }, points,
+        gift: { name: gift.name, image: this.catalog.imageFor(gift.giftId, gift.name) || gift.image, count: gift.repeatCount }, points,
       });
       return;
     }
@@ -802,7 +893,7 @@ class Pipeline extends EventEmitter {
     this.emit('event', {
       kind: 'gift',
       teamId, via, user: gift.user, points,
-      gift: { id: gift.giftId, name: gift.name, image: gift.image, diamonds: gift.diamonds, count: gift.repeatCount, delta },
+      gift: { id: gift.giftId, name: gift.name, image: this.catalog.imageFor(gift.giftId, gift.name) || gift.image, diamonds: gift.diamonds, count: gift.repeatCount, delta },
       streakKey: streakable ? key : null,
       final: !streakable || gift.repeatEnd,
       major: points >= this.board.config.alerts.majorGiftPoints,
@@ -913,6 +1004,15 @@ class TikTokManager extends EventEmitter {
   }
 
   _clearRetry() { clearTimeout(this.retryTimer); this.retryTimer = null; }
+
+  /** Gift list of the room we're connected to (null when not connected). */
+  async fetchGifts() {
+    const c = this.conn;
+    if (!c || this.status.state !== 'connected') return null;
+    if (c.availableGifts) return c.availableGifts;
+    const f = c.fetchAvailableGifts || c.getAvailableGifts;
+    return f ? f.call(c) : null;
+  }
 
   async _teardown() {
     const c = this.conn;
@@ -1220,7 +1320,7 @@ function loginFailed(ip) {
  * ------------------------------------------------------------------------- */
 const APP_ROOT = path.resolve(__dirname, '..');
 const SKIP_DIRS = new Set(['node_modules', '.git', '.next', '.npm', '.cache', '.config', '.local']);
-const SKIP_REL = new Set(['web/out', 'data/uploads']); // build output + uploaded images (binary)
+const SKIP_REL = new Set(['web/out', 'data/uploads', 'data/gift-images']); // build output + uploaded images (binary)
 const skipRel = (rel) => [...SKIP_REL].some((d) => rel === d || rel.startsWith(d + '/'));
 const MAX_EDIT_BYTES = 2 * 1024 * 1024;
 const httpErr = (status, message, extra) => Object.assign(new Error(message), { status, extra });
@@ -1423,6 +1523,7 @@ let config = sanitizeConfig(readJsonSafe(CONFIG_FILE) || DEFAULT_CONFIG);
 const board = new ScoreBoard(config);
 board.restore(readJsonSafe(STATE_FILE));
 const catalog = new GiftCatalog();
+catalog.load();
 const pipeline = new Pipeline(board, catalog);
 const tiktok = new TikTokManager(pipeline, () => config);
 const demo = new DemoSimulator(pipeline, board);
@@ -1478,6 +1579,16 @@ const httpServer = http.createServer(async (req, res) => {
       if (p === '/' && url.searchParams.get('obs') === '1') { res.writeHead(302, { Location: '/overlay/' }); return res.end(); }
       if (p === '/health') return json(200, { ok: true, version: VERSION, uptime: Math.round(process.uptime()), clients: wss.clients.size, tiktok: tiktok.status.state });
       if (p === '/api/state') return json(200, { config, state: board.snapshot(), status: publicStatus() });
+      if (p.startsWith('/gift-img/')) {
+        if (!GIFT_IMG_RE.test(p)) return send(404, 'text/plain', 'Not found');
+        const file = path.join(GIFT_IMG_DIR, path.basename(p));
+        const st = await fsp.stat(file).catch(() => null);
+        if (!st) return send(404, 'text/plain', 'Not found');
+        res.writeHead(200, { 'Content-Type': MIME[path.extname(file)] || 'application/octet-stream', 'Content-Length': st.size,
+          'Cache-Control': 'public, max-age=604800', 'X-Content-Type-Options': 'nosniff', 'Content-Security-Policy': "default-src 'none'" });
+        if (req.method === 'HEAD') return res.end();
+        return fs.createReadStream(file).on('error', () => res.destroy()).pipe(res);
+      }
       if (p.startsWith('/uploads/')) {
         if (!UPLOAD_RE.test(p)) return send(404, 'text/plain', 'Not found');
         const file = path.join(UPLOAD_DIR, path.basename(p));
@@ -1595,6 +1706,36 @@ const httpServer = http.createServer(async (req, res) => {
     }
 
     if (p === '/api/jobs' && req.method === 'GET') return json(200, jobs);
+
+    if (p === '/api/gifts' && req.method === 'GET') return json(200, { gifts: catalog.list() });
+
+    if (p === '/api/gifts/refresh' && req.method === 'POST') {
+      const b = await readJsonBody(req, 4096);
+      const username = String(b.username || '').trim().replace(/^@/, '');
+      let gifts = username ? null : await tiktok.fetchGifts().catch(() => null);
+      if (!gifts) {
+        const u = username || serverSettings.tiktokUsername;
+        if (!/^[\w.]{2,40}$/.test(u || '')) throw httpErr(400, 'أدخل اسم حساب تيك توك يبث مباشرة الآن');
+        const lib = await loadConnector();
+        const opts = lib.kind === 'v2'
+          ? { processInitialData: false, enableExtendedGiftInfo: true, ...(serverSettings.signApiKey ? { signApiKey: serverSettings.signApiKey } : {}) }
+          : { processInitialData: false, enableExtendedGiftInfo: true };
+        const c = new lib.Ctor(u, opts);
+        c.on('error', () => {});
+        try {
+          const state = await withTimeout(Promise.resolve(c.connect()), 45000, 'انتهت المهلة');
+          gifts = (state && state.availableGifts) || c.availableGifts || (c.fetchAvailableGifts ? await c.fetchAvailableGifts() : null);
+        } catch (e) {
+          const m = String(e && (e.message || e.info) || e);
+          throw httpErr(502, /offline|not.*live|isn't online|UserOffline/i.test(m) || (e && e.constructor && e.constructor.name === 'UserOfflineError')
+            ? `@${u} ليس في بث مباشر الآن. أدخل حساباً يبث حالياً (أي حساب) لجلب قائمة الهدايا.`
+            : `تعذر جلب الهدايا: ${m.slice(0, 200)}`);
+        } finally { try { c.removeAllListeners && c.removeAllListeners(); c.on && c.on('error', () => {}); await c.disconnect(); } catch { /* ignore */ } }
+      }
+      const n = catalog.ingest(gifts || []);
+      log.info(`Gift list fetched: ${n} gifts`);
+      return json(200, { ok: true, count: n, total: catalog.byId.size });
+    }
 
     if (p === '/api/uploads' && req.method === 'GET') return json(200, { files: await listUploads() });
 
@@ -1814,6 +1955,8 @@ async function handleCommand(ws, msg) {
     case 'simulateGift': {
       const nick = str(p.nickname || 'TestViewer', 48);
       const id = `sim_${slug(nick) || 'viewer'}`;
+      const known = catalog.find(p.giftId, p.giftName);
+      if (known && !p.giftId) p.giftId = known.id;
       pipeline.handleGift({
         user: { id, displayId: slug(nick) || 'test_viewer', nickname: nick },
         giftId: num(p.giftId, 999999),

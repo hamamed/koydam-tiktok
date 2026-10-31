@@ -1,7 +1,7 @@
 /* ==========================================================================
    Public live page (viewers). Dark luxury: deep black, gold, red glow.
    ========================================================================== */
-.live-root {
+.live-root { font-family: var(--font);
   --live-fs: 1; --page-bg: #0b0a0f; --glow-1: rgba(245,179,1,.22); --glow-2: rgba(200,16,46,.22);
   --ink: #f6f2e7; --ink-strong: #fff; --ink-soft: #d8d2c2; --ink-muted: #a8a294;
   --surface-bg: linear-gradient(160deg, rgba(255,255,255,.055), rgba(255,255,255,.015)); --surface-border: rgba(245,179,1,.16); --row-bg: rgba(0,0,0,.25);
@@ -28,7 +28,7 @@
   background: rgba(127,127,127,.12); border: 1px solid rgba(127,127,127,.25); color: var(--ink-muted); }
 .live-badge.on { background: rgba(200,16,46,.16); border-color: rgba(255,59,92,.5); color: var(--ink-strong); }
 .live-badge:not(.on) .live-dot { background: #777; animation: none; }
-.live-title { font-weight: 900; font-size: clamp(34px, 5vw, 64px); line-height: 1.35; padding-bottom: .1em;
+.live-title { font-family: var(--title-font, var(--font)); font-weight: 900; font-size: clamp(34px, 5vw, 64px); line-height: 1.35; padding-bottom: .1em;
   background: var(--title-grad, linear-gradient(180deg, #fff6cf, var(--gold-2) 45%, var(--gold) 75%, #c27c00)); -webkit-background-clip: text; background-clip: text; color: transparent;
   filter: drop-shadow(0 3px 0 var(--red-2)) drop-shadow(0 8px 24px rgba(0,0,0,.5)); }
 .live-sub { font-size: clamp(15px, 1.6vw, 19px); font-weight: 600; color: var(--ink-soft); }
@@ -39,7 +39,7 @@
 
 .surface { background: var(--surface-bg); border: 1px solid var(--surface-border); backdrop-filter: blur(6px); border-radius: 22px; padding: 18px; box-shadow: 0 20px 50px rgba(0,0,0,.35); }
 .surface-head { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; margin-bottom: 14px; }
-.surface-head h2 { font-size: 19px; font-weight: 900; }
+.surface-head h2 { font-family: var(--title-font, var(--font)); font-size: 19px; font-weight: 900; }
 .muted { color: var(--ink-muted); font-size: 13px; }
 .empty { padding: 18px 0; text-align: center; }
 .live-goal { max-width: 1280px; margin: 0 auto 22px; --fs: 1.25; }
@@ -81,7 +81,7 @@
   .live-badge { align-self: center; }
 }
 @media (max-width: 640px) {
-  .live-root { --live-fs: .7; padding-top: 18px; }
+  .live-root { font-family: var(--font); --live-fs: .7; padding-top: 18px; }
   .live-logo { width: 150px; }
   .live-stats { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
   .live-stats .stat:nth-child(4) { display: none; }
@@ -91,3 +91,8 @@
   .live-goal { --fs: 1; }
   .live-root .banner .btext { font-size: 30px; }
 }
+.chip-gifts { display: inline-flex; gap: 6px; margin-inline-start: 6px; }
+.chip-gift { display: inline-flex; align-items: center; gap: 3px; }
+.chip-gift .gift-icon.sm { width: 22px; height: 22px; }
+.chip-gift small { font-weight: 600; opacity: .8; direction: ltr; }
+.feed-gift.fallback { font-size: 22px; width: 34px; text-align: center; }

@@ -13,15 +13,20 @@ export const fmtFull = (n) => nf.format(Math.round(Number(n) || 0));
 /** Allowed image URLs: https:// or files uploaded in the panel (/uploads/<hash>.<ext>). */
 export const safeUrl = (u) => {
   const s = String(u || '');
-  return /^https?:\/\//i.test(s) || /^\/uploads\/[a-f0-9]{16}\.(png|jpg|webp|gif)$/.test(s) ? s : '';
+  return /^https?:\/\//i.test(s) || /^\/uploads\/[a-f0-9]{16}\.(png|jpg|webp|gif)$/.test(s) || /^\/gift-img\/\d{1,20}\.(png|jpg|webp|gif)$/.test(s) ? s : '';
 };
 export const clamp = (n, a, b) => Math.min(b, Math.max(a, n));
 export const clone = (o) => JSON.parse(JSON.stringify(o));
 export const initial = (name) => ([...String(name || '?').trim()][0] || '?').toUpperCase();
 
+const fontStack = (f) => `${f && f !== 'Cairo' ? `'${f}', ` : ''}'Cairo', 'Segoe UI', system-ui, sans-serif`;
+/** Font variables: main font + display font (titles, team names, banner). */
+export function fontVars(th = {}) {
+  return { '--font': fontStack(th.fontFamily), '--title-font': fontStack(th.titleFont || th.fontFamily) };
+}
+
 /** Theme -> CSS variables for the overlay / live board. */
 export function themeVars(th = {}) {
-  const fam = th.fontFamily && th.fontFamily !== 'Cairo' ? `'${th.fontFamily}', 'Cairo'` : "'Cairo'";
   const vars = {
     '--accent': th.accent || '#f5b301',
     '--glass-a': th.glassOpacity ?? 0.32,
@@ -29,7 +34,7 @@ export function themeVars(th = {}) {
     '--radius': `${th.radius ?? 22}px`,
     '--fs': th.fontScale ?? 1,
     '--panel-w': `${th.width ?? 620}px`,
-    '--font': `${fam}, 'Segoe UI', system-ui, sans-serif`,
+    ...fontVars(th),
     '--name-g': th.nameScale ?? 1,
     '--flag-scale': th.flagScale ?? 1,
   };
@@ -39,7 +44,8 @@ export function themeVars(th = {}) {
 }
 
 /** Loads a Google font once if the theme asks for one that is not bundled. */
-const loadedFonts = new Set(['Cairo']);
+import { BUNDLED_FONTS } from './fonts';
+const loadedFonts = new Set(BUNDLED_FONTS);
 export function ensureFont(family) {
   if (typeof document === 'undefined' || !family || loadedFonts.has(family)) return;
   loadedFonts.add(family);

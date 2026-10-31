@@ -2,7 +2,10 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import Overlay from '../Overlay';
 import LiveView from '../LiveView';
-import { Flag } from '../bits';
+import { Flag, GiftIcon } from '../bits';
+import { GiftFetcher, GiftGrid, GiftPickerModal } from './GiftPicker';
+import { findGift, useGiftMap } from '@/lib/gifts';
+import { FONTS } from '@/lib/fonts';
 import { api } from '@/lib/api';
 import { PRESETS } from '@/lib/presets';
 import { SKINS, activeSkin, skinName } from '@/lib/skins';
@@ -39,6 +42,8 @@ function GiftDatalist({ gifts }) {
 
 export function Teams({ live, draft, edit }) {
   const d = draft;
+  const giftMap = useGiftMap(live.gifts);
+  const [pickFor, setPickFor] = useState(null); // team index for the gift picker
   const colors = ['#ef4444', '#f59e0b', '#10b981', '#3b82f6', '#8b5cf6', '#ec4899', '#14b8a6', '#eab308'];
   return (
     <div className="a-grid">
@@ -86,7 +91,16 @@ export function Teams({ live, draft, edit }) {
               </div>
               <div className="a-form">
                 <Field label="كلمات الشات (افصل بفاصلة)" hint="مثال: maroc، 🇲🇦، المغرب"><ListInput value={t.keywords} onChange={(v) => edit((c) => { c.teams[i].keywords = v; })} /></Field>
-                <Field label="هدايا خاصة بالفريق" hint="أسماء الهدايا بالإنجليزية كما في تيك توك"><ListInput value={t.gifts} list="gift-names" placeholder="Rose" onChange={(v) => edit((c) => { c.teams[i].gifts = v; })} /></Field>
+                <Field label="هدايا خاصة بالفريق" hint="من يرسل هذه الهدايا يدعم هذا الفريق تلقائياً">
+                  <div className="a-teamgifts">
+                    {t.gifts.map((n) => (
+                      <span key={n} className="a-tgift"><GiftIcon gift={findGift(giftMap, n)} name={n} className="a-tgift-img" /><span className="num-latin">{n}</span>
+                        <button type="button" onClick={() => edit((c) => { c.teams[i].gifts = c.teams[i].gifts.filter((x) => x !== n); })} aria-label="إزالة"><Icon name="close" size={12} /></button></span>
+                    ))}
+                    <Btn size="sm" variant="ghost" icon="gift" onClick={() => setPickFor(i)}>اختيار هدايا</Btn>
+                  </div>
+                  <ListInput value={t.gifts} list="gift-names" placeholder="أو اكتب الأسماء: Rose، TikTok" onChange={(v) => edit((c) => { c.teams[i].gifts = v; })} />
+                </Field>
                 <Field label="صورة الفريق (علم / شعار / صورة القبيلة)" hint="تستبدل الإيموجي في كل الشاشات. PNG أو JPG أو WebP أو GIF">
                   <div className="a-inline">
                     <UploadBtn onDone={(url) => edit((c) => { c.teams[i].image = url; })}>{t.image ? 'تغيير الصورة' : 'رفع صورة'}</UploadBtn>
@@ -102,6 +116,9 @@ export function Teams({ live, draft, edit }) {
           ))}
         </div>
       </Section>
+      <GiftPickerModal open={pickFor !== null} multi title={pickFor !== null ? `هدايا ${d.teams[pickFor]?.name || ''}` : ''}
+        gifts={live.gifts} selected={pickFor !== null ? d.teams[pickFor]?.gifts || [] : []} onClose={() => setPickFor(null)}
+        onPick={(g) => edit((c) => { const t = c.teams[pickFor]; const has = t.gifts.some((x) => x.toLowerCase() === g.name.toLowerCase()); t.gifts = has ? t.gifts.filter((x) => x.toLowerCase() !== g.name.toLowerCase()) : [...t.gifts, g.name]; })} />
     </div>
   );
 }
@@ -114,6 +131,7 @@ export function Scoring({ live, draft, edit, dirty }) {
   const commit = (r) => { setRows(r); edit((c) => { c.scoring.giftMultipliers = Object.fromEntries(r.filter(([k]) => String(k).trim()).map(([k, v]) => [String(k).trim().toLowerCase(), Number(v) || 0])); }); };
   const set = (k) => (v) => edit((c) => { c.scoring[k] = v; });
   const setA = (k) => (v) => edit((c) => { c.alerts[k] = v; });
+  const giftMap = useGiftMap(live.gifts);
 
   return (
     <div className="a-grid">
@@ -145,6 +163,7 @@ export function Scoring({ live, draft, edit, dirty }) {
           {rows.length === 0 && <p className="a-empty">لا توجد مضاعفات. كل الهدايا ×1.</p>}
           {rows.map(([k, v], i) => (
             <div key={i} className="a-mult">
+              <GiftIcon gift={findGift(giftMap, k)} name={k} className="a-mult-img" />
               <input className="a-input num-latin" dir="ltr" list="gift-names" value={k} placeholder="Galaxy" onChange={(e) => { const r = rows.map((x) => [...x]); r[i][0] = e.target.value; commit(r); }} />
               <span className="a-x">×</span>
               <input className="a-input num-latin" type="number" step="0.1" min="0" value={v} onChange={(e) => { const r = rows.map((x) => [...x]); r[i][1] = e.target.value; commit(r); }} />
@@ -152,16 +171,9 @@ export function Scoring({ live, draft, edit, dirty }) {
             </div>
           ))}
         </div>
-        <h4 className="a-sub">الهدايا التي ظهرت في البث</h4>
-        {live.gifts.length === 0 ? <p className="a-muted">تظهر القائمة بعد الاتصال بالبث أو تشغيل الوضع التجريبي.</p> : (
-          <div className="a-giftchips">
-            {live.gifts.slice(0, 300).map((g) => (
-              <button key={g.id} className="a-giftchip" onClick={() => { if (!rows.some(([k]) => k.toLowerCase() === g.name.toLowerCase())) commit([...rows, [g.name, 1]]); }}>
-                {g.image && <img src={g.image} alt="" referrerPolicy="no-referrer" />}<span className="num-latin">{g.name}</span><small className="num-latin">{g.diamonds}💎</small>
-              </button>
-            ))}
-          </div>
-        )}
+        <h4 className="a-sub">🎁 قائمة هدايا تيك توك (اضغط لإضافة مضاعف)</h4>
+        <GiftFetcher live={live} />
+        <GiftGrid gifts={live.gifts} selected={rows.map(([k]) => k)} onPick={(g) => { if (!rows.some(([k]) => k.toLowerCase() === g.name.toLowerCase())) commit([...rows, [g.name, 1]]); }} />
       </Section>
 
       <Section title="التنبيهات" className="span-2">
@@ -290,8 +302,35 @@ export function Theme({ live, draft, edit }) {
           <button className={view === 'live' ? 'on' : ''} onClick={() => setView('live')}>الصفحة المباشرة</button>
         </div>}>
         {view === 'overlay'
-          ? <ScaledStage w={1920} h={1080}><Overlay config={draft} state={live.state} byId={live.byId} status={live.status} preview /></ScaledStage>
-          : <ScaledStage w={1440} h={1000}><LiveView config={draft} state={live.state} byId={live.byId} status={live.status} preview /></ScaledStage>}
+          ? <ScaledStage w={1920} h={1080}><Overlay config={draft} state={live.state} byId={live.byId} status={live.status} gifts={live.gifts} preview /></ScaledStage>
+          : <ScaledStage w={1440} h={1000}><LiveView config={draft} state={live.state} byId={live.byId} status={live.status} gifts={live.gifts} preview /></ScaledStage>}
+      </Section>
+
+      <Section title="🔤 الخطوط" className="span-2"
+        desc="17 خطاً عربياً مضمّناً (تعمل في OBS بدون إنترنت). الخط الأساسي للنصوص، وخط العناوين للعنوان وأسماء الفرق ولافتة المتصدر.">
+        <div className="a-seg a-font-tabs">
+          <span className="a-label">الخط الأساسي:</span><b>{t.fontFamily}</b>
+          <span className="a-label">خط العناوين:</span><b>{t.titleFont || 'نفس الأساسي'}</b>
+        </div>
+        <div className="a-fonts">
+          {FONTS.map((f) => (
+            <div key={f.family} className={`a-font${t.fontFamily === f.family ? ' main' : ''}${(t.titleFont || t.fontFamily) === f.family ? ' title' : ''}`}>
+              <div className="a-font-sample" style={{ fontFamily: `'${f.family}', 'Cairo'` }}>
+                <span className="a-font-big">تحدي المليون</span>
+                <span className="a-font-small">المغرب ضد الجزائر · 1,234,567</span>
+              </div>
+              <div className="a-font-meta"><b>{f.label}</b><small className="a-muted num-latin">{f.family} · {f.style}</small></div>
+              <div className="a-font-btns">
+                <button className={t.fontFamily === f.family ? 'on' : ''} onClick={() => edit((c) => { c.theme.fontFamily = f.family; })}>أساسي</button>
+                <button className={(t.titleFont || t.fontFamily) === f.family ? 'on' : ''} onClick={() => edit((c) => { c.theme.titleFont = f.family === c.theme.fontFamily ? '' : f.family; })}>عناوين</button>
+              </div>
+            </div>
+          ))}
+        </div>
+        <div className="a-form" style={{ marginTop: 14 }}>
+          <Field label="أو خط من Google Fonts (الأساسي)" hint="اكتب الاسم بالضبط، مثل: Mada"><Text value={t.fontFamily} onChange={set('fontFamily')} /></Field>
+          <Field label="خط العناوين من Google Fonts" hint="فارغ = نفس الخط الأساسي"><Text value={t.titleFont} onChange={set('titleFont')} /></Field>
+        </div>
       </Section>
 
       <Section title="🖼️ صورة الخلفية" desc="تظهر خلف المحتوى. ننصح بصورة أفقية 1920×1080.">
@@ -327,7 +366,6 @@ export function Theme({ live, draft, edit }) {
           <Field label="شفافية البطاقات"><Range value={t.glassOpacity} min={0} max={1} step={0.01} onChange={set('glassOpacity')} /></Field>
           <Field label="التمويه"><Range value={t.blur} min={0} max={40} step={1} suffix="px" onChange={set('blur')} /></Field>
           <Field label="استدارة الحواف"><Range value={t.radius} min={0} max={40} step={1} suffix="px" onChange={set('radius')} /></Field>
-          <Field label="الخط" hint="Cairo مضمّن. أو أي خط من Google Fonts (Tajawal، Almarai…)"><Text value={t.fontFamily} onChange={set('fontFamily')} /></Field>
           <Field label="لون خلفية OBS" hint="transparent للشفافية"><Text value={t.background} onChange={set('background')} /></Field>
         </div>
       </Section>
@@ -345,6 +383,7 @@ export function Theme({ live, draft, edit }) {
           <Toggle label="إظهار الشعار" checked={t.showLogo} onChange={set('showLogo')} />
           <Toggle label="إظهار الشريط الإخباري" checked={t.showTicker} onChange={set('showTicker')} />
           <Toggle label="إظهار عدد المشاهدين" checked={t.showViewers} onChange={set('showViewers')} />
+          <Toggle label="صور هدايا كل فريق على بطاقته" checked={t.showTeamGifts !== false} onChange={set('showTeamGifts')} />
         </div>
       </Section>
 

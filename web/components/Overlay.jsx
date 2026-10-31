@@ -15,11 +15,11 @@ export function ScenePhoto({ theme }) {
   return <div className="scene-photo" style={{ backgroundImage: `url("${url}")`, '--bg-dim': theme.bgDim ?? 0.55, filter: blur ? `blur(${blur}px)` : undefined, transform: blur ? 'scale(1.06)' : undefined }} />;
 }
 
-export default function Overlay({ config, state, byId, status, preview = false }) {
+export default function Overlay({ config, state, byId, status, gifts, preview = false }) {
   const th = config.theme;
   const { toasts, ticks, banner } = useAlerts(config, { confetti: !preview });
   const skin = useActiveSkin(th);
-  useEffect(() => { ensureFont(th.fontFamily); }, [th.fontFamily]);
+  useEffect(() => { ensureFont(th.fontFamily); ensureFont(th.titleFont); }, [th.fontFamily, th.titleFont]);
   // Toasts go to the side opposite the board when they would overlap.
   const toastSide = th.layout === 'list' && th.position === th.toastPosition ? (th.position === 'left' ? 'right' : 'left') : th.toastPosition;
 
@@ -44,7 +44,7 @@ export default function Overlay({ config, state, byId, status, preview = false }
         )}
         <Board
           config={config} state={state} byId={byId}
-          layout={th.layout} maxVisible={th.maxVisible} flagShape={th.flagShape}
+          layout={th.layout} maxVisible={th.maxVisible} flagShape={th.flagShape} gifts={gifts} showTeamGifts={th.showTeamGifts !== false}
           showContributors={th.showContributors} contributorsCount={th.contributorsCount}
         />
       </div>

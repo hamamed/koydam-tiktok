@@ -3,6 +3,9 @@ import { useState } from 'react';
 import { cmd } from '@/lib/store';
 import { confettiBurst, confettiRain } from '@/lib/confetti';
 import { Btn, Field, Num, Section, Select, Text, Toggle } from './ui';
+import { GiftIcon } from '../bits';
+import { GiftPickerModal } from './GiftPicker';
+import { findGift, useGiftMap } from '@/lib/gifts';
 
 export function Tools({ live, draft, save, notice }) {
   const teams = live.config.teams;
@@ -12,6 +15,9 @@ export function Tools({ live, draft, save, notice }) {
   const [keep, setKeep] = useState(true);
   const [json, setJson] = useState('');
   const [busy, setBusy] = useState('');
+  const [picker, setPicker] = useState(false);
+  const giftMap = useGiftMap(live.gifts);
+  const cur = findGift(giftMap, g.giftName);
   const run = async (key, action, payload, ok) => {
     setBusy(key);
     try { await cmd(action, payload); notice(ok); } catch (e) { notice(e.message, 'err'); } finally { setBusy(''); }
@@ -25,11 +31,18 @@ export function Tools({ live, draft, save, notice }) {
         <div className="a-form">
           <Field label="المشاهد"><Text value={g.nickname} onChange={(v) => setG({ ...g, nickname: v })} /></Field>
           <Field label="الفريق"><Select value={g.teamId} onChange={(v) => setG({ ...g, teamId: v })} options={[['', 'تلقائي (حسب الهدية/الانضمام)'], ...teamOpts]} /></Field>
-          <Field label="اسم الهدية"><input className="a-input num-latin" dir="ltr" list="gift-names" value={g.giftName} onChange={(e) => setG({ ...g, giftName: e.target.value })} /></Field>
+          <Field label="الهدية">
+            <div className="a-inline">
+              <button type="button" className="a-gift-btn" onClick={() => setPicker(true)} title="اختيار من القائمة"><GiftIcon gift={cur} name={g.giftName} className="a-gift-img" /></button>
+              <input className="a-input num-latin" dir="ltr" list="gift-names" value={g.giftName} onChange={(e) => setG({ ...g, giftName: e.target.value })} />
+            </div>
+          </Field>
           <Field label="الماسات 💎"><Num value={g.diamonds} min={0} onChange={(v) => setG({ ...g, diamonds: v })} /></Field>
           <Field label="العدد"><Num value={g.count} min={1} onChange={(v) => setG({ ...g, count: v })} /></Field>
         </div>
-        <Btn variant="gold" icon="gift" busy={busy === 'gift'} onClick={() => run('gift', 'simulateGift', { ...g, teamId: g.teamId || null }, 'تم إرسال الهدية')}>إرسال</Btn>
+        <Btn variant="gold" icon="gift" busy={busy === 'gift'} onClick={() => run('gift', 'simulateGift', { ...g, giftId: cur?.id, teamId: g.teamId || null }, 'تم إرسال الهدية')}>إرسال</Btn>
+        <GiftPickerModal open={picker} title="اختيار هدية" gifts={live.gifts} selected={[g.giftName]} onClose={() => setPicker(false)}
+          onPick={(x) => setG({ ...g, giftName: x.name, diamonds: x.diamonds || g.diamonds })} />
       </Section>
 
       <Section title="💬 محاكاة رسالة شات" desc="لاختبار كلمات الفرق">

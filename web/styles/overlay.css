@@ -15,7 +15,7 @@
 .ov-logo { position: relative; width: calc(96px * var(--fs)); height: auto; flex: none; filter: drop-shadow(0 4px 14px rgba(0,0,0,.5)); }
 .ov-head-main { position: relative; flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 6px; }
 .ov-title {
-  font-weight: 900; font-size: calc(34px * var(--fs)); line-height: 1.35; padding-bottom: .12em;
+  font-family: var(--title-font, var(--font)); font-weight: 900; font-size: calc(34px * var(--fs)); line-height: 1.35; padding-bottom: .12em;
   background: var(--title-grad, linear-gradient(180deg, #fff6cf, var(--gold-2) 45%, var(--gold) 75%, #c27c00));
   -webkit-background-clip: text; background-clip: text; color: transparent;
   filter: drop-shadow(0 2px 0 var(--red-2)) drop-shadow(0 4px 10px rgba(0,0,0,.45));
@@ -46,7 +46,7 @@
 .toast .tuser { font-weight: 900; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .toast .tgift { font-weight: 900; color: var(--gold-2); }
 .toast .tteam { font-weight: 900; }
-.toast .tcount { display: inline-block; font-weight: 900; animation: comboPop .3s var(--ease-out); }
+.toast .tcount { display: inline-block; font-weight: 900; margin-inline-start: .3em; animation: comboPop .3s var(--ease-out); }
 .tick .tg { font-weight: 800; color: #ffe9a3; }
 @keyframes comboPop { 40% { transform: scale(1.5); } }
 .toast .tpts { font-weight: 900; font-size: 1.3em; white-space: nowrap; direction: ltr; text-shadow: 0 0 12px var(--team); }
@@ -77,5 +77,5 @@
 .banner .bflag { font-size: calc(80px * var(--fs)); line-height: 1.1; display: block; }
 .banner .bphoto { display: inline-block; width: calc(110px * var(--fs)); height: calc(110px * var(--fs)); border-radius: 20px; overflow: hidden; box-shadow: 0 0 30px var(--team); }
 .banner .bphoto img { width: 100%; height: 100%; object-fit: cover; }
-.banner .btext { font-weight: 900; font-size: calc(50px * var(--fs)); text-shadow: 0 4px 24px var(--team, var(--accent)); white-space: nowrap; }
+.banner .btext { font-family: var(--title-font, var(--font)); font-weight: 900; font-size: calc(50px * var(--fs)); text-shadow: 0 4px 24px var(--team, var(--accent)); white-space: nowrap; }
 .banner .bsub { font-weight: 800; opacity: .9; font-size: calc(19px * var(--fs)); margin-top: 4px; }

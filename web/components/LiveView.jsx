@@ -7,8 +7,10 @@ import { useMemo } from 'react';
 import Board from './Board';
 import { Banner, useAlerts } from './Effects';
 import { ScenePhoto } from './Overlay';
-import { AnimatedNumber, Avatar, Flag, GoalBar, Logo } from './bits';
-import { fmt, safeUrl } from '@/lib/format';
+import { AnimatedNumber, Avatar, Flag, GiftIcon, GoalBar, Logo } from './bits';
+import { findGift, useGiftMap } from '@/lib/gifts';
+import { ensureFont, fmt, fontVars, safeUrl } from '@/lib/format';
+import { useEffect } from 'react';
 import { useActiveSkin } from '@/lib/skins';
 
 function timeAgo(ts) {
@@ -18,11 +20,13 @@ function timeAgo(ts) {
   return m < 60 ? `منذ ${m} د` : `منذ ${Math.round(m / 60)} س`;
 }
 
-export default function LiveView({ config, state, byId, status, connected = true, preview = false }) {
+export default function LiveView({ config, state, byId, status, gifts, connected = true, preview = false }) {
+  const giftMap = useGiftMap(gifts);
   const { feed, banner } = useAlerts(config, { toasts: false, confetti: !preview });
   const skin = useActiveSkin(config?.theme);
   const th = config?.theme || {};
-  const rootProps = { className: `live-root${preview ? ' preview' : ''}`, 'data-skin': skin, style: { '--name-g': th.nameScale ?? 1, '--flag-scale': th.flagScale ?? 1 } };
+  const rootProps = { className: `live-root${preview ? ' preview' : ''}`, 'data-skin': skin, style: { '--name-g': th.nameScale ?? 1, '--flag-scale': th.flagScale ?? 1, ...fontVars(th) } };
+  useEffect(() => { ensureFont(th.fontFamily); ensureFont(th.titleFont); }, [th.fontFamily, th.titleFont]);
 
   const supporters = useMemo(() => {
     if (!state || !config) return [];
@@ -64,7 +68,7 @@ export default function LiveView({ config, state, byId, status, connected = true
       <main className="live-grid">
         <section className="surface live-board" style={{ '--fs': 'var(--live-fs)' }}>
           <div className="surface-head"><h2>ترتيب {config.category || 'الفرق'}</h2><span className="muted">يتحدّث مباشرة</span></div>
-          <Board config={config} state={state} byId={byId} layout="list" maxVisible={16} showContributors contributorsCount={3} flagShape={th.flagShape} />
+          <Board config={config} state={state} byId={byId} layout="list" maxVisible={16} showContributors contributorsCount={3} flagShape={th.flagShape} gifts={gifts} showTeamGifts={th.showTeamGifts !== false} />
         </section>
 
         <aside className="live-side">
@@ -79,7 +83,7 @@ export default function LiveView({ config, state, byId, status, connected = true
                       <b>{f.user.nickname}</b>
                       <span className="muted">أرسل <bdi dir="ltr">{f.gift.name} ×{f.gift.count}</bdi> لـ {f.team?.emoji} {f.team?.name}</span>
                     </div>
-                    {safeUrl(f.gift.image) && <img className="feed-gift" src={f.gift.image} alt="" referrerPolicy="no-referrer" />}
+                    <GiftIcon gift={{ name: f.gift.name, image: f.gift.image || findGift(giftMap, f.gift.name)?.image }} className="feed-gift" />
                     <div className="feed-pts"><b>+{fmt(f.points)}</b><span className="muted">{timeAgo(f.ts)}</span></div>
                   </li>
                 ))}
@@ -114,7 +118,7 @@ export default function LiveView({ config, state, byId, status, connected = true
               {config.teams.map((t) => (
                 <span key={t.id} className="team-chip" style={{ '--team': t.color }}>
                   <span className="chip-flag"><Flag team={t} /></span> {t.name}
-                  {t.gifts.length > 0 && <small> · {t.gifts.join('، ')}</small>}
+                  {t.gifts.length > 0 && <span className="chip-gifts">{t.gifts.map((n) => <span key={n} className="chip-gift"><GiftIcon gift={findGift(giftMap, n)} name={n} className="gift-icon sm" /><small>{n}</small></span>)}</span>}
                 </span>
               ))}
             </div>
