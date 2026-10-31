@@ -11,15 +11,20 @@
 
 .ov-header { display: flex; align-items: center; gap: 16px; padding: calc(14px * var(--fs)) calc(18px * var(--fs)); position: relative; overflow: hidden; }
 .ov-header::before { content: ''; position: absolute; inset: 0; pointer-events: none;
-  background: radial-gradient(120% 140% at 100% 0%, rgba(245,179,1,.35), transparent 55%), radial-gradient(80% 120% at 0% 100%, rgba(200,16,46,.28), transparent 60%); }
+  background: radial-gradient(120% 140% at 100% 0%, color-mix(in srgb, var(--gold) 35%, transparent), transparent 55%), radial-gradient(80% 120% at 0% 100%, color-mix(in srgb, var(--red) 28%, transparent), transparent 60%); }
 .ov-logo { position: relative; width: calc(96px * var(--fs)); height: auto; flex: none; filter: drop-shadow(0 4px 14px rgba(0,0,0,.5)); }
 .ov-head-main { position: relative; flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 6px; }
 .ov-title {
   font-weight: 900; font-size: calc(34px * var(--fs)); line-height: 1.35; padding-bottom: .12em;
-  background: linear-gradient(180deg, #fff6cf, var(--gold-2) 45%, var(--gold) 75%, #c27c00);
+  background: var(--title-grad, linear-gradient(180deg, #fff6cf, var(--gold-2) 45%, var(--gold) 75%, #c27c00));
   -webkit-background-clip: text; background-clip: text; color: transparent;
   filter: drop-shadow(0 2px 0 var(--red-2)) drop-shadow(0 4px 10px rgba(0,0,0,.45));
 }
+/* Background picture (optional, from the panel) */
+.scene-photo { position: absolute; inset: 0; background-size: cover; background-position: center; pointer-events: none; }
+.scene-photo::after { content: ''; position: absolute; inset: 0; background: rgba(0,0,0,var(--bg-dim, .55)); }
+.overlay-root > .scene-photo { z-index: 0; }
+.overlay-root > :not(.scene-photo) { z-index: 1; }
 .ov-sub { font-size: calc(15px * var(--fs)); font-weight: 700; opacity: .9; }
 
 /* ---- Toasts ---- */
@@ -33,7 +38,7 @@
 .toasts.side-right .toast.out { transform: translateX(40px) scale(.96); }
 .toast.major { border-color: color-mix(in srgb, var(--gold) 85%, transparent);
   box-shadow: 0 0 0 2px color-mix(in srgb, var(--gold) 50%, transparent), 0 0 40px rgba(245,179,1,.45);
-  background: linear-gradient(135deg, rgba(255,213,74,.28), rgba(255,255,255,.03)), var(--glass-bg); }
+  background: linear-gradient(135deg, color-mix(in srgb, var(--gold-2) 28%, transparent), rgba(255,255,255,.03)), rgba(var(--glass-rgb), var(--glass-a)); }
 @keyframes toastIn { from { opacity: 0; transform: translateX(60px) scale(.9); } }
 @keyframes toastInL { from { opacity: 0; transform: translateX(-60px) scale(.9); } }
 .toast .avatar { width: 44px; height: 44px; font-size: 18px; }
@@ -70,5 +75,7 @@
   100% { opacity: 0; transform: translate(-50%, -60%) scale(.95); }
 }
 .banner .bflag { font-size: calc(80px * var(--fs)); line-height: 1.1; display: block; }
+.banner .bphoto { display: inline-block; width: calc(110px * var(--fs)); height: calc(110px * var(--fs)); border-radius: 20px; overflow: hidden; box-shadow: 0 0 30px var(--team); }
+.banner .bphoto img { width: 100%; height: 100%; object-fit: cover; }
 .banner .btext { font-weight: 900; font-size: calc(50px * var(--fs)); text-shadow: 0 4px 24px var(--team, var(--accent)); white-space: nowrap; }
 .banner .bsub { font-weight: 800; opacity: .9; font-size: calc(19px * var(--fs)); margin-top: 4px; }

@@ -1,0 +1,151 @@
+/* ==========================================================================
+   Looks (skins) for the live page and the OBS overlay.
+   Set with data-skin="…" on .overlay-root / .live-root (see web/lib/skins.js).
+   Each look sets the palette variables; a few add their own touches.
+   "classic" = the defaults from base.css / live.css (logo gold + red).
+   ========================================================================== */
+
+/* ---------- 1. نيون (Neon) ---------- */
+[data-skin="neon"] {
+  --gold: #00e5ff; --gold-2: #8ff7ff; --gold-3: #dcfeff; --red: #ff2bd6; --red-2: #6d0a5c;
+  --glass-rgb: 6, 4, 22; --glass-border: rgba(0,229,255,.45);
+  --page-bg: #05040d; --glow-1: rgba(0,229,255,.22); --glow-2: rgba(255,43,214,.24); --surface-border: rgba(0,229,255,.28);
+  --title-grad: linear-gradient(180deg, #ffffff, #8ff7ff 40%, #00e5ff 65%, #ff2bd6);
+}
+[data-skin="neon"] .card-inner { box-shadow: 0 0 0 1px rgba(0,229,255,.4), 0 0 24px rgba(0,229,255,.16), inset 0 0 22px rgba(255,43,214,.08); }
+[data-skin="neon"] .card.is-leader .card-inner { box-shadow: 0 0 0 2px #00e5ff, 0 0 40px rgba(0,229,255,.55), 0 0 80px rgba(255,43,214,.25); }
+[data-skin="neon"] .name, [data-skin="neon"] .num { text-shadow: 0 0 12px rgba(0,229,255,.75); }
+[data-skin="neon"] .fill { box-shadow: 0 0 18px var(--team), 0 0 6px #fff; }
+[data-skin="neon"] .ticker-label { background: linear-gradient(135deg, #ff2bd6, #7b0f6b); }
+
+/* ---------- 2. الملعب (Stadium) ---------- */
+[data-skin="stadium"] {
+  --gold: #ffe14d; --gold-2: #fff3a3; --red: #e63946; --red-2: #7a0e16;
+  --glass-rgb: 5, 38, 19; --glass-border: rgba(255,255,255,.28);
+  --page-bg: #0a3b1d; --glow-1: rgba(255,255,255,.10); --glow-2: rgba(255,225,77,.12); --surface-border: rgba(255,255,255,.22);
+  --surface-bg: linear-gradient(160deg, rgba(0,0,0,.25), rgba(0,0,0,.35)); --row-bg: rgba(0,0,0,.28);
+  --title-grad: linear-gradient(180deg, #ffffff, #fff3a3 50%, #ffe14d);
+}
+[data-skin="stadium"] .live-bg, [data-skin="stadium"].overlay-root .ov-header::before {
+  background: repeating-linear-gradient(90deg, rgba(255,255,255,.045) 0 90px, transparent 90px 180px),
+    radial-gradient(60% 50% at 50% 0%, rgba(255,255,255,.12), transparent 60%), #0a3b1d;
+}
+[data-skin="stadium"] .num { font-family: ui-monospace, 'SF Mono', Consolas, monospace; color: #ffe14d; letter-spacing: .02em; }
+[data-skin="stadium"] .card-inner { border-inline-start: 4px solid #fff; }
+[data-skin="stadium"] .ticker-label { background: linear-gradient(135deg, #1b7f3b, #0a3b1d); }
+
+/* ---------- 3. الصحراء (Desert) ---------- */
+[data-skin="desert"] {
+  --gold: #f4a259; --gold-2: #ffd29d; --gold-3: #ffe9cc; --red: #b5541c; --red-2: #5c2408;
+  --glass-rgb: 48, 24, 8; --glass-border: rgba(255,210,157,.3);
+  --page-bg: #1f1006; --glow-1: rgba(244,162,89,.28); --glow-2: rgba(181,84,28,.26); --surface-border: rgba(244,162,89,.25);
+  --title-grad: linear-gradient(180deg, #fff1dc, #ffd29d 40%, #f4a259 70%, #b5541c);
+}
+[data-skin="desert"] .live-bg { background:
+  radial-gradient(80% 50% at 50% 115%, rgba(244,162,89,.35), transparent 65%),
+  radial-gradient(40% 30% at 85% 5%, rgba(255,210,157,.3), transparent 60%),
+  linear-gradient(180deg, #2a1407, #1f1006 60%, #2b1608); }
+
+/* ---------- 4. ليالي رمضان (Ramadan nights) ---------- */
+[data-skin="ramadan"] {
+  --gold: #f2c14e; --gold-2: #ffe08a; --red: #3a5bd9; --red-2: #12235e;
+  --glass-rgb: 9, 18, 52; --glass-border: rgba(242,193,78,.35);
+  --page-bg: #0b1437; --glow-1: rgba(242,193,78,.22); --glow-2: rgba(58,91,217,.3); --surface-border: rgba(242,193,78,.25);
+}
+[data-skin="ramadan"] .live-bg { background:
+  radial-gradient(1.5px 1.5px at 10% 20%, #fff8, transparent), radial-gradient(1.5px 1.5px at 30% 70%, #fff6, transparent),
+  radial-gradient(1px 1px at 55% 30%, #fff9, transparent), radial-gradient(1.5px 1.5px at 75% 60%, #fff6, transparent),
+  radial-gradient(1px 1px at 90% 15%, #fff8, transparent), radial-gradient(1px 1px at 45% 85%, #fff5, transparent),
+  radial-gradient(60% 50% at 85% -10%, rgba(242,193,78,.25), transparent 60%), #0b1437;
+  background-size: 400px 400px, 400px 400px, 400px 400px, 400px 400px, 400px 400px, 400px 400px, 100% 100%, 100% 100%; }
+[data-skin="ramadan"] .ov-header::after, [data-skin="ramadan"] .live-hero::after {
+  content: '🌙'; position: absolute; inset-inline-end: 14px; top: 8px; font-size: 26px; filter: drop-shadow(0 0 10px rgba(242,193,78,.8));
+}
+[data-skin="ramadan"] .live-hero { position: relative; }
+
+/* ---------- 5. الأبيض الزجاجي (Frost, light) ---------- */
+[data-skin="frost"] {
+  --gold: #2563eb; --gold-2: #3b82f6; --gold-3: #dbeafe; --red: #e11d48; --red-2: #9f1239;
+  --text: #121620; --glass-rgb: 255, 255, 255; --glass-border: rgba(255,255,255,.95); --contrib-bg: rgba(15,23,42,.07);
+  --page-bg: #eef2f7; --glow-1: rgba(59,130,246,.18); --glow-2: rgba(225,29,72,.12);
+  --ink: #121620; --ink-strong: #0b1020; --ink-soft: #334155; --ink-muted: #64748b;
+  --surface-bg: rgba(255,255,255,.75); --surface-border: rgba(15,23,42,.08); --row-bg: rgba(15,23,42,.04);
+  --title-grad: linear-gradient(180deg, #1e3a8a, #2563eb 60%, #e11d48);
+}
+[data-skin="frost"] .glass { --glass-a: .82; box-shadow: 0 10px 30px rgba(15,23,42,.18); }
+[data-skin="frost"] .name, [data-skin="frost"] .num, [data-skin="frost"] .ov-title, [data-skin="frost"] .live-title { text-shadow: none; filter: none; }
+[data-skin="frost"] .rank { background: #e8ecf3; border-color: #d0d6e2; }
+[data-skin="frost"] .bar, [data-skin="frost"] .goal-bar { background: rgba(15,23,42,.08); }
+[data-skin="frost"] .card-inner::before { opacity: .45; }
+[data-skin="frost"] .chip { background: rgba(15,23,42,.06); border-color: rgba(15,23,42,.1); }
+[data-skin="frost"] .chip.accent { color: #fff; }
+[data-skin="frost"] .tick { background: rgba(15,23,42,.05); }
+[data-skin="frost"] .goal-pct { text-shadow: 0 1px 2px #fff; color: #0b1020; }
+
+/* ---------- 6. اللهب (Inferno) ---------- */
+[data-skin="inferno"] {
+  --gold: #ff9f1c; --gold-2: #ffd166; --red: #e63946; --red-2: #7a0010;
+  --glass-rgb: 30, 6, 4; --glass-border: rgba(255,159,28,.4);
+  --page-bg: #160404; --glow-1: rgba(255,120,30,.32); --glow-2: rgba(230,57,70,.35); --surface-border: rgba(255,159,28,.28);
+  --title-grad: linear-gradient(0deg, #e63946, #ff9f1c 45%, #ffd166 75%, #fff4cc);
+}
+[data-skin="inferno"] .live-bg { background:
+  radial-gradient(70% 45% at 50% 115%, rgba(230,57,70,.55), transparent 65%),
+  radial-gradient(50% 40% at 50% 105%, rgba(255,159,28,.45), transparent 60%), #160404; }
+[data-skin="inferno"] .card.is-leader .card-inner { box-shadow: 0 0 0 2px #ff9f1c, 0 0 40px rgba(255,90,20,.6), 0 10px 30px rgba(0,0,0,.4); }
+[data-skin="inferno"] .card.is-leader .card-inner::after { background: linear-gradient(260deg, transparent, rgba(255,160,60,.35), transparent); }
+
+/* ---------- 7. الزمرد (Emerald) ---------- */
+[data-skin="emerald"] {
+  --gold: #e9c46a; --gold-2: #f6dfa0; --red: #0f8b5f; --red-2: #064e3b;
+  --glass-rgb: 3, 26, 18; --glass-border: rgba(233,196,106,.35);
+  --page-bg: #03140e; --glow-1: rgba(233,196,106,.2); --glow-2: rgba(16,185,129,.25); --surface-border: rgba(233,196,106,.22);
+}
+
+/* ---------- 8. البنفسجي الملكي (Royal purple) ---------- */
+[data-skin="royal"] {
+  --gold: #ffcf5c; --gold-2: #ffe3a1; --red: #7b2cbf; --red-2: #3c096c;
+  --glass-rgb: 24, 6, 40; --glass-border: rgba(255,207,92,.35);
+  --page-bg: #12051f; --glow-1: rgba(255,207,92,.2); --glow-2: rgba(123,44,191,.38); --surface-border: rgba(255,207,92,.22);
+}
+[data-skin="royal"] .ticker-label { background: linear-gradient(135deg, #9d4edd, #3c096c); }
+
+/* ---------- 9. المحيط (Ocean) ---------- */
+[data-skin="ocean"] {
+  --gold: #4cc9f0; --gold-2: #a0e7ff; --gold-3: #e0f7ff; --red: #4361ee; --red-2: #1d2a7a;
+  --glass-rgb: 3, 20, 40; --glass-border: rgba(76,201,240,.35);
+  --page-bg: #031022; --glow-1: rgba(76,201,240,.25); --glow-2: rgba(67,97,238,.3); --surface-border: rgba(76,201,240,.22);
+  --title-grad: linear-gradient(180deg, #ffffff, #a0e7ff 45%, #4cc9f0 75%, #4361ee);
+}
+[data-skin="ocean"] .live-bg { background:
+  radial-gradient(60% 50% at 80% -10%, rgba(76,201,240,.3), transparent 60%),
+  linear-gradient(180deg, #031022, #04203d 70%, #062a4f); }
+[data-skin="ocean"] .chip.accent, [data-skin="ocean"] .live-badge.on { color: #021022; }
+
+/* ---------- 10. ريترو أركيد (Retro arcade) ---------- */
+[data-skin="retro"] {
+  --gold: #ffe600; --gold-2: #fff59d; --red: #ff004d; --red-2: #7e0026;
+  --glass-rgb: 13, 2, 33; --glass-border: #ffe600;
+  --page-bg: #0d0221; --glow-1: rgba(255,0,77,.25); --glow-2: rgba(0,228,255,.18); --surface-border: rgba(255,230,0,.45);
+  --title-grad: linear-gradient(180deg, #fff59d, #ffe600 50%, #ff8a00);
+}
+[data-skin="retro"] .glass, [data-skin="retro"] .surface, [data-skin="retro"] .stat, [data-skin="retro"] .flag,
+[data-skin="retro"] .chip, [data-skin="retro"] .tick, [data-skin="retro"] .contrib, [data-skin="retro"] .goal-bar,
+[data-skin="retro"] .bar, [data-skin="retro"] .fill, [data-skin="retro"] .goal-fill, [data-skin="retro"] .rank { border-radius: 3px !important; }
+[data-skin="retro"] .card-inner, [data-skin="retro"] .toast { border-width: 2px; box-shadow: 5px 5px 0 rgba(255,0,77,.85); }
+[data-skin="retro"] .num, [data-skin="retro"] .goal-nums, [data-skin="retro"] .stat-v.num-latin { font-family: ui-monospace, 'SF Mono', Consolas, monospace; letter-spacing: .04em; }
+[data-skin="retro"].overlay-root::after, [data-skin="retro"].live-root::after {
+  content: ''; position: fixed; inset: 0; pointer-events: none; z-index: 2;
+  background: repeating-linear-gradient(0deg, rgba(0,0,0,.18) 0 1px, transparent 1px 3px);
+}
+[data-skin="retro"] .live-bg { background:
+  linear-gradient(transparent 60%, rgba(255,0,77,.15)),
+  repeating-linear-gradient(90deg, rgba(0,228,255,.08) 0 1px, transparent 1px 60px),
+  repeating-linear-gradient(0deg, rgba(0,228,255,.08) 0 1px, transparent 1px 60px), #0d0221; }
+
+/* ---------- Mini swatch used in the admin look gallery ---------- */
+.skin-swatch { position: relative; height: 92px; border-radius: 12px; overflow: hidden; padding: 10px; display: flex; flex-direction: column; gap: 6px; justify-content: flex-end;
+  background: radial-gradient(70% 70% at 90% 0%, var(--glow-1, rgba(245,179,1,.22)), transparent 60%), radial-gradient(60% 60% at 0% 100%, var(--glow-2, rgba(200,16,46,.22)), transparent 60%), var(--page-bg, #0b0a0f); }
+.skin-swatch .sw-title { font-weight: 900; font-size: 18px; line-height: 1.5; padding-bottom: .15em; background: var(--title-grad, linear-gradient(180deg, #fff6cf, var(--gold-2) 45%, var(--gold) 75%, #c27c00)); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.skin-swatch .sw-card { height: 16px; border-radius: 6px; background: linear-gradient(270deg, color-mix(in srgb, var(--gold) 70%, transparent), rgba(var(--glass-rgb, 18,12,10), .8) 70%); border: 1px solid var(--glass-border, rgba(255,213,74,.18)); }
+.skin-swatch .sw-card.b { width: 70%; background: linear-gradient(270deg, color-mix(in srgb, var(--red) 70%, transparent), rgba(var(--glass-rgb, 18,12,10), .8) 70%); }

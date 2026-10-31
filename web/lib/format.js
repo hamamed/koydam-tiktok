@@ -10,7 +10,11 @@ export function fmt(n) {
   return nf.format(n);
 }
 export const fmtFull = (n) => nf.format(Math.round(Number(n) || 0));
-export const safeUrl = (u) => (/^https?:\/\//i.test(String(u || '')) ? String(u) : '');
+/** Allowed image URLs: https:// or files uploaded in the panel (/uploads/<hash>.<ext>). */
+export const safeUrl = (u) => {
+  const s = String(u || '');
+  return /^https?:\/\//i.test(s) || /^\/uploads\/[a-f0-9]{16}\.(png|jpg|webp|gif)$/.test(s) ? s : '';
+};
 export const clamp = (n, a, b) => Math.min(b, Math.max(a, n));
 export const clone = (o) => JSON.parse(JSON.stringify(o));
 export const initial = (name) => ([...String(name || '?').trim()][0] || '?').toUpperCase();
@@ -18,16 +22,20 @@ export const initial = (name) => ([...String(name || '?').trim()][0] || '?').toU
 /** Theme -> CSS variables for the overlay / live board. */
 export function themeVars(th = {}) {
   const fam = th.fontFamily && th.fontFamily !== 'Cairo' ? `'${th.fontFamily}', 'Cairo'` : "'Cairo'";
-  return {
+  const vars = {
     '--accent': th.accent || '#f5b301',
-    '--text': th.textColor || '#ffffff',
     '--glass-a': th.glassOpacity ?? 0.32,
     '--blur': `${th.blur ?? 16}px`,
     '--radius': `${th.radius ?? 22}px`,
     '--fs': th.fontScale ?? 1,
     '--panel-w': `${th.width ?? 620}px`,
     '--font': `${fam}, 'Segoe UI', system-ui, sans-serif`,
+    '--name-g': th.nameScale ?? 1,
+    '--flag-scale': th.flagScale ?? 1,
   };
+  // White is the default: leave it to the look (light looks use dark text).
+  if (th.textColor && th.textColor.toLowerCase() !== '#ffffff' && th.textColor.toLowerCase() !== '#fff') vars['--text'] = th.textColor;
+  return vars;
 }
 
 /** Loads a Google font once if the theme asks for one that is not bundled. */

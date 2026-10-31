@@ -18,8 +18,10 @@
   --radius: 22px;
   --fs: 1;
   --font: 'Cairo', 'Segoe UI', system-ui, sans-serif;
-  --glass-bg: rgba(18, 12, 10, var(--glass-a));
+  --glass-rgb: 18, 12, 10;            /* card tint; looks (skins.css) change it */
   --glass-border: rgba(255, 213, 74, .18);
+  --name-g: 1;
+  --flag-scale: 1;
 }
 * { box-sizing: border-box; margin: 0; padding: 0; }
 [hidden] { display: none !important; }
@@ -31,7 +33,8 @@ a { color: inherit; }
 .num-latin { font-variant-numeric: tabular-nums; direction: ltr; unicode-bidi: isolate; }
 
 .glass {
-  background: linear-gradient(135deg, rgba(255,255,255,.10), rgba(255,255,255,.02)), var(--glass-bg);
+  /* resolved on each element, so the transparency slider and looks always apply */
+  background: linear-gradient(135deg, rgba(255,255,255,.10), rgba(255,255,255,.02)), rgba(var(--glass-rgb), var(--glass-a));
   border: 1px solid var(--glass-border);
   backdrop-filter: blur(var(--blur)) saturate(140%);
   -webkit-backdrop-filter: blur(var(--blur)) saturate(140%);
@@ -58,7 +61,7 @@ a { color: inherit; }
 .goal-row { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; font-weight: 800; font-size: calc(14px * var(--fs)); }
 .goal-label { color: var(--gold-2); }
 .goal-nums { direction: ltr; font-variant-numeric: tabular-nums; opacity: .9; }
-.goal-nums b { color: #fff; }
+.goal-nums b { color: var(--ink-strong, #fff); }
 .goal-bar { position: relative; height: calc(14px * var(--fs)); border-radius: 999px; background: rgba(0,0,0,.4); border: 1px solid rgba(255,213,74,.25); overflow: hidden; }
 .goal-fill {
   position: absolute; inset-block: 0; inset-inline-start: 0; border-radius: inherit;

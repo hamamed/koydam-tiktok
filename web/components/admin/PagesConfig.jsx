@@ -1,8 +1,26 @@
 'use client';
-import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import Overlay from '../Overlay';
+import LiveView from '../LiveView';
+import { Flag } from '../bits';
+import { api } from '@/lib/api';
 import { PRESETS } from '@/lib/presets';
-import { Btn, Color, Field, Icon, Num, Range, Section, Select, Text, Toggle } from './ui';
+import { SKINS, activeSkin, skinName } from '@/lib/skins';
+import { pickFile, uploadImage } from '@/lib/upload';
+import { safeUrl } from '@/lib/format';
+import { Btn, Color, Field, Icon, Num, Range, Section, Select, Text, Toggle, useNotice } from './ui';
+
+/** Upload button: picks an image, shrinks it, uploads it and returns its /uploads/ URL. */
+function UploadBtn({ max = 512, onDone, children = 'رفع صورة', variant = 'ghost', size = 'sm' }) {
+  const notice = useNotice();
+  const [busy, setBusy] = useState(false);
+  const go = async () => {
+    const f = await pickFile(); if (!f) return;
+    setBusy(true);
+    try { onDone(await uploadImage(f, { max })); notice('تم رفع الصورة'); } catch (e) { notice(e.message, 'err'); } finally { setBusy(false); }
+  };
+  return <Btn variant={variant} size={size} icon="plus" busy={busy} onClick={go}>{children}</Btn>;
+}
 
 const splitList = (s) => String(s).split(/[,،]/).map((x) => x.trim()).filter(Boolean);
 
@@ -44,19 +62,20 @@ export function Teams({ live, draft, edit }) {
       <Section title="قوالب جاهزة" desc="تستبدل قائمة الفرق الحالية (لا يُحفظ شيء قبل الضغط على «حفظ»)" className="span-2">
         <div className="a-row">
           {Object.entries(PRESETS).map(([name, p]) => (
-            <Btn key={name} variant="ghost" size="sm" onClick={() => edit((c) => { c.teams = p.teams.map((t) => ({ id: '', image: '', ...JSON.parse(JSON.stringify(t)) })); c.category = p.category; })}>{name}</Btn>
+            <Btn key={name} variant="ghost" size="sm" onClick={() => edit((c) => { c.teams = p.teams.map((t) => ({ id: '', image: '', nameScale: 1, ...JSON.parse(JSON.stringify(t)) })); c.category = p.category; })}>{name}</Btn>
           ))}
         </div>
       </Section>
 
       <Section title={`الفرق (${d.teams.length})`} className="span-2"
         desc="كلمات الشات تجعل المشاهد ينضم للفريق فتُحسب هداياه له. الهدايا المحددة للفريق تُحسب له دائماً. اسم الفريق وعلمه يعملان ككلمات تلقائياً."
-        actions={<Btn variant="gold" size="sm" icon="plus" disabled={d.teams.length >= 16} onClick={() => edit((c) => { c.teams.push({ id: '', name: `فريق ${c.teams.length + 1}`, emoji: '🏳️', color: colors[c.teams.length % colors.length], image: '', keywords: [], gifts: [] }); })}>إضافة فريق</Btn>}>
+        actions={<Btn variant="gold" size="sm" icon="plus" disabled={d.teams.length >= 16} onClick={() => edit((c) => { c.teams.push({ id: '', name: `فريق ${c.teams.length + 1}`, emoji: '🏳️', color: colors[c.teams.length % colors.length], image: '', nameScale: 1, keywords: [], gifts: [] }); })}>إضافة فريق</Btn>}>
         <div className="a-teams">
           {d.teams.map((t, i) => (
             <div key={t.id || `new-${i}`} className="a-team" style={{ '--team': t.color }}>
               <div className="a-team-head">
-                <input className="a-input a-emoji emoji" value={t.emoji} onChange={(e) => edit((c) => { c.teams[i].emoji = e.target.value; })} aria-label="الإيموجي" />
+                <span className={`a-team-photo${t.image ? ' has' : ''}`}><Flag team={t} /></span>
+                <input className="a-input a-emoji emoji" value={t.emoji} onChange={(e) => edit((c) => { c.teams[i].emoji = e.target.value; })} aria-label="الإيموجي" title="الإيموجي (يُستخدم إذا لم توجد صورة)" />
                 <input className="a-input a-team-name" value={t.name} onChange={(e) => edit((c) => { c.teams[i].name = e.target.value; })} aria-label="اسم الفريق" />
                 <Color value={t.color} onChange={(v) => edit((c) => { c.teams[i].color = v; })} />
                 <div className="a-team-tools">
@@ -68,7 +87,16 @@ export function Teams({ live, draft, edit }) {
               <div className="a-form">
                 <Field label="كلمات الشات (افصل بفاصلة)" hint="مثال: maroc، 🇲🇦، المغرب"><ListInput value={t.keywords} onChange={(v) => edit((c) => { c.teams[i].keywords = v; })} /></Field>
                 <Field label="هدايا خاصة بالفريق" hint="أسماء الهدايا بالإنجليزية كما في تيك توك"><ListInput value={t.gifts} list="gift-names" placeholder="Rose" onChange={(v) => edit((c) => { c.teams[i].gifts = v; })} /></Field>
-                <Field label="رابط صورة/شعار (اختياري)" hint="يستبدل الإيموجي"><input className="a-input num-latin" dir="ltr" value={t.image} placeholder="https://…" onChange={(e) => edit((c) => { c.teams[i].image = e.target.value; })} /></Field>
+                <Field label="صورة الفريق (علم / شعار / صورة القبيلة)" hint="تستبدل الإيموجي في كل الشاشات. PNG أو JPG أو WebP أو GIF">
+                  <div className="a-inline">
+                    <UploadBtn onDone={(url) => edit((c) => { c.teams[i].image = url; })}>{t.image ? 'تغيير الصورة' : 'رفع صورة'}</UploadBtn>
+                    {t.image && <Btn size="sm" variant="ghost" icon="trash" onClick={() => edit((c) => { c.teams[i].image = ''; })}>إزالة</Btn>}
+                    <input className="a-input num-latin" dir="ltr" value={t.image} placeholder="أو رابط https://…" onChange={(e) => edit((c) => { c.teams[i].image = e.target.value; })} />
+                  </div>
+                </Field>
+                <Field label="حجم اسم هذا الفريق" hint="صغّر الأسماء الطويلة أو كبّر القصيرة">
+                  <Range value={t.nameScale ?? 1} min={0.5} max={2.5} step={0.05} suffix="×" onChange={(v) => edit((c) => { c.teams[i].nameScale = v; })} />
+                </Field>
               </div>
             </div>
           ))}
@@ -150,20 +178,67 @@ export function Scoring({ live, draft, edit, dirty }) {
   );
 }
 
-/** 1920x1080 overlay scaled to fit its box. */
-function OverlayPreview({ config, live }) {
+/** A fixed-size stage (1920x1080 overlay or 1440x1000 live page) scaled to fit its box. */
+function ScaledStage({ w, h, children }) {
   const box = useRef(null);
   const [scale, setScale] = useState(0.4);
   useLayoutEffect(() => {
-    const ro = new ResizeObserver(() => { if (box.current) setScale(box.current.clientWidth / 1920); });
+    const ro = new ResizeObserver(() => { if (box.current) setScale(box.current.clientWidth / w); });
     ro.observe(box.current);
     return () => ro.disconnect();
-  }, []);
+  }, [w]);
   return (
-    <div ref={box} className="a-preview" style={{ height: 1080 * scale }}>
-      <div className="a-preview-stage" style={{ transform: `scale(${scale})` }}>
-        <Overlay config={config} state={live.state} byId={live.byId} status={live.status} preview />
+    <div ref={box} className="a-preview" style={{ height: h * scale }}>
+      <div className="a-preview-stage" style={{ width: w, height: h, transform: `scale(${scale})` }}>{children}</div>
+    </div>
+  );
+}
+
+function SkinCard({ skin, selected, today, inRotation, rotating, onPick, onToggle }) {
+  return (
+    <div className={`a-skin${selected ? ' selected' : ''}`}>
+      <button className="a-skin-pick" onClick={onPick} title="اختيار هذا الشكل">
+        <div className="skin-swatch" data-skin={skin.id}>
+          <span className="sw-title">تحدي المليون</span>
+          <span className="sw-card" /><span className="sw-card b" />
+        </div>
+        <div className="a-skin-meta">
+          <b>{skin.name}</b><span className="a-muted">{skin.desc}</span>
+        </div>
+      </button>
+      <div className="a-skin-foot">
+        {today && <span className="a-chip gold">● المعروض الآن</span>}
+        {selected && !rotating && !today && <span className="a-chip">المختار</span>}
+        {rotating && (
+          <label className="a-mini-check"><input type="checkbox" checked={inRotation} onChange={(e) => onToggle(e.target.checked)} />ضمن التبديل</label>
+        )}
       </div>
+    </div>
+  );
+}
+
+function Library({ onUse, refreshKey }) {
+  const notice = useNotice();
+  const [files, setFiles] = useState(null);
+  const load = useCallback(async () => { try { setFiles((await api('/api/uploads')).files); } catch (e) { notice(e.message, 'err'); } }, [notice]);
+  useEffect(() => { load(); }, [load, refreshKey]);
+  if (!files) return <div className="a-center"><span className="spin" /></div>;
+  if (!files.length) return <p className="a-empty">لا توجد صور مرفوعة بعد.</p>;
+  return (
+    <div className="a-library">
+      {files.map((f) => (
+        <div key={f.name} className="a-lib-item">
+          <img src={f.url} alt="" loading="lazy" />
+          <div className="a-lib-actions">
+            <button className="a-icon-btn" title="استخدام كخلفية" onClick={() => onUse(f.url)}><Icon name="check" /></button>
+            <button className="a-icon-btn danger" title="حذف" onClick={async () => {
+              if (!confirm('حذف هذه الصورة؟ إذا كانت مستخدمة ستختفي من الشاشات.')) return;
+              try { await api(`/api/upload?name=${encodeURIComponent(f.name)}`, { method: 'DELETE' }); load(); } catch (e) { notice(e.message, 'err'); }
+            }}><Icon name="trash" /></button>
+          </div>
+          <small className="num-latin">{Math.round(f.size / 1024)} KB</small>
+        </div>
+      ))}
     </div>
   );
 }
@@ -171,23 +246,92 @@ function OverlayPreview({ config, live }) {
 export function Theme({ live, draft, edit }) {
   const t = draft.theme;
   const set = (k) => (v) => edit((c) => { c.theme[k] = v; });
+  const [view, setView] = useState('overlay');
+  const [libKey, setLibKey] = useState(0);
+  const rot = t.skinRotation || { mode: 'off', skins: [] };
+  const rotating = rot.mode !== 'off';
+  const nowSkin = activeSkin(t);
+  const next = (() => {
+    if (!rotating) return null;
+    const d = new Date(); d.setDate(d.getDate() + (rot.mode === 'daily' ? 1 : 7 - ((d.getDay() + 6) % 7)));
+    return activeSkin(t, d);
+  })();
+  const toggleRot = (id, on) => edit((c) => {
+    const r = c.theme.skinRotation || { mode: 'off', skins: [] };
+    const cur = r.skins.length ? r.skins : SKINS.map((s) => s.id);
+    r.skins = on ? [...new Set([...cur, id])] : cur.filter((x) => x !== id);
+    if (r.skins.length === SKINS.length) r.skins = [];
+    c.theme.skinRotation = r;
+  });
+
   return (
     <div className="a-grid">
-      <Section title="معاينة مباشرة لواجهة OBS" desc="تتحدث فوراً مع كل تعديل. اضغط «حفظ وتطبيق» لإرسالها إلى OBS." className="span-2">
-        <OverlayPreview config={draft} live={live} />
+      <Section title="🎨 الأشكال الجاهزة" className="span-2"
+        desc="11 شكلاً للصفحة المباشرة وواجهة OBS. اختر شكلاً ثابتاً، أو فعّل التبديل التلقائي ليتغير الشكل كل يوم أو كل أسبوع."
+        actions={<div className="a-inline"><span className="a-label">التبديل التلقائي</span>
+          <Select value={rot.mode} onChange={(v) => edit((c) => { c.theme.skinRotation = { ...(c.theme.skinRotation || { skins: [] }), mode: v }; })}
+            options={[['off', 'إيقاف (شكل ثابت)'], ['daily', 'كل يوم'], ['weekly', 'كل أسبوع (الاثنين)']]} /></div>}>
+        {rotating && (
+          <div className="a-alert gold"><Icon name="update" />اليوم: <b>{skinName(nowSkin)}</b>{next && <> · {rot.mode === 'daily' ? 'غداً' : 'الأسبوع القادم'}: <b>{skinName(next)}</b></>} · الأشكال المشمولة: {rot.skins.length || SKINS.length}</div>
+        )}
+        <div className="a-skins">
+          {SKINS.map((sk) => (
+            <SkinCard key={sk.id} skin={sk} selected={t.skin === sk.id} today={rotating ? nowSkin === sk.id : t.skin === sk.id}
+              rotating={rotating} inRotation={!rot.skins.length || rot.skins.includes(sk.id)}
+              onPick={() => edit((c) => { c.theme.skin = sk.id; if (rotating) c.theme.skinRotation = { ...c.theme.skinRotation, mode: 'off' }; })}
+              onToggle={(on) => toggleRot(sk.id, on)} />
+          ))}
+        </div>
       </Section>
+
+      <Section title="معاينة مباشرة" className="span-2" desc="تتحدث فوراً مع كل تعديل. اضغط «حفظ وتطبيق» لإرسالها لكل الشاشات."
+        actions={<div className="a-seg">
+          <button className={view === 'overlay' ? 'on' : ''} onClick={() => setView('overlay')}>واجهة OBS</button>
+          <button className={view === 'live' ? 'on' : ''} onClick={() => setView('live')}>الصفحة المباشرة</button>
+        </div>}>
+        {view === 'overlay'
+          ? <ScaledStage w={1920} h={1080}><Overlay config={draft} state={live.state} byId={live.byId} status={live.status} preview /></ScaledStage>
+          : <ScaledStage w={1440} h={1000}><LiveView config={draft} state={live.state} byId={live.byId} status={live.status} preview /></ScaledStage>}
+      </Section>
+
+      <Section title="🖼️ صورة الخلفية" desc="تظهر خلف المحتوى. ننصح بصورة أفقية 1920×1080.">
+        <div className="a-bg-pick">
+          <div className="a-bg-thumb" style={safeUrl(t.bgImage) ? { backgroundImage: `url("${t.bgImage}")` } : undefined}>{!t.bgImage && <span className="a-muted">لا توجد صورة</span>}</div>
+          <div className="a-bg-actions">
+            <UploadBtn max={1920} variant="gold" size="" onDone={(url) => { edit((c) => { c.theme.bgImage = url; }); setLibKey((k) => k + 1); }}>{t.bgImage ? 'تغيير الصورة' : 'رفع صورة خلفية'}</UploadBtn>
+            {t.bgImage && <Btn variant="ghost" icon="trash" onClick={() => edit((c) => { c.theme.bgImage = ''; })}>إزالة</Btn>}
+          </div>
+        </div>
+        <div className="a-form">
+          <Field label="تعتيم الصورة"><Range value={t.bgDim} min={0} max={1} step={0.05} onChange={set('bgDim')} /></Field>
+          <Field label="ضبابية الصورة"><Range value={t.bgBlur} min={0} max={30} step={1} suffix="px" onChange={set('bgBlur')} /></Field>
+          <Toggle label="في الصفحة المباشرة" checked={t.bgOnLive} onChange={set('bgOnLive')} />
+          <Toggle label="في واجهة OBS" checked={t.bgOnOverlay} onChange={set('bgOnOverlay')} />
+        </div>
+        {t.bgOnOverlay && t.bgImage && <div className="a-alert warn"><Icon name="eye" />في OBS ستغطي الصورة ما خلف الواجهة (الكاميرا/البث). فعّلها إذا كانت الواجهة مشهداً كاملاً.</div>}
+      </Section>
+
+      <Section title="🔠 الأحجام والصور">
+        <div className="a-form">
+          <Field label="حجم أسماء الفرق" hint="لكل الفرق. يمكن ضبط كل فريق من صفحة «الفرق»"><Range value={t.nameScale} min={0.5} max={2.5} step={0.05} suffix="×" onChange={set('nameScale')} /></Field>
+          <Field label="حجم صورة / علم الفريق"><Range value={t.flagScale} min={0.5} max={2.5} step={0.05} suffix="×" onChange={set('flagScale')} /></Field>
+          <Field label="شكل صورة الفريق"><Select value={t.flagShape} onChange={set('flagShape')} options={[['rounded', 'مربع بحواف دائرية'], ['circle', 'دائرة'], ['square', 'مربع']]} /></Field>
+          <Field label="حجم الخط العام"><Range value={t.fontScale} min={0.6} max={1.6} step={0.05} onChange={set('fontScale')} /></Field>
+        </div>
+      </Section>
+
       <Section title="الألوان والزجاج">
         <div className="a-form">
           <Field label="لون التمييز"><Color value={t.accent} onChange={set('accent')} /></Field>
-          <Field label="لون النص"><Color value={t.textColor} onChange={set('textColor')} /></Field>
+          <Field label="لون النص" hint="الأبيض = حسب الشكل"><Color value={t.textColor} onChange={set('textColor')} /></Field>
           <Field label="شفافية البطاقات"><Range value={t.glassOpacity} min={0} max={1} step={0.01} onChange={set('glassOpacity')} /></Field>
           <Field label="التمويه"><Range value={t.blur} min={0} max={40} step={1} suffix="px" onChange={set('blur')} /></Field>
           <Field label="استدارة الحواف"><Range value={t.radius} min={0} max={40} step={1} suffix="px" onChange={set('radius')} /></Field>
-          <Field label="حجم الخط"><Range value={t.fontScale} min={0.6} max={1.6} step={0.05} onChange={set('fontScale')} /></Field>
-          <Field label="الخط" hint="Cairo مضمّن. أي خط آخر من Google Fonts (مثل Tajawal أو Almarai)"><Text value={t.fontFamily} onChange={set('fontFamily')} /></Field>
-          <Field label="خلفية المعاينة" hint="transparent لـ OBS"><Text value={t.background} onChange={set('background')} /></Field>
+          <Field label="الخط" hint="Cairo مضمّن. أو أي خط من Google Fonts (Tajawal، Almarai…)"><Text value={t.fontFamily} onChange={set('fontFamily')} /></Field>
+          <Field label="لون خلفية OBS" hint="transparent للشفافية"><Text value={t.background} onChange={set('background')} /></Field>
         </div>
       </Section>
+
       <Section title="التخطيط">
         <div className="a-form">
           <Field label="الشكل"><Select value={t.layout} onChange={set('layout')} options={[['list', 'قائمة عمودية'], ['grid', 'شبكة']]} /></Field>
@@ -202,6 +346,10 @@ export function Theme({ live, draft, edit }) {
           <Toggle label="إظهار الشريط الإخباري" checked={t.showTicker} onChange={set('showTicker')} />
           <Toggle label="إظهار عدد المشاهدين" checked={t.showViewers} onChange={set('showViewers')} />
         </div>
+      </Section>
+
+      <Section title="📁 مكتبة الصور" desc="كل الصور المرفوعة (صور الفرق والخلفيات). ✓ = استخدام كخلفية." className="span-2">
+        <Library refreshKey={libKey} onUse={(url) => edit((c) => { c.theme.bgImage = url; })} />
       </Section>
     </div>
   );

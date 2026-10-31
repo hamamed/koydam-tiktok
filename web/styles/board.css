@@ -44,11 +44,14 @@
 
 .flag-wrap { position: relative; z-index: 1; }
 .flag {
-  width: calc(62px * var(--fs)); height: calc(62px * var(--fs)); border-radius: calc(16px * var(--fs));
-  display: grid; place-items: center; font-size: calc(40px * var(--fs)); line-height: 1;
+  width: calc(62px * var(--fs) * var(--flag-scale, 1)); height: calc(62px * var(--fs) * var(--flag-scale, 1)); border-radius: calc(16px * var(--fs));
+  display: grid; place-items: center; font-size: calc(40px * var(--fs) * var(--flag-scale, 1)); line-height: 1;
   background: rgba(0,0,0,.2); border: 1px solid rgba(255,255,255,.14); overflow: hidden;
 }
 .flag img { width: 100%; height: 100%; object-fit: cover; }
+.board[data-shape="circle"] .flag { border-radius: 50%; }
+.board[data-shape="square"] .flag { border-radius: 4px; }
+.board[data-shape="circle"] .crown { top: calc(-22px * var(--fs)); }
 .crown {
   position: absolute; top: calc(-20px * var(--fs)); left: 50%; font-size: calc(26px * var(--fs));
   transform: translateX(-50%) rotate(12deg); opacity: 0; transition: opacity .3s;
@@ -59,7 +62,7 @@
 
 .main { position: relative; z-index: 1; min-width: 0; display: flex; flex-direction: column; gap: calc(6px * var(--fs)); }
 .row1 { display: flex; align-items: baseline; gap: 10px; min-width: 0; }
-.name { font-weight: 900; font-size: calc(23px * var(--fs)); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-shadow: 0 2px 8px rgba(0,0,0,.45); }
+.name { font-weight: 900; font-size: calc(23px * var(--fs) * var(--name-g, 1) * var(--name-scale, 1)); line-height: 1.35; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-shadow: 0 2px 8px rgba(0,0,0,.45); }
 .medal { font-size: calc(18px * var(--fs)); }
 .share { margin-inline-start: auto; font-size: calc(13px * var(--fs)); font-weight: 800; opacity: .85; direction: ltr; }
 .bar { position: relative; height: calc(10px * var(--fs)); border-radius: 999px; background: rgba(0,0,0,.32); overflow: hidden; }
@@ -79,7 +82,7 @@
 .contribs { display: flex; gap: 6px; min-height: calc(24px * var(--fs)); overflow: hidden; }
 .contrib {
   display: inline-flex; align-items: center; gap: 5px; flex: 0 1 auto; min-width: 0;
-  padding: 2px 2px 2px 9px; border-radius: 999px; background: rgba(0,0,0,.3);
+  padding: 2px 2px 2px 9px; border-radius: 999px; background: var(--contrib-bg, rgba(0,0,0,.3));
   font-size: calc(12px * var(--fs)); font-weight: 700; white-space: nowrap; animation: pop .35s var(--ease-out);
 }
 .contrib .cn { overflow: hidden; text-overflow: ellipsis; min-width: 2.5em; max-width: 8em; }

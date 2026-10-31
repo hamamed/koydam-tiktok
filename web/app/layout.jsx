@@ -7,6 +7,7 @@ import '../styles/base.css';
 import '../styles/board.css';
 import '../styles/overlay.css';
 import '../styles/live.css';
+import '../styles/skins.css';
 import '../styles/admin.css';
 
 export const metadata = {

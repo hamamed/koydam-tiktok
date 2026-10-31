@@ -7,7 +7,7 @@ import { useEffect, useRef, useState } from 'react';
 import { onLiveEvent } from '@/lib/store';
 import { confettiBurst, confettiRain } from '@/lib/confetti';
 import { fmt, safeUrl } from '@/lib/format';
-import { Avatar } from './bits';
+import { Avatar, Flag } from './bits';
 
 const teamLabel = (t) => (t ? `${t.emoji || ''} ${t.name}`.trim() : '؟');
 
@@ -136,7 +136,7 @@ export function Banner({ banner }) {
   const { team, prev } = banner;
   return (
     <div key={banner.key} className="banner glass show" style={{ '--team': team.color, borderColor: team.color }}>
-      <span className="bflag emoji">{team.emoji || '🏆'}</span>
+      <span className="bflag emoji">{team.image ? <span className="bphoto"><Flag team={team} /></span> : team.emoji || '🏆'}</span>
       <div className="btext">{team.name} يتصدّر!</div>
       <div className="bsub">{prev ? `تجاوز ${prev.emoji || ''} ${prev.name}` : 'أول النقاط! 🔥'}</div>
     </div>

@@ -3,7 +3,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { cmd } from '@/lib/store';
 import { fmt } from '@/lib/format';
 import { useAlerts } from '../Effects';
-import { AnimatedNumber, Avatar, GoalBar } from '../bits';
+import { AnimatedNumber, Avatar, Flag, GoalBar } from '../bits';
 import { Btn, CopyField, Field, Icon, Section, Text } from './ui';
 
 function useConnActions(live, notice) {
@@ -77,7 +77,7 @@ export function Overview({ live, notice, go }) {
           {ranked.map(({ t, d }, i) => (
             <div key={t.id} className="a-stand" style={{ '--team': t.color }}>
               <span className={`a-pos p${i + 1}`}>{i + 1}</span>
-              <span className="a-stand-flag emoji">{t.emoji}</span>
+              <span className="a-stand-flag emoji"><Flag team={t} /></span>
               <div className="a-stand-main">
                 <div className="a-stand-row"><b>{t.name}</b><span className="num-latin">{fmt(d.score)}</span></div>
                 <div className="a-stand-bar"><i style={{ width: `${ranked[0].d.score ? (d.score / ranked[0].d.score) * 100 : 0}%` }} /></div>

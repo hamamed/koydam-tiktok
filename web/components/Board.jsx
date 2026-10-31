@@ -56,7 +56,7 @@ const Card = memo(function Card({ team, data, rank, isLeader, barPct, share, gap
       className={`card${isLeader ? ' is-leader' : ''}${hidden ? ' is-hidden' : ''}`}
       data-rank={rank}
       data-team-card={team.id}
-      style={{ '--team': team.color, transform: `translate(${-x}px, ${y}px)`, zIndex: 100 - rank }}
+      style={{ '--team': team.color, '--name-scale': team.nameScale || 1, transform: `translate(${-x}px, ${y}px)`, zIndex: 100 - rank }}
     >
       <div ref={inner} className="card-inner glass">
         <div className="rank">{rank}</div>
@@ -94,7 +94,7 @@ const Card = memo(function Card({ team, data, rank, isLeader, barPct, share, gap
   );
 });
 
-export default function Board({ config, state, byId, layout = 'list', maxVisible = 16, showContributors = true, contributorsCount = 3, minColWidth = 440 }) {
+export default function Board({ config, state, byId, layout = 'list', maxVisible = 16, showContributors = true, contributorsCount = 3, minColWidth = 440, flagShape = 'rounded' }) {
   const order = useRef([]);
   const wrap = useRef(null);
   const firstCard = useRef(null);
@@ -124,6 +124,8 @@ export default function Board({ config, state, byId, layout = 'list', maxVisible
     if (wrap.current) ro.observe(wrap.current);
     return () => ro.disconnect();
   }, [showContributors, ranked.length]);
+  // Name/photo size changes the card height: measure again.
+  useEffect(() => { if (firstCard.current) setCardH(firstCard.current.offsetHeight || 96); });
 
   const visible = Math.min(ranked.length, maxVisible);
   const cols = layout === 'grid' ? Math.max(1, Math.floor((width + gap) / (minColWidth + gap))) : 1;
@@ -134,7 +136,7 @@ export default function Board({ config, state, byId, layout = 'list', maxVisible
   const total = state?.total || 0;
 
   return (
-    <div ref={wrap} className={`board layout-${layout}`} style={{ height: rows ? rows * (cardH + gap) - gap : 0, '--col-w': `${colW}px` }}>
+    <div ref={wrap} className={`board layout-${layout}`} data-shape={flagShape} style={{ height: rows ? rows * (cardH + gap) - gap : 0, '--col-w': `${colW}px` }}>
       {ranked.map((r, idx) => {
         const data = byId?.get(r.t.id) || { score: 0, top: [] };
         const isLeader = r.t.id === leaderId && r.score > 0;

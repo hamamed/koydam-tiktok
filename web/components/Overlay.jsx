@@ -4,17 +4,28 @@ import { useEffect } from 'react';
 import Board from './Board';
 import { Banner, Ticker, Toasts, useAlerts } from './Effects';
 import { AnimatedNumber, GoalBar, Logo } from './bits';
-import { ensureFont, fmt, themeVars } from '@/lib/format';
+import { ensureFont, fmt, safeUrl, themeVars } from '@/lib/format';
+import { useActiveSkin } from '@/lib/skins';
+
+/** Background picture layer (dimmed, optional blur). */
+export function ScenePhoto({ theme }) {
+  const url = safeUrl(theme.bgImage);
+  if (!url) return null;
+  const blur = theme.bgBlur || 0;
+  return <div className="scene-photo" style={{ backgroundImage: `url("${url}")`, '--bg-dim': theme.bgDim ?? 0.55, filter: blur ? `blur(${blur}px)` : undefined, transform: blur ? 'scale(1.06)' : undefined }} />;
+}
 
 export default function Overlay({ config, state, byId, status, preview = false }) {
   const th = config.theme;
   const { toasts, ticks, banner } = useAlerts(config, { confetti: !preview });
+  const skin = useActiveSkin(th);
   useEffect(() => { ensureFont(th.fontFamily); }, [th.fontFamily]);
   // Toasts go to the side opposite the board when they would overlap.
   const toastSide = th.layout === 'list' && th.position === th.toastPosition ? (th.position === 'left' ? 'right' : 'left') : th.toastPosition;
 
   return (
-    <div className={`overlay-root${preview ? ' preview' : ''}`} style={{ ...themeVars(th), background: th.background || 'transparent' }}>
+    <div className={`overlay-root${preview ? ' preview' : ''}`} data-skin={skin} style={{ ...themeVars(th), background: th.background || 'transparent' }}>
+      {th.bgOnOverlay && <ScenePhoto theme={th} />}
       <div className={`ov-panel pos-${th.position} layout-${th.layout}`}>
         {th.showHeader && (
           <header className="ov-header glass">
@@ -33,7 +44,7 @@ export default function Overlay({ config, state, byId, status, preview = false }
         )}
         <Board
           config={config} state={state} byId={byId}
-          layout={th.layout} maxVisible={th.maxVisible}
+          layout={th.layout} maxVisible={th.maxVisible} flagShape={th.flagShape}
           showContributors={th.showContributors} contributorsCount={th.contributorsCount}
         />
       </div>
