@@ -1,0 +1,74 @@
+/* ==========================================================================
+   OBS overlay scene (1920x1080, transparent)
+   ========================================================================== */
+.overlay-root { position: fixed; inset: 0; overflow: hidden; font-size: calc(16px * var(--fs)); color: var(--text); font-family: var(--font); }
+.overlay-root.preview { position: absolute; }
+.ov-panel { position: absolute; top: 36px; width: var(--panel-w); max-width: calc(100% - 48px); display: flex; flex-direction: column; gap: calc(12px * var(--fs)); }
+.ov-panel.pos-right { right: 40px; }
+.ov-panel.pos-left { left: 40px; }
+.ov-panel.pos-center { left: 50%; transform: translateX(-50%); }
+.ov-panel.layout-grid { width: min(1500px, calc(100% - 80px)); }
+
+.ov-header { display: flex; align-items: center; gap: 16px; padding: calc(14px * var(--fs)) calc(18px * var(--fs)); position: relative; overflow: hidden; }
+.ov-header::before { content: ''; position: absolute; inset: 0; pointer-events: none;
+  background: radial-gradient(120% 140% at 100% 0%, rgba(245,179,1,.35), transparent 55%), radial-gradient(80% 120% at 0% 100%, rgba(200,16,46,.28), transparent 60%); }
+.ov-logo { position: relative; width: calc(96px * var(--fs)); height: auto; flex: none; filter: drop-shadow(0 4px 14px rgba(0,0,0,.5)); }
+.ov-head-main { position: relative; flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 6px; }
+.ov-title {
+  font-weight: 900; font-size: calc(34px * var(--fs)); line-height: 1.35; padding-bottom: .12em;
+  background: linear-gradient(180deg, #fff6cf, var(--gold-2) 45%, var(--gold) 75%, #c27c00);
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+  filter: drop-shadow(0 2px 0 var(--red-2)) drop-shadow(0 4px 10px rgba(0,0,0,.45));
+}
+.ov-sub { font-size: calc(15px * var(--fs)); font-weight: 700; opacity: .9; }
+
+/* ---- Toasts ---- */
+.toasts { position: absolute; top: 36px; width: 460px; display: flex; flex-direction: column; gap: 10px; }
+.toasts.side-left { left: 40px; } .toasts.side-right { right: 40px; }
+.toast { --team: var(--accent); position: relative; overflow: hidden; display: flex; align-items: center; gap: 12px;
+  padding: 10px 10px 10px 16px; font-size: calc(15px * var(--fs)); animation: toastIn .5s var(--ease-out); transition: opacity .4s, transform .4s var(--ease-out); }
+.toast::before { content: ''; position: absolute; inset-block: 0; right: 0; width: 5px; background: var(--team); }
+.toasts.side-left .toast { animation-name: toastInL; }
+.toast.out { opacity: 0; transform: translateX(-40px) scale(.96); }
+.toasts.side-right .toast.out { transform: translateX(40px) scale(.96); }
+.toast.major { border-color: color-mix(in srgb, var(--gold) 85%, transparent);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--gold) 50%, transparent), 0 0 40px rgba(245,179,1,.45);
+  background: linear-gradient(135deg, rgba(255,213,74,.28), rgba(255,255,255,.03)), var(--glass-bg); }
+@keyframes toastIn { from { opacity: 0; transform: translateX(60px) scale(.9); } }
+@keyframes toastInL { from { opacity: 0; transform: translateX(-60px) scale(.9); } }
+.toast .avatar { width: 44px; height: 44px; font-size: 18px; }
+.toast .tbody { min-width: 0; flex: 1; line-height: 1.35; }
+.toast .tuser { font-weight: 900; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.toast .tgift { font-weight: 900; color: var(--gold-2); }
+.toast .tteam { font-weight: 900; }
+.toast .tcount { display: inline-block; font-weight: 900; animation: comboPop .3s var(--ease-out); }
+.tick .tg { font-weight: 800; color: #ffe9a3; }
+@keyframes comboPop { 40% { transform: scale(1.5); } }
+.toast .tpts { font-weight: 900; font-size: 1.3em; white-space: nowrap; direction: ltr; text-shadow: 0 0 12px var(--team); }
+.toast .gimg { width: 40px; height: 40px; object-fit: contain; flex: none; }
+
+/* ---- Ticker ---- */
+.ticker { position: absolute; left: 40px; right: 40px; bottom: 28px; height: calc(52px * var(--fs)); display: flex; align-items: center; overflow: hidden; }
+.ticker-label { flex: none; height: 100%; display: flex; align-items: center; gap: 8px; padding: 0 18px; font-weight: 900; font-size: calc(15px * var(--fs));
+  background: linear-gradient(135deg, var(--red), var(--red-2)); border-radius: 0 var(--radius) var(--radius) 0; }
+.ticker-items { display: flex; gap: 10px; padding-inline-start: 12px; white-space: nowrap; overflow: hidden; flex: 1;
+  mask-image: linear-gradient(270deg, #000 85%, transparent); -webkit-mask-image: linear-gradient(270deg, #000 85%, transparent); }
+.tick { --team: var(--accent); flex: none; display: inline-flex; align-items: center; gap: 4px; padding: 6px 12px; border-radius: 999px;
+  font-size: calc(14px * var(--fs)); font-weight: 700; background: rgba(255,255,255,.08); border: 1px solid color-mix(in srgb, var(--team) 60%, transparent);
+  animation: tickIn .5s var(--ease-out); }
+.tick b { font-weight: 900; }
+.tick .tp { color: var(--gold-2); font-weight: 900; direction: ltr; }
+@keyframes tickIn { from { opacity: 0; transform: translateX(40px); } }
+
+/* ---- Takeover banner ---- */
+.banner { position: absolute; left: 50%; top: 40%; transform: translate(-50%, -50%); padding: 22px 50px; text-align: center; z-index: 50; pointer-events: none; border-width: 2px; }
+.banner.show { animation: bannerIn 3.4s var(--ease-out) forwards; }
+@keyframes bannerIn {
+  0% { opacity: 0; transform: translate(-50%, -50%) scale(.5) rotate(4deg); }
+  12% { opacity: 1; transform: translate(-50%, -50%) scale(1.08) rotate(-1deg); }
+  20%, 82% { opacity: 1; transform: translate(-50%, -50%) scale(1) rotate(0); }
+  100% { opacity: 0; transform: translate(-50%, -60%) scale(.95); }
+}
+.banner .bflag { font-size: calc(80px * var(--fs)); line-height: 1.1; display: block; }
+.banner .btext { font-weight: 900; font-size: calc(50px * var(--fs)); text-shadow: 0 4px 24px var(--team, var(--accent)); white-space: nowrap; }
+.banner .bsub { font-weight: 800; opacity: .9; font-size: calc(19px * var(--fs)); margin-top: 4px; }

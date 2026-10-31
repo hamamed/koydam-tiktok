@@ -1,0 +1,42 @@
+const nf = new Intl.NumberFormat('en-US', { maximumFractionDigits: 0 });
+
+/** 12,345 · 123.4K · 1.25M (Western digits read best on stream). */
+export function fmt(n) {
+  n = Math.round(Number(n) || 0);
+  const a = Math.abs(n);
+  if (a >= 1e9) return (n / 1e9).toFixed(2).replace(/\.?0+$/, '') + 'B';
+  if (a >= 1e6) return (n / 1e6).toFixed(a >= 1e7 ? 1 : 2).replace(/\.?0+$/, '') + 'M';
+  if (a >= 1e5) return (n / 1e3).toFixed(1).replace(/\.0$/, '') + 'K';
+  return nf.format(n);
+}
+export const fmtFull = (n) => nf.format(Math.round(Number(n) || 0));
+export const safeUrl = (u) => (/^https?:\/\//i.test(String(u || '')) ? String(u) : '');
+export const clamp = (n, a, b) => Math.min(b, Math.max(a, n));
+export const clone = (o) => JSON.parse(JSON.stringify(o));
+export const initial = (name) => ([...String(name || '?').trim()][0] || '?').toUpperCase();
+
+/** Theme -> CSS variables for the overlay / live board. */
+export function themeVars(th = {}) {
+  const fam = th.fontFamily && th.fontFamily !== 'Cairo' ? `'${th.fontFamily}', 'Cairo'` : "'Cairo'";
+  return {
+    '--accent': th.accent || '#f5b301',
+    '--text': th.textColor || '#ffffff',
+    '--glass-a': th.glassOpacity ?? 0.32,
+    '--blur': `${th.blur ?? 16}px`,
+    '--radius': `${th.radius ?? 22}px`,
+    '--fs': th.fontScale ?? 1,
+    '--panel-w': `${th.width ?? 620}px`,
+    '--font': `${fam}, 'Segoe UI', system-ui, sans-serif`,
+  };
+}
+
+/** Loads a Google font once if the theme asks for one that is not bundled. */
+const loadedFonts = new Set(['Cairo']);
+export function ensureFont(family) {
+  if (typeof document === 'undefined' || !family || loadedFonts.has(family)) return;
+  loadedFonts.add(family);
+  const l = document.createElement('link');
+  l.rel = 'stylesheet';
+  l.href = `https://fonts.googleapis.com/css2?family=${encodeURIComponent(family).replace(/%20/g, '+')}:wght@400;600;700;800;900&display=swap`;
+  document.head.appendChild(l);
+}

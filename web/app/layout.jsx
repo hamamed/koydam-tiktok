@@ -1,0 +1,25 @@
+import '@fontsource/cairo/400.css';
+import '@fontsource/cairo/600.css';
+import '@fontsource/cairo/700.css';
+import '@fontsource/cairo/800.css';
+import '@fontsource/cairo/900.css';
+import '../styles/base.css';
+import '../styles/board.css';
+import '../styles/overlay.css';
+import '../styles/live.css';
+import '../styles/admin.css';
+
+export const metadata = {
+  title: 'تحدي المليون · Koydam',
+  description: 'تحدي المليون: منافسة الهدايا المباشرة على تيك توك',
+  icons: { icon: '/favicon.png', apple: '/apple-touch-icon.png' },
+};
+export const viewport = { themeColor: '#0b0a0f', width: 'device-width', initialScale: 1 };
+
+export default function RootLayout({ children }) {
+  return (
+    <html lang="ar" dir="rtl">
+      <body>{children}</body>
+    </html>
+  );
+}

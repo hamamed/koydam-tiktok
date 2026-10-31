@@ -1,0 +1,28 @@
+{
+  "name": "koydam-tiktok",
+  "version": "2.0.0",
+  "description": "تحدي المليون: real-time TikTok LIVE gift battle (Next.js live page, OBS overlay, Arabic admin)",
+  "private": true,
+  "license": "UNLICENSED",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/hamamed/koydam-tiktok.git"
+  },
+  "engines": {
+    "node": ">=20.9.0"
+  },
+  "scripts": {
+    "dev:web": "next dev web --port 3000",
+    "build": "node scripts/build.js",
+    "start": "node server/index.js",
+    "demo": "node server/index.js --demo"
+  },
+  "dependencies": {
+    "@fontsource/cairo": "^5.3.0",
+    "next": "^16.0.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "tiktok-live-connector": "^2.5.0",
+    "ws": "^8.18.0"
+  }
+}

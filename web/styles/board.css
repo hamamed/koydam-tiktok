@@ -1,0 +1,104 @@
+/* ==========================================================================
+   Team cards (overlay, live page, admin preview). RTL layout:
+   [rank][flag][name / bar / supporters][score]  (right -> left)
+   ========================================================================== */
+.board { position: relative; transition: height .5s var(--ease-out); }
+.card {
+  position: absolute; top: 0; right: 0; width: var(--col-w, 100%);
+  transition: transform .8s var(--ease-out), opacity .4s;
+  will-change: transform;
+}
+.card.is-hidden { opacity: 0; pointer-events: none; }
+.card-inner {
+  position: relative; overflow: hidden;
+  display: grid; grid-template-columns: auto auto 1fr auto; align-items: center;
+  gap: calc(14px * var(--fs));
+  padding: calc(12px * var(--fs)) calc(12px * var(--fs)) calc(12px * var(--fs)) calc(18px * var(--fs));
+  transition: box-shadow .5s var(--ease-out), border-color .5s;
+}
+.card-inner::before {
+  content: ''; position: absolute; inset: 0; pointer-events: none;
+  background: linear-gradient(270deg, color-mix(in srgb, var(--team) 42%, transparent), transparent 62%);
+  opacity: .8;
+}
+.card.is-leader .card-inner {
+  border-color: color-mix(in srgb, var(--gold) 75%, transparent);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--gold) 45%, transparent), 0 0 34px color-mix(in srgb, var(--team) 65%, transparent), 0 10px 30px rgba(0,0,0,.4);
+}
+.card.is-leader .card-inner::after {
+  content: ''; position: absolute; top: 0; bottom: 0; width: 40%; right: -60%;
+  background: linear-gradient(260deg, transparent, rgba(255,240,180,.22), transparent);
+  animation: sweep 3.2s ease-in-out infinite; pointer-events: none;
+}
+@keyframes sweep { 60%, 100% { right: 130%; } }
+
+.rank {
+  position: relative; z-index: 1;
+  width: calc(40px * var(--fs)); height: calc(40px * var(--fs)); border-radius: 50%;
+  display: grid; place-items: center; font-weight: 900; font-size: calc(18px * var(--fs));
+  background: rgba(255,255,255,.12); border: 1px solid rgba(255,255,255,.2);
+}
+.card[data-rank="1"] .rank { background: linear-gradient(145deg, #fff3b0, var(--gold) 50%, #c99a12); color: #3a2a00; border: 0; }
+.card[data-rank="2"] .rank { background: linear-gradient(145deg, #fff, var(--silver) 50%, #8e9aa8); color: #1d2733; border: 0; }
+.card[data-rank="3"] .rank { background: linear-gradient(145deg, #ffd9b8, var(--bronze) 50%, #8a4f22); color: #2c1606; border: 0; }
+
+.flag-wrap { position: relative; z-index: 1; }
+.flag {
+  width: calc(62px * var(--fs)); height: calc(62px * var(--fs)); border-radius: calc(16px * var(--fs));
+  display: grid; place-items: center; font-size: calc(40px * var(--fs)); line-height: 1;
+  background: rgba(0,0,0,.2); border: 1px solid rgba(255,255,255,.14); overflow: hidden;
+}
+.flag img { width: 100%; height: 100%; object-fit: cover; }
+.crown {
+  position: absolute; top: calc(-20px * var(--fs)); left: 50%; font-size: calc(26px * var(--fs));
+  transform: translateX(-50%) rotate(12deg); opacity: 0; transition: opacity .3s;
+  filter: drop-shadow(0 2px 6px rgba(0,0,0,.5));
+}
+.card.is-leader .crown { opacity: 1; animation: crown 2.4s ease-in-out infinite; }
+@keyframes crown { 50% { transform: translateX(-50%) translateY(-4px) rotate(6deg); } }
+
+.main { position: relative; z-index: 1; min-width: 0; display: flex; flex-direction: column; gap: calc(6px * var(--fs)); }
+.row1 { display: flex; align-items: baseline; gap: 10px; min-width: 0; }
+.name { font-weight: 900; font-size: calc(23px * var(--fs)); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-shadow: 0 2px 8px rgba(0,0,0,.45); }
+.medal { font-size: calc(18px * var(--fs)); }
+.share { margin-inline-start: auto; font-size: calc(13px * var(--fs)); font-weight: 800; opacity: .85; direction: ltr; }
+.bar { position: relative; height: calc(10px * var(--fs)); border-radius: 999px; background: rgba(0,0,0,.32); overflow: hidden; }
+.fill {
+  position: absolute; inset-block: 0; right: 0; width: 0%; border-radius: inherit;
+  background: linear-gradient(270deg, var(--team), color-mix(in srgb, var(--team) 55%, #fff));
+  box-shadow: 0 0 14px color-mix(in srgb, var(--team) 80%, transparent);
+  transition: width .8s var(--ease-out);
+}
+.fill::after {
+  content: ''; position: absolute; inset: 0;
+  background: repeating-linear-gradient(45deg, rgba(255,255,255,.18) 0 8px, transparent 8px 16px);
+  background-size: 22px 22px; animation: stripes 1s linear infinite;
+}
+@keyframes stripes { to { background-position: -22px 0; } }
+
+.contribs { display: flex; gap: 6px; min-height: calc(24px * var(--fs)); overflow: hidden; }
+.contrib {
+  display: inline-flex; align-items: center; gap: 5px; flex: 0 1 auto; min-width: 0;
+  padding: 2px 2px 2px 9px; border-radius: 999px; background: rgba(0,0,0,.3);
+  font-size: calc(12px * var(--fs)); font-weight: 700; white-space: nowrap; animation: pop .35s var(--ease-out);
+}
+.contrib .cn { overflow: hidden; text-overflow: ellipsis; min-width: 2.5em; max-width: 8em; }
+.contrib .cp { opacity: .75; flex: none; direction: ltr; font-variant-numeric: tabular-nums; }
+.contrib:nth-child(1) .avatar { box-shadow: 0 0 0 2px var(--gold); }
+.contrib:nth-child(2) .avatar { box-shadow: 0 0 0 2px var(--silver); }
+.contrib:nth-child(3) .avatar { box-shadow: 0 0 0 2px var(--bronze); }
+@keyframes pop { from { transform: scale(.7); opacity: 0; } }
+
+.score { position: relative; z-index: 1; text-align: left; min-width: calc(120px * var(--fs)); }
+.num { display: block; font-weight: 900; font-size: calc(32px * var(--fs)); line-height: 1.05; direction: ltr; font-variant-numeric: tabular-nums; text-shadow: 0 2px 12px rgba(0,0,0,.45); }
+.pts { font-size: calc(11px * var(--fs)); font-weight: 800; opacity: .75; }
+.gap { display: block; margin-top: 2px; font-size: calc(12px * var(--fs)); font-weight: 800; opacity: .9; white-space: nowrap; }
+.gap.lead { color: var(--gold-2); }
+
+.plus {
+  position: absolute; left: calc(18px * var(--fs)); top: calc(-6px * var(--fs)); z-index: 6; pointer-events: none;
+  font-weight: 900; font-size: calc(22px * var(--fs)); color: #fff; direction: ltr;
+  text-shadow: 0 0 10px var(--team, var(--accent)), 0 2px 6px rgba(0,0,0,.6);
+  animation: floatUp 1.3s var(--ease-out) forwards;
+}
+@keyframes floatUp { from { transform: translateY(10px) scale(.7); opacity: 0; } 20% { opacity: 1; transform: translateY(-6px) scale(1.1); } to { transform: translateY(-46px) scale(1); opacity: 0; } }

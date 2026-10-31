@@ -1,0 +1,15 @@
+node_modules/
+data/
+web/out/
+web/.next/
+.next/
+*.tmp
+*.log
+.DS_Store
+.env*
+# created in the app folder by npm/git when HOME is the app folder (systemd user)
+.npm/
+.cache/
+.config/
+.local/
+.gitconfig
