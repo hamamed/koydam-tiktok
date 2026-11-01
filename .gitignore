@@ -13,3 +13,7 @@ web/.next/
 .config/
 .local/
 .gitconfig
+
+# promo videos (tools/promo-video.js)
+*.mp4
+*.webm
