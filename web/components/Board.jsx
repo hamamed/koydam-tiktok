@@ -11,6 +11,16 @@ import { fmt } from '@/lib/format';
 
 const MEDALS = { 2: '🥈', 3: '🥉' };
 
+// Arabic names of common gifts (as TikTok shows them in Arabic); others keep their English name.
+const GIFT_AR = {
+  rose: 'وردة', tiktok: 'تيك توك', 'finger heart': 'قلب الأصابع', 'ice cream cone': 'آيس كريم', 'heart me': 'قلبي', gg: 'GG',
+  'hand hearts': 'قلوب اليدين', perfume: 'عطر', doughnut: 'دونات', cap: 'قبعة', sunglasses: 'نظارة', corgi: 'كلب كورجي',
+  'money gun': 'مسدس المال', galaxy: 'المجرة', lion: 'الأسد', weights: 'أثقال', 'friendship necklace': 'قلادة الصداقة',
+  'love you': 'أحبك', 'cake slice': 'قطعة كيك', mic: 'ميكروفون', swan: 'بجعة', 'paper crane': 'طائر ورقي', rosa: 'روزا',
+  'hat and mustache': 'قبعة وشارب', universe: 'الكون', 'tiktok universe': 'كون تيك توك',
+};
+const giftLabel = (n) => GIFT_AR[String(n).toLowerCase()] || n;
+
 const Card = memo(function Card({ team, data, rank, isLeader, barPct, share, gapText, hidden, x, y, showContributors, contributorsCount, cardRef, teamGifts }) {
   const inner = useRef(null);
   const [pluses, setPluses] = useState([]);
@@ -69,9 +79,21 @@ const Card = memo(function Card({ team, data, rank, isLeader, barPct, share, gap
           <div className="row1">
             <span className="name">{team.name}</span>
             {score > 0 && MEDALS[rank] && <span className="medal emoji">{MEDALS[rank]}</span>}
-            {teamGifts?.length > 0 && <span className="team-gifts"><span className="tg-label">أرسل</span>{teamGifts.map((g) => <GiftIcon key={g.id} gift={g} className="tg-icon" />)}</span>}
             <span className="share">{share}</span>
           </div>
+          {teamGifts?.length > 0 && (
+            <div className="team-gifts">
+              <span className="tg-label">أرسل</span>
+              {teamGifts.map(({ name, gift }, i) => (
+                <span key={name} className="tg-item">
+                  {i > 0 && <span className="tg-or">أو</span>}
+                  <GiftIcon gift={gift} name={name} className="tg-icon" />
+                  <span className="tg-name">{giftLabel(name)}</span>
+                </span>
+              ))}
+              <span className="tg-for">لـ {team.name}</span>
+            </div>
+          )}
           <div className="bar"><div className="fill" style={{ width: `${barPct}%` }} /></div>
           {showContributors && (
             <div className="contribs">
@@ -161,7 +183,7 @@ export default function Board({ config, state, byId, layout = 'list', maxVisible
             y={row * (cardH + gap)}
             showContributors={showContributors}
             contributorsCount={contributorsCount}
-            teamGifts={showTeamGifts ? r.t.gifts.map((n) => findGift(giftMap, n)).filter((g) => g && g.image).slice(0, 3) : null}
+            teamGifts={showTeamGifts ? r.t.gifts.slice(0, 2).map((n) => ({ name: n, gift: findGift(giftMap, n) })) : null}
           />
         );
       })}
