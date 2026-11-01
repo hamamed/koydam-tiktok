@@ -579,6 +579,21 @@ export function Theme({ live, draft, edit }) {
         </div>
       </Section>
 
+      <Section title="🌄 خلفية الشكل في البث" desc="كل شكل له خلفية مصممة تناسبه. فعّلها لتظهر كخلفية كاملة في OBS (مشهد كامل بدل الكاميرا أو اللعبة). في الصفحة المباشرة تظهر دائماً.">
+        <div className="a-form">
+          <Toggle label="خلفية الشكل في واجهة OBS" checked={Boolean(t.sceneOnOverlay)} onChange={set('sceneOnOverlay')} />
+        </div>
+        {t.sceneOnOverlay && <div className="a-alert warn"><Icon name="eye" />الخلفية ستغطي ما خلف الواجهة في OBS. استخدمها عندما تكون الواجهة هي المشهد كله. إذا رفعت «صورة خلفية» وفعّلتها لـ OBS فستظهر الصورة فوق خلفية الشكل.</div>}
+        <div className="a-scene-grid">
+          {SKINS.map((sk) => (
+            <button key={sk.id} type="button" className={`a-scene${t.skin === sk.id ? ' on' : ''}`} onClick={() => edit((c) => { c.theme.skin = sk.id; c.theme.sceneOnOverlay = true; if (c.theme.skinRotation) c.theme.skinRotation = { ...c.theme.skinRotation, mode: 'off' }; })} title={sk.name}>
+              <span className="a-scene-bg" data-skin={sk.id} data-tone={skinTone(sk.id, t)} style={sk.id === 'custom' ? skinVars(t) : undefined}><span className="live-bg" /></span>
+              <small>{sk.name}</small>
+            </button>
+          ))}
+        </div>
+      </Section>
+
       <Section title="🖼️ صورة الخلفية" desc="تظهر خلف المحتوى. ننصح بصورة أفقية 1920×1080.">
         <div className="a-bg-pick">
           <div className="a-bg-thumb" style={safeUrl(t.bgImage) ? { backgroundImage: `url("${t.bgImage}")` } : undefined}>{!t.bgImage && <span className="a-muted">لا توجد صورة</span>}</div>

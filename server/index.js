@@ -181,6 +181,7 @@ const DEFAULT_CONFIG = {
     bgBlur: 0,                  // px
     bgOnLive: true,             // show the picture on the live page
     bgOnOverlay: false,         // show the picture in OBS (covers the stream behind!)
+    sceneOnOverlay: false,      // the look's own background in OBS (full scene, covers the stream behind)
     // Vertical overlay (1080x1920, /overlay-vertical): TikTok's own buttons cover the top and the bottom.
     vertical: { top: 170, side: 28, scale: 1, maxVisible: 5, showHeader: true, showToasts: true, toastsTop: 1080, showTicker: false },
     background: 'transparent',  // 'transparent' or a CSS color for previewing
@@ -462,6 +463,7 @@ function sanitizeConfig(input) {
     bgBlur: numIn(th.bgBlur, 0, 30, DT.bgBlur),
     bgOnLive: bool(th.bgOnLive, DT.bgOnLive),
     bgOnOverlay: bool(th.bgOnOverlay, DT.bgOnOverlay),
+    sceneOnOverlay: bool(th.sceneOnOverlay, DT.sceneOnOverlay),
     vertical: (() => {
       const v = isObj(th.vertical) ? th.vertical : {}; const DV = DT.vertical;
       return {

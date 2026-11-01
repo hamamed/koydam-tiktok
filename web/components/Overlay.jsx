@@ -92,6 +92,7 @@ export default function Overlay({ config, state, byId, status, gifts, round, pre
 
   return (
     <div className={`overlay-root${preview ? ' preview' : ''}${portrait ? ' portrait' : ''}`} data-skin={skin} data-tone={skinTone(skin, th)} data-hide={parts['data-hide']} style={{ ...vars, '--fit': fit, '--strip-h': `${Math.max(0, pushDown)}px` }} ref={rootRef}>
+      {th.sceneOnOverlay && <div className="live-bg scene-bg" />}
       {th.bgOnOverlay && <ScenePhoto theme={th} />}
       {stripTeams.length > 0 && <GiftStrip ref={stripRef} teams={stripTeams} giftMap={giftMap} s={strip} style={stripStyle} />}
       <div ref={panelRef} className={`ov-panel ${portrait ? 'portrait' : `pos-${th.position} layout-${th.layout}`}`}>

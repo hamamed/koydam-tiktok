@@ -541,3 +541,11 @@ html[data-admin-theme="light"] .admin-root .goal-nums b, html[data-admin-theme="
 html[data-admin-theme="light"] .admin-root .goal-label { color: #a86e00; }
 html[data-admin-theme="light"] .admin-root .goal-bar { background: rgba(0,0,0,.08); border-color: rgba(0,0,0,.1); }
 html[data-admin-theme="light"] .admin-root .goal-pct { color: #1c1a22; text-shadow: 0 1px 2px #fff; }
+
+/* Look backgrounds picker */
+.a-scene-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); gap: 8px; margin-top: 12px; }
+.a-scene { padding: 0; border: 1px solid var(--line); border-radius: 12px; background: var(--panel-2); color: var(--text); cursor: pointer; overflow: hidden; text-align: center; }
+.a-scene.on { border-color: var(--gold); box-shadow: 0 0 0 2px rgba(245,179,1,.3); }
+.a-scene-bg { position: relative; display: block; aspect-ratio: 16 / 9; overflow: hidden; }
+.a-scene-bg > .live-bg { position: absolute; inset: 0; }
+.a-scene small { display: block; padding: 5px 6px; font-size: calc(11.5px * var(--a-fs, 1)); font-weight: 800; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }

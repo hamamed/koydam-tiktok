@@ -540,3 +540,80 @@
 .skin-swatch .sw-title { font-weight: 900; font-size: 18px; line-height: 1.5; padding-bottom: .15em; background: var(--title-grad, linear-gradient(180deg, #fff6cf, var(--gold-2) 45%, var(--gold) 75%, #c27c00)); -webkit-background-clip: text; background-clip: text; color: transparent; }
 .skin-swatch .sw-card { height: 16px; border-radius: 6px; background: linear-gradient(270deg, color-mix(in srgb, var(--gold) 70%, transparent), rgba(var(--glass-rgb, 18,12,10), .8) 70%); border: 1px solid var(--glass-border, rgba(255,213,74,.18)); }
 .skin-swatch .sw-card.b { width: 70%; background: linear-gradient(270deg, color-mix(in srgb, var(--red) 70%, transparent), rgba(var(--glass-rgb, 18,12,10), .8) 70%); }
+
+/* ==========================================================================
+   Scene backgrounds for the looks that had none, so every look has its own.
+   Used by the live page (.live-root > .live-bg) and, with "خلفية الشكل في OBS",
+   by the overlay (.overlay-root > .live-bg.scene-bg).
+   ========================================================================== */
+[data-skin="classic"] .live-bg { background:
+  repeating-conic-gradient(from 0deg at 50% -20%, rgba(245,179,1,.07) 0 4deg, transparent 4deg 14deg),
+  radial-gradient(60% 50% at 50% -10%, rgba(245,179,1,.28), transparent 65%),
+  radial-gradient(60% 50% at 50% 115%, rgba(200,16,46,.28), transparent 65%), #0b0a0f; }
+[data-skin="neon"] .live-bg { background:
+  linear-gradient(transparent 58%, rgba(255,43,214,.18) 58.3%, transparent 59%),
+  repeating-linear-gradient(90deg, rgba(0,229,255,.09) 0 1px, transparent 1px 80px),
+  repeating-linear-gradient(0deg, rgba(0,229,255,.06) 0 1px, transparent 1px 80px),
+  radial-gradient(50% 40% at 20% 10%, rgba(0,229,255,.25), transparent 60%),
+  radial-gradient(50% 40% at 85% 90%, rgba(255,43,214,.25), transparent 60%), #05040d; }
+[data-skin="frost"] .live-bg { background:
+  radial-gradient(40% 35% at 15% 15%, rgba(59,130,246,.22), transparent 70%),
+  radial-gradient(40% 35% at 85% 85%, rgba(225,29,72,.15), transparent 70%),
+  linear-gradient(160deg, #f8fafc, #e8edf5); }
+[data-skin="emerald"] .live-bg { background:
+  repeating-linear-gradient(60deg, rgba(233,196,106,.05) 0 2px, transparent 2px 46px),
+  repeating-linear-gradient(-60deg, rgba(233,196,106,.05) 0 2px, transparent 2px 46px),
+  radial-gradient(60% 50% at 50% -10%, rgba(16,185,129,.3), transparent 60%), #03140e; }
+[data-skin="royal"] .live-bg { background:
+  radial-gradient(circle at 50% 50%, rgba(255,207,92,.08) 0 2px, transparent 3px) 0 0 / 34px 34px,
+  radial-gradient(60% 50% at 80% -10%, rgba(123,44,191,.5), transparent 65%),
+  radial-gradient(50% 45% at 10% 110%, rgba(255,207,92,.18), transparent 60%), #12051f; }
+[data-skin="midnight"] .live-bg { background:
+  repeating-linear-gradient(90deg, rgba(212,175,55,.06) 0 1px, transparent 1px 120px),
+  radial-gradient(70% 50% at 50% 0%, rgba(212,175,55,.14), transparent 60%), #040405; }
+[data-skin="rosegold"] .live-bg { background:
+  radial-gradient(50% 40% at 85% 10%, rgba(244,184,160,.3), transparent 65%),
+  radial-gradient(50% 45% at 10% 100%, rgba(183,110,121,.3), transparent 60%), linear-gradient(160deg, #2a161a, #1e1013); }
+[data-skin="sapphire"] .live-bg { background:
+  conic-gradient(from 210deg at 50% -20%, transparent 0 30deg, rgba(223,230,240,.06) 30deg 32deg, transparent 32deg 60deg, rgba(223,230,240,.05) 60deg 62deg, transparent 62deg),
+  radial-gradient(60% 50% at 50% -10%, rgba(29,78,216,.5), transparent 65%), #040b26; }
+[data-skin="copper"] .live-bg { background:
+  repeating-linear-gradient(100deg, rgba(255,255,255,.025) 0 2px, transparent 2px 6px),
+  radial-gradient(60% 50% at 70% 0%, rgba(224,138,79,.3), transparent 60%), linear-gradient(180deg, #221208, #170c06); }
+[data-skin="national"] .live-bg { background:
+  linear-gradient(115deg, transparent 0 62%, rgba(255,255,255,.06) 62% 70%, transparent 70%),
+  radial-gradient(60% 50% at 20% 0%, rgba(255,255,255,.14), transparent 60%), linear-gradient(180deg, #005a2b, #003d1d); }
+[data-skin="wedding"] .live-bg { background:
+  radial-gradient(circle at 50% 50%, rgba(184,137,43,.14) 0 1.5px, transparent 2px) 0 0 / 28px 28px,
+  radial-gradient(50% 40% at 50% -10%, rgba(201,123,132,.2), transparent 65%), #fbf6ec; }
+[data-skin="mint"] .live-bg { background:
+  radial-gradient(45% 40% at 85% 10%, rgba(16,185,129,.2), transparent 70%),
+  radial-gradient(45% 40% at 10% 90%, rgba(45,212,191,.2), transparent 70%), linear-gradient(160deg, #f0fdf8, #e3f8ef); }
+[data-skin="clean"] .live-bg { background: linear-gradient(180deg, #ffffff, #f3f4f6); }
+[data-skin="mono"] .live-bg { background: radial-gradient(70% 60% at 50% 0%, rgba(255,255,255,.07), transparent 60%), #000; }
+[data-skin="gameboy"] .live-bg { background:
+  repeating-linear-gradient(0deg, rgba(155,188,15,.07) 0 2px, transparent 2px 8px),
+  repeating-linear-gradient(90deg, rgba(155,188,15,.07) 0 2px, transparent 2px 8px), #0f380f; }
+[data-skin="holo"] .live-bg { background:
+  linear-gradient(120deg, rgba(240,171,252,.22), rgba(192,253,251,.18) 35%, rgba(253,230,138,.18) 65%, rgba(240,171,252,.22)), #0d0d18;
+  background-size: 300% 300%; animation: skinDrift 14s ease-in-out infinite alternate; }
+[data-skin="cyber"] .live-bg { background:
+  repeating-linear-gradient(0deg, rgba(0,240,255,.05) 0 1px, transparent 1px 4px),
+  linear-gradient(135deg, transparent 0 70%, rgba(252,238,10,.12) 70% 72%, transparent 72%),
+  radial-gradient(50% 40% at 80% 10%, rgba(0,240,255,.2), transparent 60%), #07070d; }
+[data-skin="stadium"] .live-bg { background:
+  radial-gradient(40% 25% at 50% 50%, transparent 0 60%, rgba(255,255,255,.08) 61% 62%, transparent 63%),
+  linear-gradient(90deg, transparent 49.85%, rgba(255,255,255,.1) 49.85% 50.15%, transparent 50.15%),
+  repeating-linear-gradient(90deg, rgba(255,255,255,.045) 0 90px, transparent 90px 180px),
+  radial-gradient(60% 50% at 50% 0%, rgba(255,255,255,.12), transparent 60%), #0a3b1d; }
+[data-skin="custom"] .live-bg { background:
+  radial-gradient(60% 50% at 85% -10%, color-mix(in srgb, var(--c1) 30%, transparent), transparent 60%),
+  radial-gradient(50% 45% at 0% 100%, color-mix(in srgb, var(--c2) 30%, transparent), transparent 65%), var(--c3); }
+
+/* OBS: the look's background as a full scene (theme.sceneOnOverlay) */
+.overlay-root { --page-bg: #0b0a0f; --glow-1: rgba(245,179,1,.22); --glow-2: rgba(200,16,46,.22); }
+.overlay-root > .live-bg.scene-bg { position: absolute; inset: 0; z-index: 0; pointer-events: none; }
+:where(.overlay-root > .live-bg.scene-bg) {
+  background:
+    radial-gradient(60% 50% at 85% -10%, var(--glow-1), transparent 60%),
+    radial-gradient(50% 45% at 0% 10%, var(--glow-2), transparent 65%), var(--page-bg); }
