@@ -1,4 +1,5 @@
 'use client';
+import { Trophy } from 'lucide-react';
 /**
  * «فيديو ترويجي»: the server records this live's own overlay (teams, look, logo, gift pictures)
  * during a scripted race to 1,000,000 and offers the MP4 for download.
@@ -80,7 +81,7 @@ export function VideoPage({ live, notice }) {
             </div>
             <div className="a-vid-duel">
               {[winner, rival].map((id, i) => { const t = teams.find((x) => x.id === id); return t && (
-                <span key={id} className="a-vid-team" style={{ '--team': t.color }}><span className="a-vid-flag"><Flag team={t} /></span><b>{t.name}</b>{i === 0 && <small>🏆</small>}</span>
+                <span key={id} className="a-vid-team" style={{ '--team': t.color }}><span className="a-vid-flag"><Flag team={t} /></span><b>{t.name}</b>{i === 0 && <Trophy className="lc-inline a-gold" />}</span>
               ); })}
             </div>
             <p className="a-muted">يستخدم الإعدادات المحفوظة لهذا البث (احفظ تعديلاتك أولاً). مدة الفيديو حوالي 40 ثانية، وصنعه يستغرق دقيقة تقريباً.</p>
@@ -111,7 +112,7 @@ export function VideoPage({ live, notice }) {
                   ? <video src={fileUrl(v.id)} controls autoPlay playsInline />
                   : <button type="button" className="a-video-poster" onClick={() => setPlay(v.id)}><Icon name="eye" /> تشغيل</button>}
                 <div className="a-video-meta">
-                  <b>🏆 {v.winnerName}</b>
+                  <b><Trophy className="lc-inline a-gold" /> {v.winnerName}</b>
                   <span className="a-muted">{v.orientation === 'landscape' ? 'أفقي' : 'عمودي'} · {v.seconds} ثانية · <bdi dir="ltr" className="num-latin">{mb(v.size)}</bdi> · <bdi>{new Date(v.createdAt).toLocaleString('ar', { dateStyle: 'short', timeStyle: 'short' })}</bdi></span>
                 </div>
                 <div className="a-row">

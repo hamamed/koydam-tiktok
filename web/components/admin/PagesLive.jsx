@@ -1,4 +1,5 @@
 'use client';
+import { Heart, Eye } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { cmd, getStoreLive, liveQuery } from '@/lib/store';
 import { fmt } from '@/lib/format';
@@ -55,7 +56,7 @@ export function Overview({ live, notice, go }) {
         <div className="a-kpi"><Icon name="flag" /><div><span>المتصدر</span><b>{leader ? <TeamName team={leader} /> : '—'}</b></div></div>
         <div className="a-kpi"><Icon name="users" /><div><span>الداعمون</span><b className="num-latin">{fmt(supporters)}</b></div></div>
         <div className="a-kpi"><Icon name="eye" /><div><span>المشاهدون</span><b className="num-latin">{fmt(status?.viewers || 0)}</b></div></div>
-        <div className="a-kpi"><span className="a-kpi-ico emoji">💛</span><div><span>متابعون جدد</span><b className="num-latin">{fmt(state?.social?.follows || 0)}</b></div></div>
+        <div className="a-kpi"><span className="a-kpi-ico"><Heart /></span><div><span>متابعون جدد</span><b className="num-latin">{fmt(state?.social?.follows || 0)}</b></div></div>
         <div className="a-kpi"><Icon name="trophy" /><div><span>الجولة</span><b className="num-latin">{live.round?.status === 'running' ? `#${live.round.number} جارية` : live.round?.number ? `#${live.round.number}` : '—'}</b></div></div>
       </div>
 
@@ -125,7 +126,7 @@ export function Connection({ live, notice }) {
         <div className={`a-conn ${kind}`}>
           <span className="a-conn-dot" />
           <div className="a-conn-text"><b>{title}</b><span className="a-muted">{sub}</span></div>
-          {st.viewers > 0 && <span className="a-chip num-latin">👁 {fmt(st.viewers)}</span>}
+          {st.viewers > 0 && <span className="a-chip num-latin"><Eye className="lc-inline" /> {fmt(st.viewers)}</span>}
         </div>
         <form className="a-row" onSubmit={(e) => { e.preventDefault(); if (user.trim()) a.connect(user.trim()); }}>
           <Field label="اسم مستخدم صاحب البث (بدون @)" wide>

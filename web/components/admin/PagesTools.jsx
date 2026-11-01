@@ -77,7 +77,7 @@ export function Tools({ live, draft, save, notice }) {
         <div className="a-row">
           <Btn variant="red" icon="trash" busy={busy === 'reset'} onClick={() => { if (confirm('تصفير كل النقاط؟ لا يمكن التراجع.')) run('reset', 'reset', { keepAllegiance: keep }, 'بدأت جولة جديدة'); }}>تصفير النتائج</Btn>
           <Btn variant="ghost" icon="bolt" onClick={() => confettiBurst(innerWidth / 2, innerHeight / 2, ['#f5b301', '#ffd54a', '#c8102e', '#fff'], 120)}>معاينة الاحتفال</Btn>
-          <Btn variant="ghost" icon="trophy" onClick={() => confettiRain(['#f5b301', '#ffd54a', '#c8102e', '#fff'], 140, '🏆')}>مطر الاحتفال</Btn>
+          <Btn variant="ghost" icon="trophy" onClick={() => confettiRain(['#f5b301', '#ffd54a', '#c8102e', '#fff'], 140)}>مطر الاحتفال</Btn>
         </div>
       </Section>
 

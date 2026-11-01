@@ -32,7 +32,7 @@ export const NAV = [
   { id: 'rounds', label: 'الجولات', icon: 'trophy', draft: true, live: true },
   { id: 'voice', label: 'القراءة الصوتية', icon: 'bolt', draft: true, live: true },
   { id: 'reports', label: 'تقارير البث', icon: 'logs', live: true },
-  { id: 'video', label: 'فيديو ترويجي', icon: 'bolt', live: true },
+  { id: 'video', label: 'فيديو ترويجي', icon: 'video', live: true },
   { id: 'tools', label: 'الأدوات', icon: 'tools', live: true },
   { sep: 'الحساب' },
   { id: 'lives', label: 'البثوث', icon: 'eye' },

@@ -130,3 +130,33 @@ html::-webkit-scrollbar-track { background: var(--sb-track); }
 /* OBS overlay never shows scrollbars */
 .overlay-root, .overlay-root * { scrollbar-width: none; } /* fine in Chrome too: the overlay hides bars anyway */
 .overlay-root ::-webkit-scrollbar, .overlay-root::-webkit-scrollbar { display: none; }
+
+/* ==========================================================================
+   Lucide icons (lucide-react) used instead of emojis.
+   ========================================================================== */
+:root {
+  --ico-moon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z' fill='black'/%3E%3C/svg%3E");
+  --ico-eye: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M2.06 12.35a1 1 0 0 1 0-.7 10.75 10.75 0 0 1 19.88 0 1 1 0 0 1 0 .7 10.75 10.75 0 0 1-19.88 0'/%3E%3Ccircle cx='12' cy='12' r='3'/%3E%3C/svg%3E");
+  --ico-sparkles: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M9.94 15.5A2 2 0 0 0 8.5 14.06l-6.14-1.58a.5.5 0 0 1 0-.96L8.5 9.94A2 2 0 0 0 9.94 8.5l1.58-6.14a.5.5 0 0 1 .96 0L14.06 8.5A2 2 0 0 0 15.5 9.94l6.14 1.58a.5.5 0 0 1 0 .96L15.5 14.06a2 2 0 0 0-1.44 1.44l-1.58 6.14a.5.5 0 0 1-.96 0z' fill='black'/%3E%3C/svg%3E");
+}
+.lc-inline { width: 1.05em; height: 1.05em; vertical-align: -0.16em; flex: none; }
+.lc-h { width: 1em; height: 1em; vertical-align: -0.14em; color: var(--gold, #f5b301); }
+.goal-label .lc-inline { margin-inline-end: 4px; }
+.crown { color: #ffd23f; line-height: 0; }
+.crown svg { width: calc(26px * var(--fs)); height: calc(26px * var(--fs)); filter: drop-shadow(0 2px 4px rgba(0,0,0,.5)); }
+.card.tile .crown svg { width: calc(20px * var(--fs)); height: calc(20px * var(--fs)); }
+.medal { display: inline-flex; line-height: 0; }
+.medal svg { width: calc(18px * var(--fs)); height: calc(18px * var(--fs)); }
+.medal.silver { color: #d9e2ec; } .medal.bronze { color: #e0995e; }
+.ws-crown { color: #ffd23f; line-height: 0; }
+.ws-crown svg { width: calc(56px * var(--fs)); height: calc(56px * var(--fs)); filter: drop-shadow(0 4px 10px rgba(0,0,0,.5)); }
+.ws-medal { display: inline-flex; line-height: 0; }
+.ws-medal svg { width: 1.2em; height: 1.2em; }
+.ws-medal.m1 { color: #ffd23f; } .ws-medal.m2 { color: #d9e2ec; } .ws-medal.m3 { color: #e0995e; }
+.tsocial { color: var(--team, #ff5c8a); display: grid; place-items: center; }
+.tsocial svg { width: 30px; height: 30px; }
+.tick-ico { width: 1.1em; height: 1.1em; vertical-align: -0.18em; margin-inline-end: 4px; color: var(--team, var(--gold)); }
+.lc-fallback { display: inline-grid; place-items: center; color: var(--gold-2, #ffd54a); }
+.lc-fallback svg { width: 82%; height: 82%; }
+.flag-initial { width: 100%; height: 100%; display: grid; place-items: center; color: #fff; font-weight: 900; font-size: 55%; text-shadow: 0 1px 3px rgba(0,0,0,.4); }
+.banner .bflag svg { width: calc(80px * var(--fs)); height: calc(80px * var(--fs)); color: var(--gold); }

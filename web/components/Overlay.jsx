@@ -6,6 +6,7 @@ import { RoundTimer, WinnerScreen, useRoundWinner } from './Rounds';
 import Speaker from './Speaker';
 import { AnimatedNumber, GiftLegend, GoalBar, Logo } from './bits';
 import GiftStrip from './GiftStrip';
+import { Eye } from 'lucide-react';
 import { useGiftMap } from '@/lib/gifts';
 import { ensureFont, fmt, partsProps, safeUrl, themeVars } from '@/lib/format';
 import { skinTone, skinVars, useActiveSkin } from '@/lib/skins';
@@ -46,6 +47,7 @@ export default function Overlay({ config, state, byId, status, gifts, round, pre
   // Shrink the panel when header + cards are taller than the screen (many teams visible).
   const rootRef = useRef(null); const panelRef = useRef(null); const stripRef = useRef(null);
   const [fit, setFit] = useState(1);
+  const fitRef = useRef(1); fitRef.current = fit;
   // Top bar with EVERY team's flag + gift, so viewers know how to push a team that is not on the board.
   const stripTeams = th.giftStrip !== false ? config.teams.filter((t) => t.gifts?.length) : [];
   const [stripH, setStripH] = useState(0);
@@ -70,8 +72,13 @@ export default function Overlay({ config, state, byId, status, gifts, round, pre
   useLayoutEffect(() => {
     const measure = () => {
       const root = rootRef.current; const panel = panelRef.current; if (!root || !panel) return;
-      const avail = root.clientHeight - panel.offsetTop - Math.max(showTicker ? (portrait ? 130 : 110) : 30, reserveBottom + (showTicker ? 92 : 0));
-      const h = panel.offsetHeight;
+      // Measured on screen, so it works with the overall size (CSS zoom) and inside the scaled admin preview.
+      const rr = root.getBoundingClientRect(); const pr = panel.getBoundingClientRect();
+      const px = rr.height / Math.max(1, root.clientHeight); // screen px per CSS px of the root
+      const cur = fitRef.current || 1;
+      const top = (pr.top - rr.top) / px;
+      const avail = root.clientHeight - top - Math.max(showTicker ? (portrait ? 130 : 110) : 30, reserveBottom + (showTicker ? 92 : 0));
+      const h = pr.height / px / cur; // natural height before the current fit
       const k = h > avail && avail > 0 ? Math.max(0.4, Math.floor((avail / h) * 100) / 100) : 1;
       setFit((f) => (Math.abs(f - k) > 0.005 ? k : f));
     };
@@ -80,7 +87,7 @@ export default function Overlay({ config, state, byId, status, gifts, round, pre
     if (panelRef.current) ro.observe(panelRef.current);
     if (rootRef.current) ro.observe(rootRef.current);
     return () => ro.disconnect();
-  }, [portrait, showTicker, stripH, reserveBottom]);
+  }, [portrait, showTicker, stripH, reserveBottom, th.zoom]);
   // Gift legend: only the teams shown on the board (by score), so 20+ teams don't fill the header.
   const legendTeams = (() => {
     const max = portrait ? v.maxVisible ?? 5 : th.maxVisible ?? 8;
@@ -94,7 +101,7 @@ export default function Overlay({ config, state, byId, status, gifts, round, pre
   if (portrait) Object.assign(vars, { '--fs': (th.fontScale ?? 1) * (v.scale ?? 1), '--v-top': `${v.top ?? 170}px`, '--v-side': `${v.side ?? 28}px`, '--v-toasts-top': `${v.toastsTop ?? 1080}px`, '--v-side-w': `${v.sideWidth ?? 440}px` });
 
   return (
-    <div className={`overlay-root${preview ? ' preview' : ''}${portrait ? ' portrait' : ''}`} data-skin={skin} data-tone={skinTone(skin, th)} data-hide={parts['data-hide']} style={{ ...vars, '--fit': fit, '--strip-h': `${Math.max(0, pushDown)}px` }} ref={rootRef}>
+    <div className={`overlay-root${preview ? ' preview' : ''}${portrait ? ' portrait' : ''}`} data-skin={skin} data-tone={skinTone(skin, th)} data-hide={parts['data-hide']} style={{ ...vars, '--zoom': th.zoom ?? 1, '--fit': fit, '--strip-h': `${Math.max(0, pushDown)}px` }} ref={rootRef}>
       {th.sceneOnOverlay && <div className="live-bg scene-bg" />}
       {th.bgOnOverlay && <ScenePhoto theme={th} />}
       {stripTeams.length > 0 && <GiftStrip ref={stripRef} teams={stripTeams} giftMap={giftMap} s={strip} style={stripStyle} />}
@@ -108,11 +115,11 @@ export default function Overlay({ config, state, byId, status, gifts, round, pre
               <div className="chips">
                 {on('category') && <span className="chip"><span className="live-dot" />{config.category || 'مباشر'}</span>}
                 {on('points') && <span className="chip accent"><AnimatedNumber value={state?.total || 0} /> نقطة</span>}
-                {th.showViewers && <span className="chip">👁 {fmt(status?.viewers || 0)}</span>}
+                {th.showViewers && <span className="chip"><Eye className="lc-inline" /> {fmt(status?.viewers || 0)}</span>}
                 <RoundTimer round={round} enabled={config.rounds?.showTimer !== false} className="in-chips" />
               </div>
               {on('goal') && <GoalBar total={state?.total || 0} goal={config.goal} compact />}
-              {on('followGoal') && fg?.enabled && <GoalBar total={state?.social?.follows || 0} goal={{ ...fg, label: `💛 ${fg.label}` }} compact variant="follow" />}
+              {on('followGoal') && fg?.enabled && <GoalBar total={state?.social?.follows || 0} goal={fg} compact variant="follow" />}
               {!stripTeams.length && th.showGiftLegend !== false && <GiftLegend teams={legendTeams} giftMap={giftMap} />}
             </div>
           </header>

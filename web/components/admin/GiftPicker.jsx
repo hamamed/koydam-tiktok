@@ -1,4 +1,5 @@
 'use client';
+import { Gem } from 'lucide-react';
 /** Searchable grid of real TikTok gifts (image, name, diamond cost). */
 import { useEffect, useMemo, useState } from 'react';
 import { api } from '@/lib/api';
@@ -15,10 +16,10 @@ export function GiftGrid({ gifts, selected = [], onPick, max = 400 }) {
       {gifts.length === 0 ? <p className="a-empty">قائمة الهدايا فارغة. اضغط «جلب قائمة الهدايا» في صفحة «الهدايا والنقاط».</p> : (
         <div className="a-giftgrid">
           {shown.map((g) => (
-            <button key={g.id} type="button" className={`a-gift${sel.has(g.name.toLowerCase()) ? ' on' : ''}`} onClick={() => onPick(g)} title={`${g.name} · ${g.diamonds}💎 · #${g.id}`}>
+            <button key={g.id} type="button" className={`a-gift${sel.has(g.name.toLowerCase()) ? ' on' : ''}`} onClick={() => onPick(g)} title={`${g.name} · ${g.diamonds} ماسة · #${g.id}`}>
               <GiftIcon gift={g} className="a-gift-img" />
               <span className="a-gift-name num-latin">{g.name}</span>
-              <small className="num-latin">{g.diamonds}💎</small>
+              <small className="num-latin">{g.diamonds} <Gem className="lc-inline" /></small>
               {sel.has(g.name.toLowerCase()) && <i className="a-gift-check"><Icon name="check" size={12} /></i>}
             </button>
           ))}

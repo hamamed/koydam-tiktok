@@ -5,6 +5,7 @@ import { onLiveEvent } from '@/lib/store';
 import { confettiRain } from '@/lib/confetti';
 import { fmt } from '@/lib/format';
 import { Avatar, Flag } from './bits';
+import { Crown, Medal } from 'lucide-react';
 
 const mmss = (ms) => {
   const s = Math.max(0, Math.ceil(ms / 1000));
@@ -45,7 +46,7 @@ export function useRoundWinner({ confetti = true } = {}) {
   useEffect(() => onLiveEvent((ev) => {
     if (ev.kind !== 'roundEnd') return;
     setWin({ ...ev, key: Math.random() });
-    if (confetti && ev.winner) confettiRain([ev.winner.color || '#f5b301', '#ffd54a', '#ffffff'], 220, ev.winner.emoji);
+    if (confetti && ev.winner) confettiRain([ev.winner.color || '#f5b301', '#ffd54a', '#ffffff'], 220);
   }), [confetti]);
   useEffect(() => {
     if (!win) return undefined;
@@ -64,7 +65,7 @@ export function WinnerScreen({ win, teams }) {
         <div className="ws-sub">نهاية الجولة {win.number}</div>
         {team ? (
           <>
-            <div className="ws-flagwrap"><div className="ws-flag"><Flag team={team} /></div><div className="ws-crown emoji">👑</div></div>
+            <div className="ws-flagwrap"><div className="ws-flag"><Flag team={team} /></div><div className="ws-crown"><Crown fill="currentColor" strokeWidth={1.6} /></div></div>
             <div className="ws-name">{team.name}</div>
             <div className="ws-title">بطل الجولة!</div>
             <div className="ws-score num-latin">{fmt(win.winner.score)} <small>نقطة</small></div>
@@ -74,7 +75,7 @@ export function WinnerScreen({ win, teams }) {
           <div className="ws-sups">
             {win.topSupporters.map((u, i) => (
               <div key={`${u.u}-${i}`} className={`ws-sup p${i + 1}`}>
-                <span className="ws-medal emoji">{['🥇', '🥈', '🥉'][i]}</span>
+                <span className={`ws-medal m${i + 1}`}><Medal strokeWidth={2.2} /></span>
                 <Avatar src={u.a} name={u.n} color={teams?.find((t) => t.id === u.team)?.color} />
                 <b>{u.n}</b><span className="num-latin">{fmt(u.p)}</span>
               </div>

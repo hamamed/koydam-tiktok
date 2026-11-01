@@ -1,4 +1,5 @@
 'use client';
+import { Eye, KeyRound } from 'lucide-react';
 /** Lives (every user), Users (owner), My account (every user). */
 import { useCallback, useEffect, useState } from 'react';
 import { api } from '@/lib/api';
@@ -84,7 +85,7 @@ export function LivesPage({ me, currentLive, onSwitch, reloadLives, notice }) {
             <div className="a-live-meta">
               <span className={`a-status ${k}`}><span className="a-status-dot" />{label}{l.tiktokUsername ? ` · @${l.tiktokUsername}` : ''}</span>
               <span className="a-chip num-latin">{Math.round(l.total).toLocaleString('en-US')} نقطة</span>
-              <span className="a-chip">👁 {l.clients} شاشة</span>
+              <span className="a-chip"><Eye className="lc-inline" /> {l.clients} شاشة</span>
             </div>
             <div className="a-live-links">
               <div className="a-gcopy"><span className="a-label">الصفحة</span><CopyField value={`${origin}/${q}`} /></div>
@@ -113,7 +114,7 @@ function NewPassword({ info, onClose }) {
   return (
     <div className="a-alert gold a-newpw">
       <div style={{ flex: 1 }}>
-        <b>🔑 بيانات الدخول ({info.title}). انسخها الآن، لن تظهر مرة أخرى:</b>
+        <b><KeyRound className="lc-inline" /> بيانات الدخول ({info.title}). انسخها الآن، لن تظهر مرة أخرى:</b>
         <pre className="num-latin">{text}</pre>
       </div>
       <div className="a-actions">

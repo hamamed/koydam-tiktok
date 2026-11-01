@@ -6,10 +6,11 @@
  */
 import { memo, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { AnimatedNumber, Avatar, Flag, GiftIcon } from './bits';
+import { Crown, Medal } from 'lucide-react';
 import { findGift, useGiftMap } from '@/lib/gifts';
 import { fmt } from '@/lib/format';
 
-const MEDALS = { 2: '🥈', 3: '🥉' };
+const MEDALS = { 2: 'silver', 3: 'bronze' };
 
 
 const Card = memo(function Card({ team, data, rank, isLeader, barPct, share, gapText, hidden, x, y, showContributors, contributorsCount, cardRef, teamGifts, tile }) {
@@ -61,7 +62,7 @@ const Card = memo(function Card({ team, data, rank, isLeader, barPct, share, gap
           <div className="rank">{rank}</div>
           <div className="flag-wrap">
             <div className="flag"><Flag team={team} /></div>
-            <div className="crown emoji">👑</div>
+            <div className="crown"><Crown fill="currentColor" strokeWidth={1.6} /></div>
           </div>
           <div className="t-body">
             <span className="name">{team.name}</span>
@@ -87,12 +88,12 @@ const Card = memo(function Card({ team, data, rank, isLeader, barPct, share, gap
         <div className="rank">{rank}</div>
         <div className="flag-wrap">
           <div className="flag"><Flag team={team} /></div>
-          <div className="crown emoji">👑</div>
+          <div className="crown"><Crown fill="currentColor" strokeWidth={1.6} /></div>
         </div>
         <div className="main">
           <div className="row1">
             <span className="name">{team.name}</span>
-            {score > 0 && MEDALS[rank] && <span className="medal emoji">{MEDALS[rank]}</span>}
+            {score > 0 && MEDALS[rank] && <span className={`medal ${MEDALS[rank]}`}><Medal strokeWidth={2.2} /></span>}
             <span className="share">{share}</span>
           </div>
           <div className="bar"><div className="fill" style={{ width: `${barPct}%` }} /></div>

@@ -1,4 +1,5 @@
 'use client';
+import { CircleCheck, Rocket, TriangleAlert } from 'lucide-react';
 /**
  * "Start here": a live go-live checklist. Steps that can be checked
  * automatically (password, key, connection, gifts, teams, voice, HTTPS,
@@ -88,7 +89,7 @@ export function GuidePage({ live, go, me, myLives }) {
       <Section className="a-guide-hero">
         <div className="a-guide-top">
           <div>
-            <h2>🚀 جاهز للبث المباشر؟</h2>
+            <h2><Rocket className="lc-inline" /> جاهز للبث المباشر؟</h2>
             <p className="a-muted">اتبع الخطوات بالترتيب. الخطوات التي يمكن فحصها تتحدث تلقائياً.</p>
           </div>
           <div className="a-guide-score">
@@ -104,7 +105,7 @@ export function GuidePage({ live, go, me, myLives }) {
         actions={<Btn size="sm" variant="gold" icon="key" onClick={() => go('account')}>حسابي</Btn>}>
         كلمة المرور التي طبعها المثبّت مؤقتة. ضع كلمة مرور طويلة خاصة بك (10 أحرف على الأقل). من يملك كلمة المرور يتحكم في كل شيء.
       </Step>
-      <Step n={2} state={state('https')} title="الموقع يعمل عبر HTTPS (القفل 🔒)">
+      <Step n={2} state={state('https')} title="الموقع يعمل عبر HTTPS (القفل)">
         {https ? 'الاتصال مشفّر.' : <>أنت تفتح اللوحة بدون HTTPS. تأكد أن سجل DNS لـ <b>tiktok.koydam.com</b> يشير إلى خادمك، ثم شغّل على الخادم: <code className="num-latin">sudo certbot --nginx -d tiktok.koydam.com --redirect</code></>}
       </Step>
 
@@ -125,7 +126,7 @@ export function GuidePage({ live, go, me, myLives }) {
       <Step n={4} state={state('user')} title="اسم حسابك والاتصال"
         actions={<Btn size="sm" variant="gold" icon="plug" onClick={() => go('connection')}>صفحة الاتصال</Btn>}>
         اكتب اسم حساب تيك توك الذي ستبث منه (بدون @)، ثم اضغط «اتصال» <b>بعد أن تبدأ البث</b> على تيك توك. بعد أول اتصال ناجح يتذكر الخادم الحساب ويتصل تلقائياً كل مرة.
-        <div className="a-gstatus">الحالة الآن: <b>{connected ? `✅ متصل بـ @${st.username}` : st.state === 'offline' ? `⏳ @${st.username} ليس في بث مباشر (سيحاول تلقائياً)` : st.state === 'reconnecting' || st.state === 'connecting' ? '⏳ جارٍ الاتصال…' : meta.tiktokUsername ? `غير متصل (الحساب المحفوظ: @${meta.tiktokUsername})` : 'لم يُحدد حساب بعد'}</b></div>
+        <div className="a-gstatus">الحالة الآن: <b>{connected ? `متصل بـ @${st.username}` : st.state === 'offline' ? `@${st.username} ليس في بث مباشر (سيحاول تلقائياً)` : st.state === 'reconnecting' || st.state === 'connecting' ? '⏳ جارٍ الاتصال…' : meta.tiktokUsername ? `غير متصل (الحساب المحفوظ: @${meta.tiktokUsername})` : 'لم يُحدد حساب بعد'}</b></div>
       </Step>
 
       <h3 className="a-gsec">3. الهدايا والفرق</h3>
@@ -138,7 +139,7 @@ export function GuidePage({ live, go, me, myLives }) {
         actions={<Btn size="sm" variant="gold" icon="flag" onClick={() => go('teams')}>الفرق والهدف</Btn>}>
         في «الفرق والهدف» ← «هدية كل دولة»: اختر هدية لكل دولة أو اضغط «توزيع تلقائي». غيّر العنوان الفرعي ليقول للمشاهدين ماذا يفعلون (مثلاً «أرسل هدية دولتك!»).
         {teamCheck.missing.length > 0 && <div className="a-gstatus">بدون هدية: <b>{teamCheck.missing.join('، ')}</b></div>}
-        {teamCheck.dup && <div className="a-gstatus a-warn-text">⚠️ نفس الهدية عند أكثر من دولة.</div>}
+        {teamCheck.dup && <div className="a-gstatus a-warn-text"><TriangleAlert className="lc-inline" /> نفس الهدية عند أكثر من دولة.</div>}
       </Step>
 
       <h3 className="a-gsec">4. OBS أو TikTok LIVE Studio</h3>
@@ -173,7 +174,7 @@ export function GuidePage({ live, go, me, myLives }) {
         {upd?.git ? (upd.behind ? `يوجد ${upd.behind} تحديث جديد. حدّث قبل البث (يستغرق دقيقة).` : 'أنت على أحدث نسخة.') : 'تحقق من صفحة التحديثات.'}
       </Step>}
 
-      <h3 className="a-gsec">✅ يوم البث</h3>
+      <h3 className="a-gsec"><CircleCheck className="lc-inline" /> يوم البث</h3>
       <Section>
         <ol className="a-gsteps big">
           <li>ابدأ البث على تيك توك أولاً، ثم افتح OBS (أو TikTok LIVE Studio).</li>

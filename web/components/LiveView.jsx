@@ -13,6 +13,7 @@ import { findGift, useGiftMap } from '@/lib/gifts';
 import { ensureFont, fmt, fontVars, partsProps, safeUrl } from '@/lib/format';
 import { useEffect } from 'react';
 import { skinTone, skinVars, useActiveSkin } from '@/lib/skins';
+import { Gift, Trophy } from 'lucide-react';
 
 function timeAgo(ts) {
   const s = Math.max(1, Math.round((Date.now() - ts) / 1000));
@@ -28,7 +29,7 @@ export default function LiveView({ config, state, byId, status, gifts, round, co
   const skin = useActiveSkin(config?.theme);
   const th = config?.theme || {};
   const parts = partsProps(th);
-  const rootProps = { className: `live-root${preview ? ' preview' : ''}`, 'data-skin': skin, 'data-tone': skinTone(skin, th), 'data-hide': parts['data-hide'], style: { ...skinVars(th), ...parts.style, '--name-g': th.nameScale ?? 1, '--flag-scale': th.flagScale ?? 1, ...fontVars(th) } };
+  const rootProps = { className: `live-root${preview ? ' preview' : ''}`, 'data-skin': skin, 'data-tone': skinTone(skin, th), 'data-hide': parts['data-hide'], style: { ...skinVars(th), ...parts.style, '--zoom': th.zoom ?? 1, '--name-g': th.nameScale ?? 1, '--flag-scale': th.flagScale ?? 1, ...fontVars(th) } };
   useEffect(() => { ensureFont(th.fontFamily); ensureFont(th.titleFont); }, [th.fontFamily, th.titleFont]);
 
   const supporters = useMemo(() => {
@@ -70,7 +71,7 @@ export default function LiveView({ config, state, byId, status, gifts, round, co
         <section className="surface live-goal">
           {round?.status === 'running' && config.rounds?.showTimer !== false && <div className="live-timer"><RoundTimer round={round} /></div>}
           {config.goal?.enabled && <GoalBar total={state.total} goal={config.goal} />}
-          {config.social?.followGoal?.enabled && <GoalBar total={state.social?.follows || 0} goal={{ ...config.social.followGoal, label: `💛 ${config.social.followGoal.label}` }} variant="follow" />}
+          {config.social?.followGoal?.enabled && <GoalBar total={state.social?.follows || 0} goal={config.social.followGoal} variant="follow" />}
         </section>
       )}
 
@@ -82,7 +83,7 @@ export default function LiveView({ config, state, byId, status, gifts, round, co
 
         <aside className="live-side">
           <section className="surface">
-            <div className="surface-head"><h2>🎁 أحدث الهدايا</h2></div>
+            <div className="surface-head"><h2><Gift className="lc-h" /> أحدث الهدايا</h2></div>
             {feed.length === 0 ? <p className="muted empty">بانتظار أول هدية…</p> : (
               <ul className="feed">
                 {feed.slice(0, 12).map((f) => (
@@ -101,7 +102,7 @@ export default function LiveView({ config, state, byId, status, gifts, round, co
           </section>
 
           <section className="surface">
-            <div className="surface-head"><h2>🏆 أكبر الداعمين</h2></div>
+            <div className="surface-head"><h2><Trophy className="lc-h" /> أكبر الداعمين</h2></div>
             {supporters.length === 0 ? <p className="muted empty">لا يوجد داعمون بعد</p> : (
               <ol className="leaders">
                 {supporters.map((u, i) => (
@@ -130,7 +131,7 @@ export default function LiveView({ config, state, byId, status, gifts, round, co
                   <li><b>أو اكتب اسم فريقك</b> في الشات ثم أرسل أي هدية.</li>
                 </>
               )}
-              <li><b>ساعد فريقك على الوصول للمليون!</b> 🏆</li>
+              <li><b>ساعد فريقك على الوصول للمليون!</b> <Trophy className="lc-inline" /></li>
             </ol>
             <div className="team-chips">
               {config.teams.map((t) => (

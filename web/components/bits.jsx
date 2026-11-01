@@ -2,6 +2,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { fmt, initial, safeUrl } from '@/lib/format';
 import { emojiFlagUrl } from '@/lib/flags';
+import { Gift as GiftLc, Heart } from 'lucide-react';
 
 /** Number that tweens to its new value (ease-out, 700ms). */
 export function AnimatedNumber({ value, format = fmt }) {
@@ -43,7 +44,8 @@ export function Flag({ team }) {
   const url = teamImage(team);
   // eslint-disable-next-line @next/next/no-img-element
   if (url && !failed) return <img src={url} alt="" referrerPolicy="no-referrer" onError={() => setFailed(true)} />;
-  return <span className="emoji">{team.emoji || '🏳️'}</span>;
+  // No picture: the team's own emoji if it set one, else its initial on the team colour.
+  return team.emoji ? <span className="emoji">{team.emoji}</span> : <span className="flag-initial" style={{ background: team.color }}>{initial(team.name)}</span>;
 }
 
 /** Small inline flag + team name, for toasts, the ticker and feeds. */
@@ -61,17 +63,17 @@ export function TeamName({ team, className = 'team-inline' }) {
   );
 }
 
-/** Real TikTok gift image (from the catalog), or a 🎁 when the image isn't known yet. */
+/** Real TikTok gift image (from the catalog), or a gift icon when the image isn't known yet. */
 export function GiftIcon({ gift, name, className = 'gift-icon', title }) {
   const [failed, setFailed] = useState(false);
   const url = safeUrl(gift?.image);
   const label = title ?? (gift?.name || name || '');
   // eslint-disable-next-line @next/next/no-img-element
   if (url && !failed) return <img className={className} src={url} alt={label} title={label} referrerPolicy="no-referrer" loading="lazy" onError={() => setFailed(true)} />;
-  return <span className={`${className} emoji fallback`} title={label}>🎁</span>;
+  return <span className={`${className} lc-fallback`} title={label}><GiftLc strokeWidth={2.2} /></span>;
 }
 
-/** "🇲🇦 = 🌹" legend: which gift supports which team. */
+/** "flag = gift" legend: which gift supports which team. */
 export function GiftLegend({ teams, giftMap, className = 'gift-legend' }) {
   const items = (teams || []).filter((t) => t.gifts?.length);
   if (!items.length) return null;
@@ -97,12 +99,13 @@ export function Logo({ className = 'logo', small, src, alt = 'تحدي المل�
 
 /** Progress toward the 1M goal. */
 export function GoalBar({ total, goal, compact, variant = '' }) {
+  const Ico = variant === 'follow' ? Heart : null;
   if (!goal || !goal.enabled) return null;
   const pct = Math.min(100, (total / Math.max(1, goal.target)) * 100);
   return (
     <div className={`goal${compact ? ' compact' : ''}${variant ? ` ${variant}` : ''}`}>
       <div className="goal-row">
-        <span className="goal-label">{goal.label || 'الهدف'}</span>
+        <span className="goal-label">{Ico && <Ico className="lc-inline" fill="currentColor" />}{goal.label || 'الهدف'}</span>
         <span className="goal-nums"><b><AnimatedNumber value={total} /></b> / {fmt(goal.target)}</span>
       </div>
       <div className="goal-bar"><div className="goal-fill" style={{ width: `${pct}%` }} /><span className="goal-pct">{pct.toFixed(pct < 10 ? 1 : 0)}%</span></div>

@@ -8,6 +8,10 @@ import { onLiveEvent } from '@/lib/store';
 import { confettiBurst, confettiRain } from '@/lib/confetti';
 import { fmt, safeUrl } from '@/lib/format';
 import { Avatar, Flag, TeamName, teamImage } from './bits';
+import { Crown, Flame, Gift, Hand, Heart, RefreshCw, Repeat2, Trophy } from 'lucide-react';
+
+// Icons used in the ticker parts: ['ico', name]
+const TICK_ICONS = { hand: Hand, heart: Heart, share: Repeat2, trophy: Trophy, crown: Crown, gift: Gift, refresh: RefreshCw };
 
 
 export function useAlerts(config, { confetti = true, toasts = true } = {}) {
@@ -70,13 +74,13 @@ export function useAlerts(config, { confetti = true, toasts = true } = {}) {
           break;
         }
         case 'join':
-          if (a.showJoins) addTick(team, [['', '👋 '], ['b', ev.user.nickname], ['', ' انضم إلى '], ['team', team], ...(ev.points ? [['tp', ` +${fmt(ev.points)}`]] : [])]);
+          if (a.showJoins) addTick(team, [['ico', 'hand'], ['b', ev.user.nickname], ['', ' انضم إلى '], ['team', team], ...(ev.points ? [['tp', ` +${fmt(ev.points)}`]] : [])]);
           break;
         case 'unassigned':
           if (a.showUnassigned) {
             addTick(null, c.scoring?.giftMode === 'giftOnly'
-              ? [['b', ev.user.nickname], ['', ' أرسل '], ['g', ev.gift.name], ['', ' ولا تُحسب. أرسل هدية دولتك لتُحسب! 🎁']]
-              : [['b', ev.user.nickname], ['', ` أرسل ${ev.gift.name}. اكتب اسم فريقك في الشات لتُحسب! 🙏`]]);
+              ? [['b', ev.user.nickname], ['', ' أرسل '], ['g', ev.gift.name], ['', ' ولا تُحسب. أرسل هدية دولتك لتُحسب!'], ['ico', 'gift']]
+              : [['b', ev.user.nickname], ['', ` أرسل ${ev.gift.name}. اكتب اسم فريقك في الشات لتُحسب!`]]);
           }
           break;
         case 'follow':
@@ -93,25 +97,25 @@ export function useAlerts(config, { confetti = true, toasts = true } = {}) {
             });
             arm(key);
           }
-          addTick(team, [['', isFollow ? '💛 ' : '🔁 '], ['b', ev.user.nickname], ['', isFollow ? ' تابع البث' : ' شارك البث'], ...(team ? [['', ' ('], ['team', team], ['', ')']] : []), ...(ev.points ? [['tp', ` +${fmt(ev.points)}`]] : [])]);
+          addTick(team, [['ico', isFollow ? 'heart' : 'share'], ['b', ev.user.nickname], ['', isFollow ? ' تابع البث' : ' شارك البث'], ...(team ? [['', ' ('], ['team', team], ['', ')']] : []), ...(ev.points ? [['tp', ` +${fmt(ev.points)}`]] : [])]);
           break;
         }
         case 'roundStart':
           addTick(null, [['b', `⏱️ بدأت الجولة ${ev.number}! أرسل هدية دولتك الآن`]]);
           break;
         case 'roundEnd':
-          addTick(ev.winner ? teamOf(ev.winner.id) : null, [['', '🏆 '], ['b', ev.winner ? `${ev.winner.name} بطل الجولة ${ev.number}!` : `انتهت الجولة ${ev.number}`]]);
+          addTick(ev.winner ? teamOf(ev.winner.id) : null, [['ico', 'trophy'], ['b', ev.winner ? `${ev.winner.name} بطل الجولة ${ev.number}!` : `انتهت الجولة ${ev.number}`]]);
           break;
         case 'takeover':
           if (team) {
             setBanner({ key: Math.random(), team, prev: ev.prevTeamId ? teamOf(ev.prevTeamId) : null });
-            addTick(team, [['', '👑 '], ['team', team], ['', ' يتصدّر الآن!']]);
-            if (a.confettiOnTakeover && confetti) confettiRain([team.color, '#ffd54a', '#ffffff'], 140, team.emoji);
+            addTick(team, [['ico', 'crown'], ['team', team], ['', ' يتصدّر الآن!']]);
+            if (a.confettiOnTakeover && confetti) confettiRain([team.color, '#ffd54a', '#ffffff'], 140);
           }
           break;
         case 'reset':
           setToasts([]); setFeed([]);
-          setTicks([{ id: Math.random(), team: null, parts: [['b', '🔄 تمت إعادة النتائج. جولة جديدة تبدأ الآن!']] }]);
+          setTicks([{ id: Math.random(), team: null, parts: [['ico', 'refresh'], ['b', 'تمت إعادة النتائج. جولة جديدة تبدأ الآن!']] }]);
           break;
         default: break;
       }
@@ -130,9 +134,9 @@ export function Toasts({ list, side = 'left', compact = false }) {
           <Avatar src={t.user.avatar} name={t.user.nickname} color={t.team?.color} />
           <div className="tbody">
             <div className="tuser">{t.user.nickname}</div>
-            <div className="tline">{t.kind === 'follow' ? 'تابع البث! شكراً 💛' : 'شارك البث! 🔁'}{t.team && <> · <TeamName team={t.team} className="tteam team-inline" /></>}</div>
+            <div className="tline">{t.kind === 'follow' ? 'تابع البث! شكراً' : 'شارك البث!'}{t.team && <> · <TeamName team={t.team} className="tteam team-inline" /></>}</div>
           </div>
-          <div className="tsocial emoji">{t.kind === 'follow' ? '💛' : '🔁'}</div>
+          <div className="tsocial">{t.kind === 'follow' ? <Heart fill="currentColor" /> : <Repeat2 />}</div>
           {t.points > 0 && <div className="tpts">+{fmt(t.points)}</div>}
         </div>
       ) : (
@@ -159,7 +163,7 @@ export function Ticker({ ticks }) {
       <div className="ticker-items">
         {ticks.map((t) => (
           <span key={t.id} className="tick" style={{ '--team': t.team?.color }}>
-            {t.parts.map(([cls, text], i) => (cls === 'team' ? <TeamName key={i} team={text} /> : cls === 'b' ? <b key={i}>{text}</b> : cls === 'g' ? <bdi key={i} dir="ltr" className="tg">{text}</bdi> : cls === 'img' ? <img key={i} className="tick-gift" src={text} alt="" referrerPolicy="no-referrer" /> : cls ? <span key={i} className={cls}>{text}</span> : <span key={i}>{text}</span>))}
+            {t.parts.map(([cls, text], i) => (cls === 'ico' ? (() => { const I = TICK_ICONS[text]; return I ? <I key={i} className="tick-ico" /> : null; })() : cls === 'team' ? <TeamName key={i} team={text} /> : cls === 'b' ? <b key={i}>{text}</b> : cls === 'g' ? <bdi key={i} dir="ltr" className="tg">{text}</bdi> : cls === 'img' ? <img key={i} className="tick-gift" src={text} alt="" referrerPolicy="no-referrer" /> : cls ? <span key={i} className={cls}>{text}</span> : <span key={i}>{text}</span>))}
           </span>
         ))}
       </div>
@@ -172,9 +176,9 @@ export function Banner({ banner }) {
   const { team, prev } = banner;
   return (
     <div key={banner.key} className="banner glass show" style={{ '--team': team.color, borderColor: team.color }}>
-      <span className="bflag emoji">{teamImage(team) ? <span className="bphoto"><Flag team={team} /></span> : team.emoji || '🏆'}</span>
+      <span className="bflag emoji">{teamImage(team) ? <span className="bphoto"><Flag team={team} /></span> : team.emoji || <Trophy />}</span>
       <div className="btext">{team.name} يتصدّر!</div>
-      <div className="bsub">{prev ? <>تجاوز <TeamName team={prev} /></> : 'أول النقاط! 🔥'}</div>
+      <div className="bsub">{prev ? <>تجاوز <TeamName team={prev} /></> : <>أول النقاط! <Flame className="lc-inline" /></>}</div>
     </div>
   );
 }

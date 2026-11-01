@@ -183,6 +183,7 @@ const DEFAULT_CONFIG = {
     bgOnOverlay: false,         // show the picture in OBS (covers the stream behind!)
     sceneOnOverlay: false,      // the look's own background in OBS (full scene, covers the stream behind)
     portraitOnly: true,         // this live streams vertically (TikTok): the panel shows the vertical overlay first
+    zoom: 1,                    // overall size of everything (texts, boxes, pictures): 0.5..1.8
     // Vertical overlay (1080x1920, /overlay-vertical): TikTok's own buttons cover the top and the bottom.
     // layout: 'grid' (tiles in columns) | 'side' (narrow column, the middle stays free) | 'list' (wide cards)
     // header: 'compact' | 'full' | 'off'; alert pills: at most maxToasts, toastsAlign 'center' | 'right' | 'left'
@@ -469,6 +470,7 @@ function sanitizeConfig(input) {
     bgOnOverlay: bool(th.bgOnOverlay, DT.bgOnOverlay),
     sceneOnOverlay: bool(th.sceneOnOverlay, DT.sceneOnOverlay),
     portraitOnly: bool(th.portraitOnly, DT.portraitOnly),
+    zoom: Math.round(numIn(th.zoom, 0.5, 1.8, DT.zoom) * 100) / 100,
     vertical: (() => {
       const v = isObj(th.vertical) ? th.vertical : {}; const DV = DT.vertical;
       return {

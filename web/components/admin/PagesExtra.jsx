@@ -1,4 +1,5 @@
 'use client';
+import { Gem, Heart, Repeat2, Trophy } from 'lucide-react';
 /** Admin pages: Rounds, Voice (Arabic TTS), Stream reports. */
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { api } from '@/lib/api';
@@ -37,7 +38,7 @@ export function RoundsPage({ live, draft, edit, notice }) {
               <><span className="a-muted">الجولة {round.number} · الوقت المتبقي</span><b className={`a-round-time num-latin${clock.urgent ? ' urgent' : ''}`}>{clock.text}</b>
                 <span className="a-round-bar"><i style={{ width: `${100 - clock.pct}%` }} /></span></>
             ) : round.status === 'celebrating' ? (
-              <><span className="a-muted">الجولة {round.number}</span><b className="a-round-time">🏆 احتفال بالفائز…</b></>
+              <><span className="a-muted">الجولة {round.number}</span><b className="a-round-time"><Trophy className="lc-inline" /> احتفال بالفائز…</b></>
             ) : (
               <><span className="a-muted">{round.number ? `آخر جولة: ${round.number}` : 'لم تبدأ أي جولة'}</span><b className="a-round-time">لا توجد جولة جارية</b></>
             )}
@@ -243,7 +244,7 @@ export function ReportsPage({ live, notice }) {
               <button key={r.id} className={`a-rep-item${sel === r.id ? ' active' : ''}`} onClick={() => setSel(r.id)}>
                 <div className="a-rep-top"><b>{dt(r.startedAt)}</b>{r.open && <span className="a-chip gold">● مباشر</span>}{r.demo && <span className="a-chip">تجريبي</span>}</div>
                 <span className="a-muted">{r.username ? `@${r.username} · ` : ''}{dur((r.endedAt || Date.now()) - r.startedAt)}</span>
-                <div className="a-rep-nums num-latin"><span>{fmt(r.totals?.points)} نقطة</span><span>{fmt(r.totals?.diamonds)} 💎</span>{r.winner && <span>🏆 {r.winner.name}</span>}</div>
+                <div className="a-rep-nums num-latin"><span>{fmt(r.totals?.points)} نقطة</span><span>{fmt(r.totals?.diamonds)} <Gem className="lc-inline" /></span>{r.winner && <span><Trophy className="lc-inline" /> {r.winner.name}</span>}</div>
               </button>
             ))}
           </div>
@@ -267,9 +268,9 @@ export function ReportsPage({ live, notice }) {
             <div className="a-kpis a-rep-kpis">
               <div className="a-kpi gold"><Icon name="trophy" /><div><span>النقاط</span><b className="num-latin">{fmt(rep.totals.points)}</b></div></div>
               <div className="a-kpi"><Icon name="gift" /><div><span>الهدايا</span><b className="num-latin">{fmt(rep.totals.gifts)}</b></div></div>
-              <div className="a-kpi"><span className="a-kpi-ico emoji">💎</span><div><span>الماسات</span><b className="num-latin">{fmt(rep.totals.diamonds)}</b></div></div>
-              <div className="a-kpi"><span className="a-kpi-ico emoji">💛</span><div><span>متابعون جدد</span><b className="num-latin">{fmt(rep.totals.follows)}</b></div></div>
-              <div className="a-kpi"><span className="a-kpi-ico emoji">🔁</span><div><span>مشاركات</span><b className="num-latin">{fmt(rep.totals.shares)}</b></div></div>
+              <div className="a-kpi"><span className="a-kpi-ico"><Gem /></span><div><span>الماسات</span><b className="num-latin">{fmt(rep.totals.diamonds)}</b></div></div>
+              <div className="a-kpi"><span className="a-kpi-ico"><Heart /></span><div><span>متابعون جدد</span><b className="num-latin">{fmt(rep.totals.follows)}</b></div></div>
+              <div className="a-kpi"><span className="a-kpi-ico"><Repeat2 /></span><div><span>مشاركات</span><b className="num-latin">{fmt(rep.totals.shares)}</b></div></div>
               <div className="a-kpi"><Icon name="eye" /><div><span>أعلى مشاهدين</span><b className="num-latin">{fmt(rep.peakViewers)}</b></div></div>
               <div className="a-kpi"><Icon name="users" /><div><span>الداعمون</span><b className="num-latin">{fmt(rep.supportersCount || rep.topSupporters?.length || 0)}</b></div></div>
               <div className="a-kpi"><Icon name="update" /><div><span>الجولات</span><b className="num-latin">{rep.rounds?.length || 0}</b></div></div>
@@ -294,7 +295,7 @@ export function ReportsPage({ live, notice }) {
               <Section title="🎁 الهدايا">
                 {gifts.length === 0 ? <p className="a-empty">لا هدايا.</p> : (
                   <table className="a-table compact">
-                    <thead><tr><th>الهدية</th><th>العدد</th><th>💎</th><th>النقاط</th></tr></thead>
+                    <thead><tr><th>الهدية</th><th>العدد</th><th>الماسات</th><th>النقاط</th></tr></thead>
                     <tbody>{gifts.slice(0, 25).map((g) => (
                       <tr key={g.name}><td><span className="a-cell-team"><GiftIcon gift={{ name: g.name, image: giftImg(g) }} className="a-cell-gift" /><span className="num-latin">{g.name}</span></span></td>
                         <td className="num-latin">{fmt(g.count)}</td><td className="num-latin">{fmt(g.diamonds)}</td><td className="num-latin a-gold">{fmt(g.points)}</td></tr>

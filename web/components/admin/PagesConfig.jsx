@@ -1,4 +1,5 @@
 'use client';
+import { Tag } from 'lucide-react';
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import Overlay from '../Overlay';
 import LiveView from '../LiveView';
@@ -14,6 +15,7 @@ import { pickFile, uploadImage } from '@/lib/upload';
 import { safeUrl } from '@/lib/format';
 import { cmd } from '@/lib/store';
 import { Btn, Color, Field, Icon, Num, Range, Section, Select, Text, Toggle, useNotice } from './ui';
+import { iconize } from './icons';
 
 /** Upload button: picks an image, shrinks it, uploads it and returns its /uploads/ URL. */
 function UploadBtn({ max = 512, onDone, children = 'رفع صورة', variant = 'ghost', size = 'sm' }) {
@@ -127,7 +129,7 @@ function ListInput({ value, onChange, placeholder, list }) {
 }
 
 function GiftDatalist({ gifts }) {
-  return <datalist id="gift-names">{gifts.map((g) => <option key={g.id} value={g.name}>{g.diamonds} 💎</option>)}</datalist>;
+  return <datalist id="gift-names">{gifts.map((g) => <option key={g.id} value={g.name}>{g.diamonds} ماسة</option>)}</datalist>;
 }
 
 export function Teams({ live, draft, edit }) {
@@ -358,7 +360,7 @@ function Library({ onUse, onLogo, refreshKey }) {
           <img src={f.url} alt="" loading="lazy" />
           <div className="a-lib-actions">
             <button className="a-icon-btn" title="استخدام كخلفية" onClick={() => onUse(f.url)}><Icon name="check" /></button>
-            {onLogo && <button className="a-icon-btn" title="استخدام كشعار" onClick={() => onLogo(f.url)}>🏷️</button>}
+            {onLogo && <button className="a-icon-btn" title="استخدام كشعار" onClick={() => onLogo(f.url)}><Tag size={16} /></button>}
             <button className="a-icon-btn danger" title="حذف" onClick={async () => {
               if (!confirm('حذف هذه الصورة؟ إذا كانت مستخدمة ستختفي من الشاشات.')) return;
               try { await api(`/api/upload?name=${encodeURIComponent(f.name)}`, { method: 'DELETE' }); load(); } catch (e) { notice(e.message, 'err'); }
@@ -384,7 +386,7 @@ function VerticalControls({ t, edit }) {
   const seg = (k, opts) => (
     <div className="a-seg a-seg-wrap">{opts.map(([val, l]) => <button key={val} className={v[k] === val ? 'on' : ''} onClick={() => setV(k)(val)}>{l}</button>)}</div>
   );
-  return (
+  return iconize(
     <div className="a-form a-vprev-ctl">
       <h4 className="a-sub">إعدادات البث العمودي</h4>
       <Toggle label="بثي عمودي فقط (تيك توك)" checked={t.portraitOnly !== false} onChange={(val) => edit((c) => { c.theme.portraitOnly = val; })} />
@@ -412,7 +414,7 @@ function VerticalControls({ t, edit }) {
         <Field label="موضعها من الأعلى" hint="أسفل الترتيب وفوق تعليقات تيك توك"><Range value={v.toastsTop ?? 1080} min={0} max={1800} step={10} suffix="px" onChange={setV('toastsTop')} /></Field>
       </>}
       <Toggle label="الشريط الإخباري للهدايا" checked={Boolean(v.showTicker)} onChange={setV('showTicker')} />
-    </div>
+    </div>,
   );
 }
 
@@ -531,11 +533,18 @@ export function Theme({ live, draft, edit }) {
     ['fonts', '🔤 الخطوط'], ['bg', '🌄 الخلفية'], ['logo', '🏷️ الشعار والألوان'], ['landscape', '🖥️ الأفقي'],
   ];
 
-  return (
+  return iconize(
     <div className="a-studio">
       <div className="a-studio-preview">
         <div className="a-studio-head">
           <b>معاينة مباشرة</b>
+          <div className="a-zoom" title="الحجم الكلي: كل النصوص والمربعات والصور معاً">
+            <span className="a-label">الحجم الكلي</span>
+            <button type="button" className="a-icon-btn" onClick={() => edit((c) => { c.theme.zoom = Math.max(0.5, Math.round(((c.theme.zoom ?? 1) - 0.05) * 100) / 100); })} aria-label="أصغر"><Icon name="down" size={15} /></button>
+            <input type="range" min={0.5} max={1.8} step={0.05} value={t.zoom ?? 1} onChange={(e) => edit((c) => { c.theme.zoom = Number(e.target.value); })} />
+            <button type="button" className="a-icon-btn" onClick={() => edit((c) => { c.theme.zoom = Math.min(1.8, Math.round(((c.theme.zoom ?? 1) + 0.05) * 100) / 100); })} aria-label="أكبر"><Icon name="up" size={15} /></button>
+            <button type="button" className="a-zoom-val num-latin" onClick={() => edit((c) => { c.theme.zoom = 1; })} title="إرجاع 100%">{Math.round((t.zoom ?? 1) * 100)}%</button>
+          </div>
           <div className="a-seg">
             <button className={view === 'vertical' ? 'on' : ''} onClick={() => setView('vertical')}>📱 عمودي</button>
             <button className={view === 'overlay' ? 'on' : ''} onClick={() => setView('overlay')}>🖥️ أفقي</button>
@@ -665,7 +674,7 @@ export function Theme({ live, draft, edit }) {
         {t.bgOnOverlay && t.bgImage && <div className="a-alert warn"><Icon name="eye" />في OBS ستغطي الصورة ما خلف الواجهة (الكاميرا/البث). فعّلها إذا كانت الواجهة مشهداً كاملاً.</div>}
       </Section>
 
-      <Section title="📁 مكتبة الصور" desc="كل الصور المرفوعة (صور الفرق والخلفيات والشعارات). ✓ = استخدام كخلفية، 🏷️ = استخدام كشعار." className="span-2">
+      <Section title="📁 مكتبة الصور" desc="كل الصور المرفوعة (صور الفرق والخلفيات والشعارات). زر الصح = استخدام كخلفية، زر الوسم = استخدام كشعار." className="span-2">
         <Library refreshKey={libKey} onUse={(url) => edit((c) => { c.theme.bgImage = url; })} onLogo={(url) => edit((c) => { c.theme.logo = url; c.theme.showLogo = true; })} />
       </Section>
           </>}
@@ -714,6 +723,6 @@ export function Theme({ live, draft, edit }) {
           </>}
         </div>
       </div>
-    </div>
+    </div>,
   );
 }

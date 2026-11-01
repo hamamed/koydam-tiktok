@@ -611,3 +611,14 @@ html[data-admin-theme="light"] .admin-root .goal-pct { color: #1c1a22; text-shad
 .a-studio-tabs button { flex: none; padding: 7px 11px; }
 .a-studio-tabs::-webkit-scrollbar { height: 6px; }
 .a-studio-body { padding-bottom: 96px; }
+
+/* Lucide icons that replace emojis in labels and titles */
+.admin-root .lc-ico { width: 1.1em; height: 1.1em; vertical-align: -0.18em; margin-inline-end: .3em; flex: none; stroke-width: 2.1; }
+.admin-root h3 .lc-ico, .admin-root h2 .lc-ico { color: var(--gold); }
+.admin-root .a-seg button .lc-ico, .admin-root .a-studio-tabs button .lc-ico { margin-inline-end: .35em; }
+.a-zoom { display: inline-flex; align-items: center; gap: 6px; padding: 4px 8px; border-radius: 12px; background: var(--panel); border: 1px solid var(--line); }
+.a-zoom input[type=range] { width: 110px; accent-color: var(--gold); }
+.a-zoom .a-icon-btn { width: 26px; height: 26px; border-radius: 7px; }
+.a-zoom-val { min-width: 48px; padding: 3px 6px; border-radius: 8px; border: 1px solid var(--line-2); background: var(--panel-2); color: var(--gold-2); font-weight: 900; cursor: pointer; font-size: calc(12.5px * var(--a-fs, 1)); }
+.admin-root .lc-inline { width: 1.05em; height: 1.05em; vertical-align: -0.16em; }
+.admin-root .a-kpi-ico svg { width: 22px; height: 22px; color: var(--gold); }

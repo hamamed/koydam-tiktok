@@ -59,7 +59,8 @@
   radial-gradient(60% 50% at 85% -10%, rgba(242,193,78,.25), transparent 60%), #0b1437;
   background-size: 400px 400px, 400px 400px, 400px 400px, 400px 400px, 400px 400px, 400px 400px, 100% 100%, 100% 100%; }
 [data-skin="ramadan"] .ov-header::after, [data-skin="ramadan"] .live-hero::after {
-  content: '🌙'; position: absolute; inset-inline-end: 14px; top: 8px; font-size: 26px; filter: drop-shadow(0 0 10px rgba(242,193,78,.8));
+  content: ''; position: absolute; inset-inline-end: 14px; top: 10px; width: 28px; height: 28px; background: #f2c14e; filter: drop-shadow(0 0 10px rgba(242,193,78,.8));
+  -webkit-mask: var(--ico-moon) center / contain no-repeat; mask: var(--ico-moon) center / contain no-repeat;
 }
 [data-skin="ramadan"] .live-hero { position: relative; }
 
@@ -309,7 +310,8 @@
 [data-skin="pharaoh"] .live-bg { background:
   linear-gradient(135deg, transparent 48%, rgba(231,185,35,.06) 48% 52%, transparent 52%) 0 0 / 60px 60px,
   radial-gradient(60% 50% at 50% 110%, rgba(231,185,35,.25), transparent 60%), #081233; }
-[data-skin="pharaoh"] .ov-header::after, [data-skin="pharaoh"] .live-hero::after { content: '𓂀'; position: absolute; inset-inline-end: 14px; top: 6px; font-size: 26px; color: #e7b923; }
+[data-skin="pharaoh"] .ov-header::after, [data-skin="pharaoh"] .live-hero::after { content: ''; position: absolute; inset-inline-end: 14px; top: 10px; width: 30px; height: 30px; background: #e7b923;
+  -webkit-mask: var(--ico-eye) center / contain no-repeat; mask: var(--ico-eye) center / contain no-repeat; }
 [data-skin="pharaoh"] .live-hero { position: relative; }
 
 /* ---------- الأندلس (Andalus) ---------- */
@@ -338,7 +340,8 @@
   --glass-rgb: 3, 36, 28; --glass-border: rgba(255,209,102,.4);
   --page-bg: #022019; --glow-1: rgba(255,209,102,.25); --glow-2: rgba(6,167,125,.3); --surface-border: rgba(255,209,102,.25);
 }
-[data-skin="eid"] .ov-header::after, [data-skin="eid"] .live-hero::after { content: '🏮✨'; position: absolute; inset-inline-end: 14px; top: 8px; font-size: 22px; }
+[data-skin="eid"] .ov-header::after, [data-skin="eid"] .live-hero::after { content: ''; position: absolute; inset-inline-end: 14px; top: 10px; width: 28px; height: 28px; background: #ffd166; filter: drop-shadow(0 0 8px rgba(255,209,102,.7));
+  -webkit-mask: var(--ico-sparkles) center / contain no-repeat; mask: var(--ico-sparkles) center / contain no-repeat; }
 [data-skin="eid"] .live-hero { position: relative; }
 [data-skin="eid"] .live-bg { background:
   radial-gradient(2px 2px at 20% 30%, #ffd166, transparent), radial-gradient(2px 2px at 70% 20%, #ffd166, transparent),

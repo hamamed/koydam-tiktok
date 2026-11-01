@@ -267,3 +267,7 @@
 @keyframes bannerInV { 0% { opacity: 0; transform: translate(-50%, -40%) scale(.9); } 10%, 85% { opacity: 1; transform: translate(-50%, -50%) scale(1); } 100% { opacity: 0; transform: translate(-50%, -55%) scale(.96); } }
 .overlay-root.portrait .banner .bphoto { width: calc(80px * var(--fs)); height: calc(80px * var(--fs)); }
 .overlay-root.portrait .banner .btext { font-size: calc(38px * var(--fs)); }
+
+/* Overall size (theme.zoom): texts, boxes and pictures together. Backgrounds stay full-screen. */
+.overlay-root > :not(.live-bg):not(.scene-photo):not(.winner-screen) { zoom: var(--zoom, 1); }
+.overlay-root .winner-screen .ws-card { zoom: var(--zoom, 1); }

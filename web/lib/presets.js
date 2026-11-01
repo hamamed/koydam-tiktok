@@ -15,19 +15,19 @@ export const PRESETS = {
   'الأندية': {
     category: 'الأندية',
     teams: [
-      { name: 'الرجاء', emoji: '🟢', color: '#0f9d58', keywords: ['raja', 'rca', 'الرجاء'], gifts: ['Rose'] },
-      { name: 'الوداد', emoji: '🔴', color: '#d32f2f', keywords: ['wydad', 'wac', 'الوداد'], gifts: ['TikTok'] },
-      { name: 'ريال مدريد', emoji: '⚪', color: '#c9b037', keywords: ['real', 'madrid', 'ريال'], gifts: ['Finger Heart'] },
-      { name: 'برشلونة', emoji: '🔵', color: '#1e3a8a', keywords: ['barca', 'barcelona', 'برشلونة', 'برشا'], gifts: ['Ice Cream Cone'] },
+      { name: 'الرجاء', emoji: '', color: '#0f9d58', keywords: ['raja', 'rca', 'الرجاء'], gifts: ['Rose'] },
+      { name: 'الوداد', emoji: '', color: '#d32f2f', keywords: ['wydad', 'wac', 'الوداد'], gifts: ['TikTok'] },
+      { name: 'ريال مدريد', emoji: '', color: '#c9b037', keywords: ['real', 'madrid', 'ريال'], gifts: ['Finger Heart'] },
+      { name: 'برشلونة', emoji: '', color: '#1e3a8a', keywords: ['barca', 'barcelona', 'برشلونة', 'برشا'], gifts: ['Ice Cream Cone'] },
     ],
   },
   'القبائل': {
     category: 'القبائل',
     teams: [
-      { name: 'القبيلة 1', emoji: '🐎', color: '#b45309', keywords: ['q1'], gifts: ['Rose'] },
-      { name: 'القبيلة 2', emoji: '🦅', color: '#0e7490', keywords: ['q2'], gifts: ['TikTok'] },
-      { name: 'القبيلة 3', emoji: '🐪', color: '#7c3aed', keywords: ['q3'], gifts: ['Finger Heart'] },
-      { name: 'القبيلة 4', emoji: '🦁', color: '#be123c', keywords: ['q4'], gifts: ['Ice Cream Cone'] },
+      { name: 'القبيلة 1', emoji: '', color: '#b45309', keywords: ['q1'], gifts: ['Rose'] },
+      { name: 'القبيلة 2', emoji: '', color: '#0e7490', keywords: ['q2'], gifts: ['TikTok'] },
+      { name: 'القبيلة 3', emoji: '', color: '#7c3aed', keywords: ['q3'], gifts: ['Finger Heart'] },
+      { name: 'القبيلة 4', emoji: '', color: '#be123c', keywords: ['q4'], gifts: ['Ice Cream Cone'] },
     ],
   },
 };
