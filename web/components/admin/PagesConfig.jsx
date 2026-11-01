@@ -303,18 +303,20 @@ export function Scoring({ live, draft, edit, dirty, notice }) {
   );
 }
 
-/** A fixed-size stage (1920x1080 overlay or 1440x1000 live page) scaled to fit its box. */
-function ScaledStage({ w, h, children }) {
+/** Stage scaled to fit BOTH the width and the height of its box (studio preview). */
+function FitStage({ w, h, children }) {
   const box = useRef(null);
-  const [scale, setScale] = useState(0.4);
+  const [scale, setScale] = useState(0.3);
   useLayoutEffect(() => {
-    const ro = new ResizeObserver(() => { if (box.current) setScale(box.current.clientWidth / w); });
+    const ro = new ResizeObserver(() => { const b = box.current; if (b) setScale(Math.max(0.05, Math.min(b.clientWidth / w, b.clientHeight / h))); });
     ro.observe(box.current);
     return () => ro.disconnect();
-  }, [w]);
+  }, [w, h]);
   return (
-    <div ref={box} className="a-preview" style={{ height: h * scale }}>
-      <div className="a-preview-stage" style={{ width: w, height: h, transform: `scale(${scale})` }}>{children}</div>
+    <div ref={box} className="a-fitstage">
+      <div className="a-preview a-fit-inner" style={{ width: w * scale, height: h * scale }}>
+        <div className="a-preview-stage" style={{ width: w, height: h, transform: `scale(${scale})` }}>{children}</div>
+      </div>
     </div>
   );
 }
@@ -496,6 +498,7 @@ export function Theme({ live, draft, edit }) {
   const t = draft.theme;
   const set = (k) => (v) => edit((c) => { c.theme[k] = v; });
   const [view, setView] = useState(t.portraitOnly !== false ? 'vertical' : 'overlay');
+  const [tab, setTab] = useState('looks');
   const [libKey, setLibKey] = useState(0);
   const [cat, setCat] = useState('all');
   const shown = cat === 'all' ? SKINS : SKINS.filter((x) => x.cat === cat);
@@ -517,8 +520,40 @@ export function Theme({ live, draft, edit }) {
     c.theme.skinRotation = r;
   });
 
+  // Auto-switch the preview to the screen the tab is about.
+  const pickTab = (id) => {
+    setTab(id);
+    if (id === 'vertical') setView('vertical');
+    if (id === 'landscape') setView('overlay');
+  };
+  const TABS = [
+    ['looks', '🎨 الأشكال'], ['vertical', '📱 العمودي'], ['cards', '🧩 البطاقات'], ['strip', '🚆 الشريط'],
+    ['fonts', '🔤 الخطوط'], ['bg', '🌄 الخلفية'], ['logo', '🏷️ الشعار والألوان'], ['landscape', '🖥️ الأفقي'],
+  ];
+
   return (
-    <div className="a-grid">
+    <div className="a-studio">
+      <div className="a-studio-preview">
+        <div className="a-studio-head">
+          <b>معاينة مباشرة</b>
+          <div className="a-seg">
+            <button className={view === 'vertical' ? 'on' : ''} onClick={() => setView('vertical')}>📱 عمودي</button>
+            <button className={view === 'overlay' ? 'on' : ''} onClick={() => setView('overlay')}>🖥️ أفقي</button>
+            <button className={view === 'live' ? 'on' : ''} onClick={() => setView('live')}>🌐 الصفحة</button>
+          </div>
+        </div>
+        {view === 'overlay' && <FitStage w={1920} h={1080}><Overlay config={draft} state={live.state} byId={live.byId} status={live.status} gifts={live.gifts} round={live.round} preview /></FitStage>}
+        {view === 'vertical' && <FitStage w={1080} h={1920}><div className="a-tiktok-safe"><span className="top">واجهة تيك توك العلوية</span><span className="bottom">التعليقات وأزرار تيك توك</span><span className="right">أزرار الإعجاب</span></div><Overlay config={draft} state={live.state} byId={live.byId} status={live.status} gifts={live.gifts} round={live.round} orientation="portrait" preview /></FitStage>}
+        {view === 'live' && <FitStage w={1440} h={1000}><LiveView config={draft} state={live.state} byId={live.byId} status={live.status} gifts={live.gifts} round={live.round} preview /></FitStage>}
+        <p className="a-muted a-studio-note">تتحدث فوراً مع كل تعديل. اضغط «حفظ وتطبيق» لإرسالها لكل الشاشات.</p>
+      </div>
+
+      <div className="a-studio-panel">
+        <div className="a-studio-tabs" role="tablist">
+          {TABS.map(([id, label]) => <button key={id} role="tab" aria-selected={tab === id} className={tab === id ? 'on' : ''} onClick={() => pickTab(id)}>{label}</button>)}
+        </div>
+        <div className="a-studio-body">
+          {tab === 'looks' && <>
       <Section title="🎨 الأشكال الجاهزة" className="span-2"
         desc={`${SKINS.length} شكلاً للصفحة المباشرة وواجهة OBS، منها «تصميمي الخاص» بألوانك. كل بث له شكله وشعاره الخاص. اختر شكلاً ثابتاً، أو فعّل التبديل التلقائي ليتغير كل يوم أو كل أسبوع.`}
         actions={<div className="a-inline"><span className="a-label">التبديل التلقائي</span>
@@ -553,40 +588,22 @@ export function Theme({ live, draft, edit }) {
         </div>
       </Section>
 
-      <Section title="🏷️ شعار البث" desc="ارفع شعارك ليظهر بدل شعار «تحدي المليون» في OBS والصفحة المباشرة. يفضّل PNG بخلفية شفافة.">
-        <div className="a-bg-pick">
-          <div className="a-logo-thumb">{safeUrl(t.logo) || /^\/uploads\//.test(t.logo || '') ? <img src={t.logo} alt="" /> : <img src="/logo-sm.png" alt="" className="def" />}</div>
-          <div className="a-bg-actions">
-            <UploadBtn max={800} variant="gold" size="" onDone={(url) => { edit((c) => { c.theme.logo = url; c.theme.showLogo = true; }); setLibKey((k) => k + 1); }}>{t.logo ? 'تغيير الشعار' : 'رفع شعاري'}</UploadBtn>
-            {t.logo && <Btn variant="ghost" icon="trash" onClick={() => edit((c) => { c.theme.logo = ''; })}>الشعار الافتراضي</Btn>}
-          </div>
-        </div>
+          </>}
+          {tab === 'vertical' && <VerticalControls t={t} edit={edit} />}
+          {tab === 'cards' && <>
+            <PartsEditor draft={draft} edit={edit} />
+      <Section title="🔠 الأحجام والصور">
         <div className="a-form">
-          <Field label="حجم الشعار"><Range value={t.logoSize ?? 1} min={0.4} max={2.5} step={0.05} suffix="×" onChange={set('logoSize')} /></Field>
-          <Toggle label="إظهار الشعار في OBS" checked={t.showLogo} onChange={set('showLogo')} />
-          <Toggle label="إظهار الشعار في الصفحة المباشرة" checked={t.logoOnLive !== false} onChange={set('logoOnLive')} />
+          <Field label="حجم أسماء الفرق" hint="لكل الفرق. يمكن ضبط كل فريق من صفحة «الفرق»"><Range value={t.nameScale} min={0.5} max={2.5} step={0.05} suffix="×" onChange={set('nameScale')} /></Field>
+          <Field label="حجم صورة / علم الفريق"><Range value={t.flagScale} min={0.5} max={2.5} step={0.05} suffix="×" onChange={set('flagScale')} /></Field>
+          <Field label="شكل صورة الفريق"><Select value={t.flagShape} onChange={set('flagShape')} options={[['rounded', 'مربع بحواف دائرية'], ['circle', 'دائرة'], ['square', 'مربع']]} /></Field>
+          <Field label="حجم الخط العام"><Range value={t.fontScale} min={0.6} max={1.6} step={0.05} onChange={set('fontScale')} /></Field>
         </div>
       </Section>
 
-      <Section title="معاينة مباشرة" className="span-2" desc="تتحدث فوراً مع كل تعديل. اضغط «حفظ وتطبيق» لإرسالها لكل الشاشات."
-        actions={<div className="a-seg">
-          <button className={view === 'overlay' ? 'on' : ''} onClick={() => setView('overlay')}>OBS أفقي</button>
-          <button className={view === 'vertical' ? 'on' : ''} onClick={() => setView('vertical')}>OBS عمودي</button>
-          <button className={view === 'live' ? 'on' : ''} onClick={() => setView('live')}>الصفحة المباشرة</button>
-        </div>}>
-        {view === 'overlay' && <ScaledStage w={1920} h={1080}><Overlay config={draft} state={live.state} byId={live.byId} status={live.status} gifts={live.gifts} round={live.round} preview /></ScaledStage>}
-        {view === 'vertical' && (
-          <div className="a-vprev">
-            <ScaledStage w={1080} h={1920}><div className="a-tiktok-safe"><span className="top">واجهة تيك توك العلوية</span><span className="bottom">التعليقات وأزرار تيك توك</span><span className="right">أزرار الإعجاب</span></div><Overlay config={draft} state={live.state} byId={live.byId} status={live.status} gifts={live.gifts} round={live.round} orientation="portrait" preview /></ScaledStage>
-            <VerticalControls t={t} edit={edit} />
-          </div>
-        )}
-        {view === 'live' && <ScaledStage w={1440} h={1000}><LiveView config={draft} state={live.state} byId={live.byId} status={live.status} gifts={live.gifts} round={live.round} preview /></ScaledStage>}
-      </Section>
-
-      <StripEditor draft={draft} edit={edit} />
-      <PartsEditor draft={draft} edit={edit} />
-
+          </>}
+          {tab === 'strip' && <StripEditor draft={draft} edit={edit} />}
+          {tab === 'fonts' && <>
       <Section title="🔤 الخطوط" className="span-2"
         desc="17 خطاً عربياً مضمّناً (تعمل في OBS بدون إنترنت). الخط الأساسي للنصوص، وخط العناوين للعنوان وأسماء الفرق ولافتة المتصدر.">
         <div className="a-seg a-font-tabs">
@@ -614,6 +631,8 @@ export function Theme({ live, draft, edit }) {
         </div>
       </Section>
 
+          </>}
+          {tab === 'bg' && <>
       <Section title="🌄 خلفية الشكل في البث" desc="كل شكل له خلفية مصممة تناسبه. فعّلها لتظهر كخلفية كاملة في OBS (مشهد كامل بدل الكاميرا أو اللعبة). في الصفحة المباشرة تظهر دائماً.">
         <div className="a-form">
           <Toggle label="خلفية الشكل في واجهة OBS" checked={Boolean(t.sceneOnOverlay)} onChange={set('sceneOnOverlay')} />
@@ -646,12 +665,23 @@ export function Theme({ live, draft, edit }) {
         {t.bgOnOverlay && t.bgImage && <div className="a-alert warn"><Icon name="eye" />في OBS ستغطي الصورة ما خلف الواجهة (الكاميرا/البث). فعّلها إذا كانت الواجهة مشهداً كاملاً.</div>}
       </Section>
 
-      <Section title="🔠 الأحجام والصور">
+      <Section title="📁 مكتبة الصور" desc="كل الصور المرفوعة (صور الفرق والخلفيات والشعارات). ✓ = استخدام كخلفية، 🏷️ = استخدام كشعار." className="span-2">
+        <Library refreshKey={libKey} onUse={(url) => edit((c) => { c.theme.bgImage = url; })} onLogo={(url) => edit((c) => { c.theme.logo = url; c.theme.showLogo = true; })} />
+      </Section>
+          </>}
+          {tab === 'logo' && <>
+      <Section title="🏷️ شعار البث" desc="ارفع شعارك ليظهر بدل شعار «تحدي المليون» في OBS والصفحة المباشرة. يفضّل PNG بخلفية شفافة.">
+        <div className="a-bg-pick">
+          <div className="a-logo-thumb">{safeUrl(t.logo) || /^\/uploads\//.test(t.logo || '') ? <img src={t.logo} alt="" /> : <img src="/logo-sm.png" alt="" className="def" />}</div>
+          <div className="a-bg-actions">
+            <UploadBtn max={800} variant="gold" size="" onDone={(url) => { edit((c) => { c.theme.logo = url; c.theme.showLogo = true; }); setLibKey((k) => k + 1); }}>{t.logo ? 'تغيير الشعار' : 'رفع شعاري'}</UploadBtn>
+            {t.logo && <Btn variant="ghost" icon="trash" onClick={() => edit((c) => { c.theme.logo = ''; })}>الشعار الافتراضي</Btn>}
+          </div>
+        </div>
         <div className="a-form">
-          <Field label="حجم أسماء الفرق" hint="لكل الفرق. يمكن ضبط كل فريق من صفحة «الفرق»"><Range value={t.nameScale} min={0.5} max={2.5} step={0.05} suffix="×" onChange={set('nameScale')} /></Field>
-          <Field label="حجم صورة / علم الفريق"><Range value={t.flagScale} min={0.5} max={2.5} step={0.05} suffix="×" onChange={set('flagScale')} /></Field>
-          <Field label="شكل صورة الفريق"><Select value={t.flagShape} onChange={set('flagShape')} options={[['rounded', 'مربع بحواف دائرية'], ['circle', 'دائرة'], ['square', 'مربع']]} /></Field>
-          <Field label="حجم الخط العام"><Range value={t.fontScale} min={0.6} max={1.6} step={0.05} onChange={set('fontScale')} /></Field>
+          <Field label="حجم الشعار"><Range value={t.logoSize ?? 1} min={0.4} max={2.5} step={0.05} suffix="×" onChange={set('logoSize')} /></Field>
+          <Toggle label="إظهار الشعار في OBS" checked={t.showLogo} onChange={set('showLogo')} />
+          <Toggle label="إظهار الشعار في الصفحة المباشرة" checked={t.logoOnLive !== false} onChange={set('logoOnLive')} />
         </div>
       </Section>
 
@@ -666,6 +696,8 @@ export function Theme({ live, draft, edit }) {
         </div>
       </Section>
 
+          </>}
+          {tab === 'landscape' && <>
       <Section title="التخطيط">
         <div className="a-form">
           <Field label="الشكل"><Select value={t.layout} onChange={set('layout')} options={[['list', 'قائمة عمودية'], ['grid', 'شبكة']]} /></Field>
@@ -679,9 +711,9 @@ export function Theme({ live, draft, edit }) {
         </div>
       </Section>
 
-      <Section title="📁 مكتبة الصور" desc="كل الصور المرفوعة (صور الفرق والخلفيات والشعارات). ✓ = استخدام كخلفية، 🏷️ = استخدام كشعار." className="span-2">
-        <Library refreshKey={libKey} onUse={(url) => edit((c) => { c.theme.bgImage = url; })} onLogo={(url) => edit((c) => { c.theme.logo = url; c.theme.showLogo = true; })} />
-      </Section>
+          </>}
+        </div>
+      </div>
     </div>
   );
 }
