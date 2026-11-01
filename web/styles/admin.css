@@ -630,3 +630,11 @@ html[data-admin-theme="light"] .admin-root .goal-pct { color: #1c1a22; text-shad
 .a-tz-prev.landscape .a-tz-stage { width: 560px; max-width: 100%; aspect-ratio: 16 / 9; }
 .a-tz-stage > .teaser-root { width: 1080px; height: 1920px; transform: scale(.25); transform-origin: top right; right: 0; left: auto; }
 .a-tz-prev.landscape .a-tz-stage > .teaser-root { width: 1920px; height: 1080px; transform: scale(calc(560 / 1920)); }
+
+/* Games page */
+.a-games { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; }
+.a-game { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; padding: 16px; border-radius: 16px; border: 1px solid var(--line); background: var(--panel-2); color: var(--text); text-align: start; cursor: pointer; font: inherit; }
+.a-game b { font-size: calc(18px * var(--a-fs, 1)); }
+.a-game .a-game-ico { width: 34px; height: 34px; color: var(--gold); }
+.a-game.on { border-color: var(--gold); box-shadow: 0 0 0 2px rgba(245,179,1,.35); background: linear-gradient(180deg, rgba(245,179,1,.10), var(--panel-2)); }
+.a-games-flags { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 12px; }

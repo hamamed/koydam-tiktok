@@ -6,6 +6,7 @@ import { RoundTimer, WinnerScreen, useRoundWinner } from './Rounds';
 import Speaker from './Speaker';
 import { AnimatedNumber, GiftLegend, GoalBar, Logo } from './bits';
 import GiftStrip from './GiftStrip';
+import GameView from './Games';
 import { Eye } from 'lucide-react';
 import { useGiftMap } from '@/lib/gifts';
 import { ensureFont, fmt, partsProps, safeUrl, themeVars } from '@/lib/format';
@@ -25,7 +26,8 @@ export function ScenePhoto({ theme }) {
  *  - portrait:  1080x1920 (/overlay-vertical) for TikTok LIVE Studio / phones;
  *    keeps clear of TikTok's own UI at the top and bottom (settings in theme.vertical).
  */
-export default function Overlay({ config, state, byId, status, gifts, round, preview = false, orientation = 'landscape', speak = false }) {
+export default function Overlay({ config, state, byId, status, gifts, round, game, preview = false, orientation = 'landscape', speak = false }) {
+  const gameMode = config.game?.mode && config.game.mode !== 'race' ? config.game.mode : null;
   const th = config.theme;
   const portrait = orientation === 'portrait';
   const v = th.vertical || {};
@@ -155,16 +157,18 @@ export default function Overlay({ config, state, byId, status, gifts, round, pre
           </header>
         )}
         {!showHeader && <RoundTimer round={round} enabled={config.rounds?.showTimer !== false} className="solo" />}
-        <Board
+        {gameMode ? <GameView config={config} game={game} gifts={gifts} /> : (
+          <Board
           config={config} state={state} byId={byId}
           layout={portrait ? (vLayout === 'grid' ? 'grid' : 'list') : th.layout} maxVisible={cap ? Math.min(cap, portrait ? v.maxVisible ?? 6 : th.maxVisible) : portrait ? v.maxVisible ?? 6 : th.maxVisible} flagShape={th.flagShape} gifts={gifts} showTeamGifts={th.showTeamGifts !== false}
           showContributors={portrait && vLayout !== 'list' ? false : th.showContributors} contributorsCount={th.contributorsCount}
           columns={portrait ? (vLayout === 'grid' ? Math.min(3, Math.max(1, v.columns ?? 2)) : 1) : 0} tile={portrait && vLayout !== 'list'}
         />
+        )}
       </div>
       {showToasts && <Toasts list={portrait ? toasts.slice(0, Math.max(1, v.maxToasts ?? 3)) : toasts} side={portrait ? `v-${v.toastsAlign || 'center'}` : toastSide} compact={portrait} />}
       {showTicker && <Ticker ticks={ticks} />}
-      <Banner banner={banner} />
+      {!gameMode && <Banner banner={banner} />}
       <WinnerScreen win={win} teams={config.teams} />
       {speak && !preview && <Speaker enabled={config.tts?.enabled} />}
     </div>

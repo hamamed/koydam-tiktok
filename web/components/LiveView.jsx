@@ -5,6 +5,7 @@
  */
 import { useMemo } from 'react';
 import Board from './Board';
+import GameView from './Games';
 import { Banner, useAlerts } from './Effects';
 import { ScenePhoto } from './Overlay';
 import { RoundTimer, WinnerScreen, useRoundWinner } from './Rounds';
@@ -22,7 +23,7 @@ function timeAgo(ts) {
   return m < 60 ? `منذ ${m} د` : `منذ ${Math.round(m / 60)} س`;
 }
 
-export default function LiveView({ config, state, byId, status, gifts, round, connected = true, preview = false }) {
+export default function LiveView({ config, state, byId, status, gifts, round, game, connected = true, preview = false }) {
   const [win] = useRoundWinner({ confetti: !preview });
   const giftMap = useGiftMap(gifts);
   const { feed, banner } = useAlerts(config, { toasts: false, confetti: !preview });
@@ -78,7 +79,9 @@ export default function LiveView({ config, state, byId, status, gifts, round, co
       <main className="live-grid">
         <section className="surface live-board" style={{ '--fs': 'var(--live-fs)' }}>
           <div className="surface-head"><h2>ترتيب {config.category || 'الفرق'}</h2><span className="muted">يتحدّث مباشرة</span></div>
-          <Board config={config} state={state} byId={byId} layout="list" maxVisible={16} showContributors contributorsCount={3} flagShape={th.flagShape} gifts={gifts} showTeamGifts={th.showTeamGifts !== false} />
+          {config.game?.mode && config.game.mode !== 'race'
+            ? <GameView config={config} game={game} gifts={gifts} />
+            : <Board config={config} state={state} byId={byId} layout="list" maxVisible={16} showContributors contributorsCount={3} flagShape={th.flagShape} gifts={gifts} showTeamGifts={th.showTeamGifts !== false} />}
         </section>
 
         <aside className="live-side">
@@ -149,7 +152,7 @@ export default function LiveView({ config, state, byId, status, gifts, round, co
         <span>© {new Date().getFullYear()} Koydam</span>
         <a href="https://koydam.com" target="_blank" rel="noopener">koydam.com</a>
       </footer>
-      <Banner banner={banner} />
+      {(!config.game?.mode || config.game.mode === 'race') && <Banner banner={banner} />}
       <WinnerScreen win={win} teams={config.teams} />
       {!connected && <div className="offline-pill">جارٍ إعادة الاتصال…</div>}
     </div>

@@ -8,7 +8,7 @@ export default function OverlayVerticalPage() {
   if (!live.config) return null;
   return (
     <>
-      <Overlay config={live.config} state={live.state} byId={live.byId} status={live.status} gifts={live.gifts} round={live.round} orientation="portrait" speak />
+      <Overlay config={live.config} state={live.state} byId={live.byId} status={live.status} gifts={live.gifts} round={live.round} game={live.game} orientation="portrait" speak />
       {!live.connected && <div className="offline-pill">الخادم غير متصل، جارٍ إعادة الاتصال…</div>}
     </>
   );

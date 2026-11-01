@@ -21,10 +21,12 @@ import { RoundsPage, VoicePage, ReportsPage } from './PagesExtra';
 import { GuidePage } from './PagesGuide';
 import { LivesPage, UsersPage, AccountPage } from './PagesUsers';
 import { VideoPage } from './PagesVideo';
+import { GamesPage } from './PagesGames';
 
 export const NAV = [
   { id: 'guide', label: 'ابدأ هنا', icon: 'check' },
   { id: 'overview', label: 'نظرة عامة', icon: 'overview', live: true },
+  { id: 'games', label: 'الألعاب', icon: 'game', draft: true, live: true },
   { id: 'connection', label: 'الاتصال بالبث', icon: 'plug', live: true },
   { id: 'teams', label: 'الفرق والهدف', icon: 'flag', draft: true, live: true },
   { id: 'scoring', label: 'الهدايا والنقاط', icon: 'gift', draft: true, live: true },
@@ -165,6 +167,7 @@ function Dashboard({ me, mustChange, onLogout, onMe }) {
       case 'theme': return <Theme {...props} />;
       case 'tools': return <Tools {...props} />;
       case 'rounds': return <RoundsPage {...props} />;
+      case 'games': return <GamesPage {...props} />;
       case 'voice': return <VoicePage {...props} />;
       case 'reports': return <ReportsPage key={current} {...props} />;
       case 'video': return <VideoPage key={current} {...props} />;

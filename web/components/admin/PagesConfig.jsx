@@ -551,9 +551,9 @@ export function Theme({ live, draft, edit }) {
             <button className={view === 'live' ? 'on' : ''} onClick={() => setView('live')}>🌐 الصفحة</button>
           </div>
         </div>
-        {view === 'overlay' && <FitStage w={1920} h={1080}><Overlay config={draft} state={live.state} byId={live.byId} status={live.status} gifts={live.gifts} round={live.round} preview /></FitStage>}
-        {view === 'vertical' && <FitStage w={1080} h={1920}><div className="a-tiktok-safe"><span className="top">واجهة تيك توك العلوية</span><span className="bottom">التعليقات وأزرار تيك توك</span><span className="right">أزرار الإعجاب</span></div><Overlay config={draft} state={live.state} byId={live.byId} status={live.status} gifts={live.gifts} round={live.round} orientation="portrait" preview /></FitStage>}
-        {view === 'live' && <FitStage w={1440} h={1000}><LiveView config={draft} state={live.state} byId={live.byId} status={live.status} gifts={live.gifts} round={live.round} preview /></FitStage>}
+        {view === 'overlay' && <FitStage w={1920} h={1080}><Overlay config={draft} state={live.state} byId={live.byId} status={live.status} gifts={live.gifts} round={live.round} game={live.game} preview /></FitStage>}
+        {view === 'vertical' && <FitStage w={1080} h={1920}><div className="a-tiktok-safe"><span className="top">واجهة تيك توك العلوية</span><span className="bottom">التعليقات وأزرار تيك توك</span><span className="right">أزرار الإعجاب</span></div><Overlay config={draft} state={live.state} byId={live.byId} status={live.status} gifts={live.gifts} round={live.round} game={live.game} orientation="portrait" preview /></FitStage>}
+        {view === 'live' && <FitStage w={1440} h={1000}><LiveView config={draft} state={live.state} byId={live.byId} status={live.status} gifts={live.gifts} round={live.round} game={live.game} preview /></FitStage>}
         <p className="a-muted a-studio-note">تتحدث فوراً مع كل تعديل. اضغط «حفظ وتطبيق» لإرسالها لكل الشاشات.</p>
       </div>
 

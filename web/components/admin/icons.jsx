@@ -5,12 +5,12 @@
  */
 import { Children, cloneElement, Fragment, isValidElement } from 'react';
 import {
-  AlertTriangle, ArrowDown, ArrowUp, BarChart3, Bot, Building2, CaseSensitive, Check, CircleCheck, Clapperboard, Crown, Dices,
+  AlertTriangle, Shield, ArrowDown, ArrowUp, BarChart3, Bot, Building2, CaseSensitive, Check, CircleCheck, Clapperboard, Crown, Dices,
   Eye, ExternalLink, FileText, Flag, Flame, Folder, Gem, Gift, Globe, Hammer, Hand, HandHeart, Heart, Image as ImageIcon,
   KeyRound, LayoutDashboard, LayoutGrid, List, Lock, LogOut, Medal, MessageCircle, Mic, Monitor, Moon, Palette, PanelRight,
   Pencil, Play, Plug, Plus, Puzzle, RefreshCw, Repeat2, Rocket, Save, ScrollText, Server, Smartphone, Smile, Sparkles, Square,
   Sun, Tag, TrainFront, Trash2, TrendingUp, Trophy, Type, User, Users, Volume2, Wrench, X, Zap, ChevronUp, ChevronDown, Copy, Menu,
-  Flower2, Lightbulb, Rows3,
+  Flower2, Lightbulb, Rows3, Gamepad2,
 } from 'lucide-react';
 
 /** Names used by <Icon name="…"> across the dashboard. */
@@ -20,7 +20,7 @@ export const NAMED = {
   play: Play, stop: Square, dice: Dices, trash: Trash2, save: Save, plus: Plus, up: ChevronUp, down: ChevronDown, check: Check,
   close: X, eye: Eye, build: Hammer, users: Users, trophy: Trophy, bolt: Zap, key: KeyRound, menu: Menu, video: Clapperboard,
   heart: Heart, crown: Crown, globe: Globe, image: ImageIcon, type: Type, tag: Tag, train: TrainFront, puzzle: Puzzle,
-  phone: Smartphone, monitor: Monitor, chart: BarChart3, mic: Mic, volume: Volume2, rocket: Rocket, lock: Lock, user: User,
+  phone: Smartphone, monitor: Monitor, game: Gamepad2, chart: BarChart3, mic: Mic, volume: Volume2, rocket: Rocket, lock: Lock, user: User,
 };
 
 const EMOJI = {
@@ -31,7 +31,7 @@ const EMOJI = {
   '🌹': Flower2, '🔄': RefreshCw, '✅': CircleCheck, '🔑': KeyRound, '➕': Plus, '👋': Hand, '🙏': HandHeart, '🔥': Flame,
   '💬': MessageCircle, '✏': Pencil, '🚀': Rocket, '🔒': Lock, '⚠': AlertTriangle, '👥': Users, '👤': User, '📜': ScrollText,
   '🔊': Volume2, '🎤': Mic, '📈': TrendingUp, '📊': BarChart3, '⚡': Zap, '✨': Sparkles, '🤖': Bot, '🏢': Building2, '💡': Lightbulb,
-  '🗂': Rows3, '🎵': Sparkles,
+  '🗂': Rows3, '🎵': Sparkles, '🎮': Gamepad2, '⚽': Trophy, '🛡': Shield, '🕹': Gamepad2,
 };
 const RE = /([\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}\u{2B00}-\u{2BFF}\u{25A0}-\u{25FF}])️?\s?/gu;
 const KEEP = new Set(['▲', '▼', '●', '✓', '✗', '←', '→']); // plain typography, not emoji pictures

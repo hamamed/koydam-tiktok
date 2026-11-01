@@ -101,7 +101,7 @@ export function useAlerts(config, { confetti = true, toasts = true } = {}) {
           break;
         }
         case 'roundStart':
-          addTick(null, [['b', `⏱️ بدأت الجولة ${ev.number}! أرسل هدية دولتك الآن`]]);
+          addTick(null, [['b', `بدأت الجولة ${ev.number}! أرسل هدية دولتك الآن`]]);
           break;
         case 'roundEnd':
           addTick(ev.winner ? teamOf(ev.winner.id) : null, [['ico', 'trophy'], ['b', ev.winner ? `${ev.winner.name} بطل الجولة ${ev.number}!` : `انتهت الجولة ${ev.number}`]]);
@@ -110,9 +110,17 @@ export function useAlerts(config, { confetti = true, toasts = true } = {}) {
           if (team) {
             setBanner({ key: Math.random(), team, prev: ev.prevTeamId ? teamOf(ev.prevTeamId) : null });
             addTick(team, [['ico', 'crown'], ['team', team], ['', ' يتصدّر الآن!']]);
-            if (a.confettiOnTakeover && confetti) confettiRain([team.color, '#ffd54a', '#ffffff'], 140);
+            if (a.confettiOnTakeover && confetti && (cfg.current?.game?.mode || 'race') === 'race') confettiRain([team.color, '#ffd54a', '#ffffff'], 140);
           }
           break;
+        case 'game': {
+          const gt = teamOf(ev.teamId || ev.winner);
+          const big = ev.type === 'champion' || ev.type === 'arenaWinner';
+          if (confetti && gt && (big || ev.type === 'goal')) confettiRain([gt.color, '#ffd54a', '#ffffff'], big ? 260 : 90);
+          const label = { goal: 'هدف لـ ', champion: 'بطل كأس العرب: ', ko: 'خرجت من الحلبة: ', revive: 'عادت إلى الحلبة: ', arenaWinner: 'بطل الحلبة: ' }[ev.type];
+          if (label && gt) addTick(gt, [['ico', big ? 'trophy' : 'crown'], ['b', label], ['team', gt]]);
+          break;
+        }
         case 'reset':
           setToasts([]); setFeed([]);
           setTicks([{ id: Math.random(), team: null, parts: [['ico', 'refresh'], ['b', 'تمت إعادة النتائج. جولة جديدة تبدأ الآن!']] }]);

@@ -12,9 +12,18 @@ const listeners = new Set();
 const eventListeners = new Set();
 const speakListeners = new Set();
 const pending = new Map();
-let snap = { config: null, state: null, byId: new Map(), status: {}, gifts: [], connected: false, isAdmin: false, version: '', everConnected: false, round: null };
+let snap = { config: null, state: null, byId: new Map(), status: {}, gifts: [], connected: false, isAdmin: false, version: '', everConnected: false, round: null, game: null };
 
 /** Round with endsAt converted to this device's clock (server and device clocks can differ). */
+/** Game state with server times turned into local times (endsAt / nextAt). */
+const localGame = (g) => {
+  if (!g) return null;
+  const off = (g.serverNow || Date.now()) - Date.now();
+  const out = { ...g };
+  if (g.match) out.match = { ...g.match, endsAtLocal: g.match.endsAt - off };
+  if (g.nextAt) out.nextAtLocal = g.nextAt - off;
+  return out;
+};
 const localRound = (r) => (r ? { ...r, offset: (r.serverNow || Date.now()) - Date.now(), endsAtLocal: r.endsAt ? r.endsAt - ((r.serverNow || Date.now()) - Date.now()) : 0, celebrateUntilLocal: r.celebrateUntil ? r.celebrateUntil - ((r.serverNow || Date.now()) - Date.now()) : 0 } : null);
 let ws = null;
 let retry = 0;
@@ -39,7 +48,7 @@ function wsUrl() {
 export function setStoreLive(slug) {
   if (!slug || slug === liveSlug) return;
   liveSlug = slug;
-  set({ config: null, state: null, byId: new Map(), status: {}, round: null, isAdmin: false });
+  set({ config: null, state: null, byId: new Map(), status: {}, round: null, game: null, isAdmin: false });
   reconnectSocket();
 }
 export const getStoreLive = currentLive;
@@ -58,7 +67,7 @@ function connect() {
         set({
           config: m.config, state: m.state, byId: new Map(m.state.teams.map((t) => [t.id, t])),
           status: m.status || {}, gifts: m.gifts || [], isAdmin: Boolean(m.isAdmin), version: m.version || '',
-          connected: true, everConnected: true, round: localRound(m.round),
+          connected: true, everConnected: true, round: localRound(m.round), game: localGame(m.game),
         });
         break;
       case 'state': set({ state: m.state, byId: new Map(m.state.teams.map((t) => [t.id, t])) }); break;
@@ -66,6 +75,7 @@ function connect() {
       case 'status': set({ status: m.status || {} }); break;
       case 'catalog': set({ gifts: m.gifts || [] }); break;
       case 'round': set({ round: localRound(m.round) }); break;
+      case 'game': set({ game: localGame(m.game) }); break;
       case 'speak': for (const l of speakListeners) { try { l(m); } catch (err) { console.error(err); } } break;
       case 'event': for (const l of eventListeners) { try { l(m.event); } catch (err) { console.error(err); } } break;
       case 'ack': {

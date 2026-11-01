@@ -1,0 +1,98 @@
+/* ==========================================================================
+   Games on screen (components/Games.jsx): Arab Cup + Country Arena.
+   Uses the look's variables so every skin applies.
+   ========================================================================== */
+.gm-wait { display: flex; flex-direction: column; align-items: center; gap: 8px; padding: calc(28px * var(--fs)) 20px; text-align: center; }
+.gm-wait-ico { width: calc(70px * var(--fs)); height: calc(70px * var(--fs)); color: var(--gold); filter: drop-shadow(0 0 20px color-mix(in srgb, var(--gold) 50%, transparent)); }
+.gm-wait b { font-family: var(--title-font, var(--font)); font-size: calc(40px * var(--fs)); font-weight: 900; color: var(--gold-2); }
+.gm-wait span { font-size: calc(18px * var(--fs)); font-weight: 700; opacity: .9; }
+.gm-send { display: inline-flex; align-items: center; gap: 4px; padding: 2px 10px 2px 4px; border-radius: 999px; font-weight: 900; font-size: calc(13px * var(--fs));
+  color: var(--gold-2); background: rgba(0,0,0,.45); border: 1.5px solid color-mix(in srgb, var(--gold) 70%, transparent); white-space: nowrap; }
+.gm-gift { width: calc(30px * var(--fs)); height: calc(30px * var(--fs)); object-fit: contain; }
+.gm-gift.lc-fallback svg { width: 100%; height: 100%; }
+
+/* ---- Cup ---- */
+.gm-cup { display: flex; flex-direction: column; gap: calc(10px * var(--fs)); }
+.gm-match { position: relative; overflow: hidden; padding: calc(14px * var(--fs)) calc(16px * var(--fs)) calc(16px * var(--fs)); }
+.gm-match::before { content: ''; position: absolute; inset: 0; pointer-events: none; opacity: .25;
+  background: linear-gradient(90deg, transparent 49.6%, rgba(255,255,255,.5) 49.6% 50.4%, transparent 50.4%),
+    radial-gradient(circle at 50% 55%, transparent 0 60px, rgba(255,255,255,.45) 61px 63px, transparent 64px); }
+.gm-match-head { position: relative; display: flex; justify-content: space-between; align-items: center; gap: 10px; font-weight: 900; font-size: calc(16px * var(--fs)); }
+.gm-round { color: var(--gold-2); }
+.gm-clock { padding: 2px 12px; border-radius: 999px; background: linear-gradient(135deg, var(--red), var(--red-2)); color: #fff; font-variant-numeric: tabular-nums; }
+.gm-clock.brk { background: rgba(0,0,0,.4); color: var(--gold-2); }
+.gm-pitch { position: relative; display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: calc(10px * var(--fs)); margin-top: calc(12px * var(--fs)); }
+.gm-side { display: flex; flex-direction: column; align-items: center; gap: calc(7px * var(--fs)); min-width: 0; }
+.gm-flag { width: calc(110px * var(--fs)); height: calc(110px * var(--fs)); border-radius: 50%; overflow: hidden; display: grid; place-items: center; font-size: calc(60px * var(--fs));
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--team) 80%, #fff 20%), 0 10px 30px rgba(0,0,0,.45); background: rgba(0,0,0,.3); }
+.gm-flag img { width: 100%; height: 100%; object-fit: cover; }
+.gm-name { font-family: var(--title-font, var(--font)); font-weight: 900; font-size: calc(26px * var(--fs)); max-width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.gm-meter { width: 90%; height: calc(12px * var(--fs)); border-radius: 99px; background: rgba(0,0,0,.4); overflow: hidden; border: 1px solid rgba(255,255,255,.15); }
+.gm-meter span { display: block; height: 100%; border-radius: 99px; background: linear-gradient(90deg, var(--team), color-mix(in srgb, var(--team) 50%, #fff)); box-shadow: 0 0 12px var(--team); transition: width .4s; }
+.gm-side.b .gm-meter span { margin-inline-start: auto; }
+.gm-side.scored .gm-flag { animation: gmScore 1.2s ease-out; }
+.gm-side.won .gm-flag { box-shadow: 0 0 0 5px var(--gold), 0 0 40px color-mix(in srgb, var(--gold) 70%, transparent); }
+.gm-score { display: flex; align-items: center; gap: 10px; font-weight: 900; font-size: calc(76px * var(--fs)); line-height: 1; color: #fff; text-shadow: 0 4px 20px rgba(0,0,0,.6); direction: rtl; }
+.gm-score i { font-style: normal; opacity: .6; font-size: .6em; }
+.gm-goal { position: absolute; inset: 0; display: grid; place-items: center; z-index: 3; pointer-events: none; font-family: var(--title-font, var(--font)); font-weight: 900; font-size: calc(110px * var(--fs));
+  color: var(--gold-2); text-shadow: 0 0 40px var(--gold), 0 6px 0 var(--red-2); animation: gmGoal 2.2s ease-out forwards; }
+.gm-result, .gm-hint { position: relative; text-align: center; margin-top: calc(8px * var(--fs)); font-weight: 800; font-size: calc(15px * var(--fs)); }
+.gm-result b { color: var(--gold-2); }
+.gm-bracket { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: calc(8px * var(--fs)); }
+.gm-bm { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 6px; padding: calc(7px * var(--fs)) calc(9px * var(--fs)); font-size: calc(14px * var(--fs)); font-weight: 800; }
+.gm-bm.live { border-color: var(--gold); box-shadow: 0 0 0 1px var(--gold), 0 0 18px color-mix(in srgb, var(--gold) 35%, transparent); }
+.gm-bm.done { opacity: .85; }
+.gm-bt { display: inline-flex; align-items: center; gap: 6px; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.gm-bt:last-child { justify-content: flex-end; }
+.gm-bt.w { color: var(--gold-2); }
+.gm-bt.bye { opacity: .6; font-size: .9em; }
+.gm-bflag { width: calc(24px * var(--fs)); height: calc(24px * var(--fs)); border-radius: 50%; overflow: hidden; flex: none; display: grid; place-items: center; }
+.gm-bflag img { width: 100%; height: 100%; object-fit: cover; }
+.gm-bs { padding: 1px 8px; border-radius: 8px; background: rgba(0,0,0,.35); direction: rtl; unicode-bidi: isolate; }
+
+/* ---- champion ---- */
+.gm-champ { position: relative; display: flex; flex-direction: column; align-items: center; gap: 10px; padding: calc(30px * var(--fs)) 20px; text-align: center; overflow: hidden; }
+.gm-champ::before { content: ''; position: absolute; inset: -50%; background: repeating-conic-gradient(from 0deg, color-mix(in srgb, var(--gold) 18%, transparent) 0 6deg, transparent 6deg 18deg); animation: tzSpin 30s linear infinite; }
+.gm-champ > * { position: relative; }
+.gm-champ-crown { width: calc(70px * var(--fs)); height: calc(70px * var(--fs)); color: #ffd23f; filter: drop-shadow(0 4px 12px rgba(0,0,0,.5)); animation: crown 2s ease-in-out infinite; }
+.gm-champ-flag { width: calc(160px * var(--fs)); height: calc(160px * var(--fs)); border-radius: 50%; overflow: hidden; display: grid; place-items: center; box-shadow: 0 0 0 6px var(--gold), 0 0 60px color-mix(in srgb, var(--gold) 70%, transparent); font-size: calc(90px * var(--fs)); }
+.gm-champ-flag img { width: 100%; height: 100%; object-fit: cover; }
+.gm-champ-name { font-family: var(--title-font, var(--font)); font-size: calc(56px * var(--fs)); font-weight: 900; color: var(--gold-2); text-shadow: 0 4px 0 var(--red-2); }
+.gm-champ-sub { font-size: calc(24px * var(--fs)); font-weight: 900; }
+
+/* ---- Arena ---- */
+.gm-arena-wrap { display: flex; flex-direction: column; gap: calc(8px * var(--fs)); }
+.gm-arena-head { padding: calc(8px * var(--fs)) calc(14px * var(--fs)); font-weight: 900; font-size: calc(17px * var(--fs)); text-align: center; color: var(--gold-2); }
+.gm-arena { position: relative; height: calc(560px * var(--fs)); overflow: hidden; border-radius: var(--radius);
+  background-image: radial-gradient(circle at 50% 50%, color-mix(in srgb, var(--red) 18%, transparent), transparent 70%), repeating-radial-gradient(circle at 50% 50%, transparent 0 60px, rgba(255,255,255,.04) 60px 62px); }
+.overlay-root.portrait .gm-arena { height: calc(500px * var(--fs)); }
+.gm-ball { position: absolute; left: 0; top: 0; width: var(--sz); height: var(--sz); will-change: transform; }
+.gm-ring { position: absolute; inset: 0; border-radius: 50%;
+  background: conic-gradient(var(--team) calc(var(--hp) * 1%), rgba(0,0,0,.45) 0); filter: drop-shadow(0 6px 14px rgba(0,0,0,.5)); }
+.gm-ball-flag { position: absolute; inset: 9%; border-radius: 50%; overflow: hidden; display: grid; place-items: center; font-size: calc(var(--sz) * .5); box-shadow: 0 0 0 2px rgba(255,255,255,.4); }
+.gm-ball-flag img { width: 100%; height: 100%; object-fit: cover; }
+.gm-ball-hp { position: absolute; left: 50%; bottom: -6px; transform: translateX(-50%); padding: 1px 8px; border-radius: 99px; background: rgba(0,0,0,.7); font-weight: 900; font-size: calc(var(--sz) * .14); white-space: nowrap; }
+.gm-ball.out { opacity: .35; filter: grayscale(1); }
+.gm-dead { position: absolute; inset: 25%; width: 50%; height: 50%; color: #fff; filter: drop-shadow(0 2px 6px #000); }
+.gm-ball.hurt .gm-ball-flag { animation: gmHurt .5s; }
+.gm-ball.atk .gm-ring { box-shadow: 0 0 30px var(--team); }
+.gm-dmg { position: absolute; left: 50%; top: -10%; transform: translateX(-50%); font-weight: 900; font-size: calc(var(--sz) * .26); color: #ff4d64; text-shadow: 0 2px 6px #000; animation: gmDmg .9s ease-out forwards; pointer-events: none; }
+.gm-hp-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: calc(6px * var(--fs)); }
+.gm-hp { display: flex; align-items: center; gap: 8px; padding: calc(5px * var(--fs)) calc(8px * var(--fs)); min-width: 0; }
+.gm-hp.out { opacity: .55; }
+.gm-hp-flag { width: calc(28px * var(--fs)); height: calc(28px * var(--fs)); border-radius: 50%; overflow: hidden; flex: none; display: grid; place-items: center; }
+.gm-hp-flag img { width: 100%; height: 100%; object-fit: cover; }
+.gm-hp-bar { flex: 1; height: calc(9px * var(--fs)); border-radius: 99px; background: rgba(0,0,0,.4); overflow: hidden; min-width: 30px; }
+.gm-hp-bar span { display: block; height: 100%; background: var(--team); border-radius: 99px; transition: width .4s; }
+.gm-hp.out .gm-hp-bar span { background: repeating-linear-gradient(45deg, #888 0 6px, #555 6px 12px); }
+.gm-hp-ico { width: calc(16px * var(--fs)); height: calc(16px * var(--fs)); flex: none; opacity: .8; }
+.gm-hp .gm-send { padding: 1px 6px 1px 2px; font-size: 0; gap: 0; }
+.gm-hp .gm-gift { width: calc(22px * var(--fs)); height: calc(22px * var(--fs)); }
+
+@keyframes gmScore { 0% { transform: scale(1); } 30% { transform: scale(1.25); } 100% { transform: scale(1); } }
+@keyframes gmGoal { 0% { opacity: 0; transform: scale(.3) rotate(-8deg); } 15% { opacity: 1; transform: scale(1.1); } 75% { opacity: 1; transform: scale(1); } 100% { opacity: 0; transform: scale(1.3); } }
+@keyframes gmHurt { 0%, 100% { transform: none; filter: none; } 25% { transform: translateX(-6px); filter: brightness(2) saturate(0); } 50% { transform: translateX(6px); } }
+@keyframes gmDmg { from { opacity: 1; transform: translate(-50%, 0); } to { opacity: 0; transform: translate(-50%, -60px); } }
+@keyframes tzSpin { to { transform: rotate(360deg); } }
+.live-root .gm-arena { height: 520px; }
+@media (max-width: 640px) { .live-root .gm-arena { height: 420px; } .live-root .gm-flag { width: 76px; height: 76px; } .live-root .gm-score { font-size: 50px; } }
