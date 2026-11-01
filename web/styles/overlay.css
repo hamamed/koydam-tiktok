@@ -86,3 +86,54 @@
 .gl-flag img { width: 100%; height: 100%; object-fit: cover; }
 .gl-eq { font-weight: 900; opacity: .7; font-size: calc(12px * var(--fs)); }
 .gl-gift { width: calc(26px * var(--fs)); height: calc(26px * var(--fs)); object-fit: contain; }
+
+/* ---- Vertical overlay (1080x1920) ---- */
+.ov-panel.portrait { top: var(--v-top); left: var(--v-side); right: var(--v-side); width: auto; max-width: none; transform: none; }
+.overlay-root.portrait .ov-logo { width: calc(86px * var(--fs)); }
+.overlay-root.portrait .ov-title { font-size: calc(36px * var(--fs)); }
+.toasts.side-center { top: var(--v-toasts-top); left: var(--v-side); right: var(--v-side); width: auto; }
+.overlay-root.portrait .ticker { left: var(--v-side); right: var(--v-side); bottom: 40px; }
+
+/* ---- Round timer ---- */
+.round-timer { display: inline-flex; align-items: center; gap: 8px; padding: 3px 6px 3px 12px; border-radius: 999px; font-weight: 900;
+  background: linear-gradient(135deg, color-mix(in srgb, var(--red) 85%, #000), var(--red-2)); border: 1px solid color-mix(in srgb, var(--gold) 50%, transparent); position: relative; overflow: hidden; }
+.round-timer .rt-label { font-size: calc(12px * var(--fs)); opacity: .9; }
+.round-timer .rt-time { font-size: calc(17px * var(--fs)); direction: ltr; font-variant-numeric: tabular-nums; min-width: 3.2em; text-align: center; padding: 1px 8px; border-radius: 999px; background: rgba(0,0,0,.35); }
+.round-timer .rt-bar { position: absolute; inset-inline: 0; bottom: 0; height: 3px; background: rgba(0,0,0,.3); }
+.round-timer .rt-bar i { display: block; height: 100%; background: var(--gold-2); transition: width .25s linear; margin-inline-start: auto; }
+.round-timer.urgent { animation: urgent 1s ease-in-out infinite; }
+.round-timer.urgent .rt-time { color: #fff; background: #ff1f3d; }
+@keyframes urgent { 50% { transform: scale(1.07); box-shadow: 0 0 24px #ff1f3d; } }
+.round-timer.solo { align-self: center; padding: 6px 10px 6px 18px; }
+.round-timer.solo .rt-time { font-size: calc(28px * var(--fs)); }
+
+/* ---- Follow goal ---- */
+.goal.follow .goal-label { color: #ff8fb3; }
+.goal.follow .goal-fill { background: linear-gradient(270deg, #ff4f8b, #ffb3cc); box-shadow: 0 0 14px rgba(255,79,139,.6); }
+
+/* ---- Follow / share toasts ---- */
+.toast.social { border-color: rgba(255,143,179,.55); }
+.toast.social::before { background: #ff4f8b; }
+.toast.social.share::before { background: #4cc9f0; }
+.toast .tsocial { font-size: 30px; animation: comboPop .6s var(--ease-out); }
+
+/* ---- Winner screen ---- */
+.winner-screen { position: absolute; inset: 0; z-index: 80; display: grid; place-items: center; background: radial-gradient(60% 60% at 50% 45%, rgba(0,0,0,.35), rgba(0,0,0,.65)); animation: wsIn .6s var(--ease-out); pointer-events: none; }
+.live-root .winner-screen { position: fixed; }
+@keyframes wsIn { from { opacity: 0; } }
+.ws-card { position: relative; min-width: min(620px, 92%); padding: 34px 40px 28px; text-align: center; border: 2px solid var(--team); box-shadow: 0 0 80px color-mix(in srgb, var(--team) 60%, transparent), 0 20px 60px rgba(0,0,0,.6); animation: wsPop .8s var(--ease-out); }
+@keyframes wsPop { 0% { transform: scale(.4) rotate(-6deg); opacity: 0; } 60% { transform: scale(1.06) rotate(1deg); opacity: 1; } }
+.ws-sub { font-weight: 800; opacity: .85; font-size: calc(20px * var(--fs)); }
+.ws-flag { width: calc(150px * var(--fs)); height: calc(150px * var(--fs)); margin: 18px auto 6px; border-radius: 28px; overflow: hidden; display: grid; place-items: center; font-size: calc(110px * var(--fs)); box-shadow: 0 0 40px var(--team); }
+.ws-flag img { width: 100%; height: 100%; object-fit: cover; }
+.ws-flagwrap { position: relative; width: max-content; margin: 58px auto 0; }
+.ws-flagwrap .ws-flag { margin: 0 auto 6px; }
+.ws-crown { position: absolute; top: calc(-44px * var(--fs)); left: 50%; transform: translateX(-50%) rotate(-8deg); font-size: calc(54px * var(--fs)); animation: crown 2s ease-in-out infinite; }
+.ws-name { font-family: var(--title-font, var(--font)); font-weight: 900; font-size: calc(64px * var(--fs)); line-height: 1.3; text-shadow: 0 4px 24px var(--team); }
+.ws-title { font-weight: 900; font-size: calc(30px * var(--fs)); color: var(--gold-2); }
+.ws-score { font-weight: 900; font-size: calc(44px * var(--fs)); margin-top: 4px; }
+.ws-score small { font-size: .45em; opacity: .8; }
+.ws-sups { display: flex; justify-content: center; gap: 10px; margin-top: 18px; flex-wrap: wrap; }
+.ws-sup { display: flex; align-items: center; gap: 8px; padding: 6px 12px 6px 8px; border-radius: 999px; background: rgba(0,0,0,.35); font-size: calc(16px * var(--fs)); }
+.ws-sup .avatar { width: calc(30px * var(--fs)); height: calc(30px * var(--fs)); font-size: calc(13px * var(--fs)); }
+.ws-sup span.num-latin { color: var(--gold-2); font-weight: 900; }

@@ -74,11 +74,11 @@ export function Logo({ className = 'logo', small }) {
 }
 
 /** Progress toward the 1M goal. */
-export function GoalBar({ total, goal, compact }) {
+export function GoalBar({ total, goal, compact, variant = '' }) {
   if (!goal || !goal.enabled) return null;
   const pct = Math.min(100, (total / Math.max(1, goal.target)) * 100);
   return (
-    <div className={`goal${compact ? ' compact' : ''}`}>
+    <div className={`goal${compact ? ' compact' : ''}${variant ? ` ${variant}` : ''}`}>
       <div className="goal-row">
         <span className="goal-label">{goal.label || 'الهدف'}</span>
         <span className="goal-nums"><b><AnimatedNumber value={total} /></b> / {fmt(goal.target)}</span>

@@ -75,8 +75,8 @@ const Card = memo(function Card({ team, data, rank, isLeader, barPct, share, gap
           <div className="bar"><div className="fill" style={{ width: `${barPct}%` }} /></div>
           {showContributors && (
             <div className="contribs">
-              {top.map((u) => (
-                <span key={u.u || u.n} className="contrib" title={u.u ? `@${u.u}` : u.n}>
+              {top.map((u, i) => (
+                <span key={`${u.u || ''}|${u.n || ''}|${i}`} className="contrib" title={u.u ? `@${u.u}` : u.n}>
                   <Avatar src={u.a} name={u.n || u.u} color={team.color} />
                   <span className="cn">{u.n || u.u}</span>
                   <span className="cp">{fmt(u.p)}</span>

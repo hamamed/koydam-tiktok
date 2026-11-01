@@ -53,6 +53,17 @@ export function Tools({ live, draft, save, notice }) {
         <Btn variant="ghost" icon="play" busy={busy === 'chat'} onClick={() => run('chat', 'simulateChat', c, 'تم إرسال الرسالة')}>إرسال</Btn>
       </Section>
 
+      <Section title="💛 محاكاة متابعة / مشاركة" desc="لتجربة التنبيهات وهدف المتابعين">
+        <div className="a-form">
+          <Field label="المشاهد"><Text value={c.nickname} onChange={(v) => setC({ ...c, nickname: v })} /></Field>
+          <Field label="الفريق"><Select value={g.teamId} onChange={(v) => setG({ ...g, teamId: v })} options={[['', 'بدون فريق'], ...teamOpts]} /></Field>
+        </div>
+        <div className="a-row">
+          <Btn variant="ghost" busy={busy === 'follow'} onClick={() => run('follow', 'simulateFollow', { nickname: c.nickname, teamId: g.teamId || null }, 'تمت محاكاة متابعة')}>💛 متابعة</Btn>
+          <Btn variant="ghost" busy={busy === 'share'} onClick={() => run('share', 'simulateShare', { nickname: c.nickname, teamId: g.teamId || null }, 'تمت محاكاة مشاركة')}>🔁 مشاركة</Btn>
+        </div>
+      </Section>
+
       <Section title="✏️ تعديل النقاط يدوياً">
         <div className="a-form">
           <Field label="الفريق"><Select value={adj.teamId} onChange={(v) => setAdj({ ...adj, teamId: v })} options={teamOpts} /></Field>

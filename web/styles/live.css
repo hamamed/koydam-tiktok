@@ -98,3 +98,7 @@
 .feed-gift.fallback { font-size: 22px; width: 34px; text-align: center; }
 .team-chip { display: inline-flex; align-items: center; gap: 6px; padding: 8px 14px; font-size: 15px; }
 .chip-gift .gift-icon.sm { width: 30px; height: 30px; }
+
+.live-goal { display: flex; flex-direction: column; gap: 14px; }
+.live-timer { display: flex; justify-content: center; }
+.live-timer .round-timer { --fs: 1.4; }

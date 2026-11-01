@@ -7,6 +7,7 @@ import { useMemo } from 'react';
 import Board from './Board';
 import { Banner, useAlerts } from './Effects';
 import { ScenePhoto } from './Overlay';
+import { RoundTimer, WinnerScreen, useRoundWinner } from './Rounds';
 import { AnimatedNumber, Avatar, Flag, GiftIcon, GoalBar, Logo } from './bits';
 import { findGift, useGiftMap } from '@/lib/gifts';
 import { ensureFont, fmt, fontVars, safeUrl } from '@/lib/format';
@@ -20,7 +21,8 @@ function timeAgo(ts) {
   return m < 60 ? `منذ ${m} د` : `منذ ${Math.round(m / 60)} س`;
 }
 
-export default function LiveView({ config, state, byId, status, gifts, connected = true, preview = false }) {
+export default function LiveView({ config, state, byId, status, gifts, round, connected = true, preview = false }) {
+  const [win] = useRoundWinner({ confetti: !preview });
   const giftMap = useGiftMap(gifts);
   const { feed, banner } = useAlerts(config, { toasts: false, confetti: !preview });
   const skin = useActiveSkin(config?.theme);
@@ -63,7 +65,13 @@ export default function LiveView({ config, state, byId, status, gifts, connected
         </div>
       </header>
 
-      {config.goal?.enabled && <section className="surface live-goal"><GoalBar total={state.total} goal={config.goal} /></section>}
+      {(config.goal?.enabled || config.social?.followGoal?.enabled || round?.status === 'running') && (
+        <section className="surface live-goal">
+          {round?.status === 'running' && config.rounds?.showTimer !== false && <div className="live-timer"><RoundTimer round={round} /></div>}
+          {config.goal?.enabled && <GoalBar total={state.total} goal={config.goal} />}
+          {config.social?.followGoal?.enabled && <GoalBar total={state.social?.follows || 0} goal={{ ...config.social.followGoal, label: `💛 ${config.social.followGoal.label}` }} variant="follow" />}
+        </section>
+      )}
 
       <main className="live-grid">
         <section className="surface live-board" style={{ '--fs': 'var(--live-fs)' }}>
@@ -96,7 +104,7 @@ export default function LiveView({ config, state, byId, status, gifts, connected
             {supporters.length === 0 ? <p className="muted empty">لا يوجد داعمون بعد</p> : (
               <ol className="leaders">
                 {supporters.map((u, i) => (
-                  <li key={`${u.team.id}-${u.u || u.n}`}>
+                  <li key={`${u.team.id}-${u.u || u.n}-${i}`}>
                     <span className={`pos p${i + 1}`}>{i + 1}</span>
                     <Avatar src={u.a} name={u.n} color={u.team.color} className="avatar lg" />
                     <div className="feed-main"><b>{u.n || u.u}</b><span className="muted">{u.team.emoji} {u.team.name}</span></div>
@@ -140,6 +148,7 @@ export default function LiveView({ config, state, byId, status, gifts, connected
         <a href="https://koydam.com" target="_blank" rel="noopener">koydam.com</a>
       </footer>
       <Banner banner={banner} />
+      <WinnerScreen win={win} teams={config.teams} />
       {!connected && <div className="offline-pill">جارٍ إعادة الاتصال…</div>}
     </div>
   );

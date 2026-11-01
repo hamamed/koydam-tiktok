@@ -80,6 +80,29 @@ export function useAlerts(config, { confetti = true, toasts = true } = {}) {
               : [['b', ev.user.nickname], ['', ` أرسل ${ev.gift.name}. اكتب اسم فريقك في الشات لتُحسب! 🙏`]]);
           }
           break;
+        case 'follow':
+        case 'share': {
+          const so = c.social || {};
+          const isFollow = ev.kind === 'follow';
+          if (isFollow ? so.followAlerts === false : so.shareAlerts === false) break;
+          if (toasts) {
+            const key = `${ev.kind}${Math.random()}`;
+            setToasts((list) => {
+              const next = [{ key, kind: ev.kind, team, user: ev.user, points: ev.points }, ...list];
+              next.filter((x) => !x.out).slice(a.maxToasts || 5).forEach((x) => setTimeout(() => dismiss(x.key), 0));
+              return next;
+            });
+            arm(key);
+          }
+          addTick(team, [['', isFollow ? '💛 ' : '🔁 '], ['b', ev.user.nickname], ['', isFollow ? ' تابع البث' : ' شارك البث'], ...(team ? [['', ` (${teamLabel(team)})`]] : []), ...(ev.points ? [['tp', ` +${fmt(ev.points)}`]] : [])]);
+          break;
+        }
+        case 'roundStart':
+          addTick(null, [['b', `⏱️ بدأت الجولة ${ev.number}! أرسل هدية دولتك الآن`]]);
+          break;
+        case 'roundEnd':
+          addTick(ev.winner ? teamOf(ev.winner.id) : null, [['', '🏆 '], ['b', ev.winner ? `${ev.winner.name} بطل الجولة ${ev.number}!` : `انتهت الجولة ${ev.number}`]]);
+          break;
         case 'takeover':
           if (team) {
             setBanner({ key: Math.random(), team, prev: ev.prevTeamId ? teamOf(ev.prevTeamId) : null });
@@ -103,7 +126,17 @@ export function useAlerts(config, { confetti = true, toasts = true } = {}) {
 export function Toasts({ list, side = 'left' }) {
   return (
     <div className={`toasts side-${side}`}>
-      {list.map((t) => (
+      {list.map((t) => (t.kind === 'follow' || t.kind === 'share' ? (
+        <div key={t.key} className={`toast glass social ${t.kind}${t.out ? ' out' : ''}`} style={{ '--team': t.team?.color }}>
+          <Avatar src={t.user.avatar} name={t.user.nickname} color={t.team?.color} />
+          <div className="tbody">
+            <div className="tuser">{t.user.nickname}</div>
+            <div className="tline">{t.kind === 'follow' ? 'تابع البث! شكراً 💛' : 'شارك البث! 🔁'}{t.team && <> · <span className="tteam">{teamLabel(t.team)}</span></>}</div>
+          </div>
+          <div className="tsocial emoji">{t.kind === 'follow' ? '💛' : '🔁'}</div>
+          {t.points > 0 && <div className="tpts">+{fmt(t.points)}</div>}
+        </div>
+      ) : (
         <div key={t.key} className={`toast glass${t.major ? ' major' : ''}${t.out ? ' out' : ''}`} style={{ '--team': t.team?.color }}>
           <Avatar src={t.user.avatar} name={t.user.nickname} color={t.team?.color} />
           <div className="tbody">
@@ -115,7 +148,7 @@ export function Toasts({ list, side = 'left' }) {
           {safeUrl(t.gift.image) && <img className="gimg" src={t.gift.image} alt="" referrerPolicy="no-referrer" />}
           <div className="tpts">+{fmt(t.points)}</div>
         </div>
-      ))}
+      )))}
     </div>
   );
 }

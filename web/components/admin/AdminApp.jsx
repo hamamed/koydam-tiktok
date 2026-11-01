@@ -14,6 +14,7 @@ import { Overview, Connection } from './PagesLive';
 import { Teams, Scoring, Theme } from './PagesConfig';
 import { Tools } from './PagesTools';
 import { ServerPage, FilesPage, LogsPage, UpdatesPage } from './PagesSystem';
+import { RoundsPage, VoicePage, ReportsPage } from './PagesExtra';
 
 export const NAV = [
   { id: 'overview', label: 'نظرة عامة', icon: 'overview' },
@@ -21,6 +22,9 @@ export const NAV = [
   { id: 'teams', label: 'الفرق والهدف', icon: 'flag', draft: true },
   { id: 'scoring', label: 'الهدايا والنقاط', icon: 'gift', draft: true },
   { id: 'theme', label: 'المظهر', icon: 'palette', draft: true },
+  { id: 'rounds', label: 'الجولات', icon: 'trophy', draft: true },
+  { id: 'voice', label: 'القراءة الصوتية', icon: 'bolt', draft: true },
+  { id: 'reports', label: 'تقارير البث', icon: 'logs' },
   { id: 'tools', label: 'الأدوات', icon: 'tools' },
   { sep: 'النظام' },
   { id: 'server', label: 'الخادم والحساب', icon: 'server' },
@@ -104,6 +108,9 @@ function Dashboard({ mustChange, onLogout }) {
       case 'scoring': return <Scoring {...props} />;
       case 'theme': return <Theme {...props} />;
       case 'tools': return <Tools {...props} />;
+      case 'rounds': return <RoundsPage {...props} />;
+      case 'voice': return <VoicePage {...props} />;
+      case 'reports': return <ReportsPage {...props} />;
       case 'server': return <ServerPage {...props} mustChange={mustChange} onLogout={logout} />;
       case 'files': return <FilesPage {...props} />;
       case 'logs': return <LogsPage {...props} />;

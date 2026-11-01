@@ -11,6 +11,7 @@ import { PRESETS } from '@/lib/presets';
 import { SKINS, activeSkin, skinName } from '@/lib/skins';
 import { pickFile, uploadImage } from '@/lib/upload';
 import { safeUrl } from '@/lib/format';
+import { cmd } from '@/lib/store';
 import { Btn, Color, Field, Icon, Num, Range, Section, Select, Text, Toggle, useNotice } from './ui';
 
 /** Upload button: picks an image, shrinks it, uploads it and returns its /uploads/ URL. */
@@ -170,7 +171,7 @@ export function Teams({ live, draft, edit }) {
   );
 }
 
-export function Scoring({ live, draft, edit, dirty }) {
+export function Scoring({ live, draft, edit, dirty, notice }) {
   const s = draft.scoring; const a = draft.alerts;
   const toRows = (o) => Object.entries(o || {});
   const [rows, setRows] = useState(() => toRows(s.giftMultipliers));
@@ -204,6 +205,22 @@ export function Scoring({ live, draft, edit, dirty }) {
           <Field label="نقاط لكل تصويت في الشات (0 = إيقاف)"><Num value={s.chatVotePoints} min={0} onChange={set('chatVotePoints')} /></Field>
           <Field label="مهلة التصويت (ثوانٍ)"><Num value={s.chatVoteCooldownSec} min={0} onChange={set('chatVoteCooldownSec')} /></Field>
           <Field label="نقاط لكل إعجاب (0 = إيقاف)"><Num value={s.likePoints} step="0.01" min={0} onChange={set('likePoints')} /></Field>
+        </div>
+      </Section>
+
+      <Section title="💛 المتابعون والمشاركات" className="span-2"
+        desc="نقاط لفريق المشاهد عند متابعة البث أو مشاركته (يجب أن يكون المشاهد قد اختار فريقاً). كل متابع يُحسب مرة واحدة."
+        actions={<Btn size="sm" variant="ghost" icon="trash" onClick={() => confirm('تصفير عداد المتابعين والمشاركات؟') && cmd('socialReset').then(() => notice('تم التصفير')).catch((e) => notice(e.message, 'err'))}>تصفير العداد</Btn>}>
+        <div className="a-form cols-3">
+          <Field label="نقاط المتابعة"><Num value={draft.social.followPoints} min={0} onChange={(v) => edit((c) => { c.social.followPoints = v; })} /></Field>
+          <Field label="نقاط المشاركة"><Num value={draft.social.sharePoints} min={0} onChange={(v) => edit((c) => { c.social.sharePoints = v; })} /></Field>
+          <Field label="أقصى مشاركات محسوبة لكل مشاهد" hint="يمنع تكرار المشاركة للنقاط"><Num value={draft.social.shareMaxPerUser} min={0} max={100} onChange={(v) => edit((c) => { c.social.shareMaxPerUser = v; })} /></Field>
+          <Toggle label="تنبيه المتابعين الجدد" checked={draft.social.followAlerts} onChange={(v) => edit((c) => { c.social.followAlerts = v; })} />
+          <Toggle label="تنبيه المشاركات" checked={draft.social.shareAlerts} onChange={(v) => edit((c) => { c.social.shareAlerts = v; })} />
+          <Toggle label="شريط هدف المتابعين" checked={draft.social.followGoal.enabled} onChange={(v) => edit((c) => { c.social.followGoal.enabled = v; })} />
+          <Field label="هدف المتابعين"><Num value={draft.social.followGoal.target} min={1} onChange={(v) => edit((c) => { c.social.followGoal.target = v; })} /></Field>
+          <Field label="نص هدف المتابعين"><Text value={draft.social.followGoal.label} onChange={(v) => edit((c) => { c.social.followGoal.label = v; })} /></Field>
+          <div className="a-field"><span className="a-label">الحالي</span><b className="num-latin a-gold">💛 {live.state?.social?.follows || 0} · 🔁 {live.state?.social?.shares || 0}</b></div>
         </div>
       </Section>
 
@@ -348,12 +365,28 @@ export function Theme({ live, draft, edit }) {
 
       <Section title="معاينة مباشرة" className="span-2" desc="تتحدث فوراً مع كل تعديل. اضغط «حفظ وتطبيق» لإرسالها لكل الشاشات."
         actions={<div className="a-seg">
-          <button className={view === 'overlay' ? 'on' : ''} onClick={() => setView('overlay')}>واجهة OBS</button>
+          <button className={view === 'overlay' ? 'on' : ''} onClick={() => setView('overlay')}>OBS أفقي</button>
+          <button className={view === 'vertical' ? 'on' : ''} onClick={() => setView('vertical')}>OBS عمودي</button>
           <button className={view === 'live' ? 'on' : ''} onClick={() => setView('live')}>الصفحة المباشرة</button>
         </div>}>
-        {view === 'overlay'
-          ? <ScaledStage w={1920} h={1080}><Overlay config={draft} state={live.state} byId={live.byId} status={live.status} gifts={live.gifts} preview /></ScaledStage>
-          : <ScaledStage w={1440} h={1000}><LiveView config={draft} state={live.state} byId={live.byId} status={live.status} gifts={live.gifts} preview /></ScaledStage>}
+        {view === 'overlay' && <ScaledStage w={1920} h={1080}><Overlay config={draft} state={live.state} byId={live.byId} status={live.status} gifts={live.gifts} round={live.round} preview /></ScaledStage>}
+        {view === 'vertical' && (
+          <div className="a-vprev">
+            <ScaledStage w={1080} h={1920}><div className="a-tiktok-safe"><span className="top">واجهة تيك توك العلوية</span><span className="bottom">التعليقات وأزرار تيك توك</span></div><Overlay config={draft} state={live.state} byId={live.byId} status={live.status} gifts={live.gifts} round={live.round} orientation="portrait" preview /></ScaledStage>
+            <div className="a-form a-vprev-ctl">
+              <h4 className="a-sub">إعدادات الواجهة العمودية</h4>
+              <Field label="المسافة من الأعلى" hint="اترك مكاناً لاسمك وأزرار تيك توك"><Range value={t.vertical.top} min={0} max={900} step={10} suffix="px" onChange={(v) => edit((c) => { c.theme.vertical.top = v; })} /></Field>
+              <Field label="الهامش الجانبي"><Range value={t.vertical.side} min={0} max={200} step={2} suffix="px" onChange={(v) => edit((c) => { c.theme.vertical.side = v; })} /></Field>
+              <Field label="الحجم"><Range value={t.vertical.scale} min={0.5} max={2} step={0.05} suffix="×" onChange={(v) => edit((c) => { c.theme.vertical.scale = v; })} /></Field>
+              <Field label="عدد الفرق الظاهرة"><Num value={t.vertical.maxVisible} min={1} max={16} onChange={(v) => edit((c) => { c.theme.vertical.maxVisible = v; })} /></Field>
+              <Field label="موضع التنبيهات (من الأعلى)"><Range value={t.vertical.toastsTop} min={0} max={1800} step={10} suffix="px" onChange={(v) => edit((c) => { c.theme.vertical.toastsTop = v; })} /></Field>
+              <Toggle label="إظهار الرأس" checked={t.vertical.showHeader} onChange={(v) => edit((c) => { c.theme.vertical.showHeader = v; })} />
+              <Toggle label="إظهار التنبيهات" checked={t.vertical.showToasts} onChange={(v) => edit((c) => { c.theme.vertical.showToasts = v; })} />
+              <Toggle label="إظهار الشريط الإخباري" checked={t.vertical.showTicker} onChange={(v) => edit((c) => { c.theme.vertical.showTicker = v; })} />
+            </div>
+          </div>
+        )}
+        {view === 'live' && <ScaledStage w={1440} h={1000}><LiveView config={draft} state={live.state} byId={live.byId} status={live.status} gifts={live.gifts} round={live.round} preview /></ScaledStage>}
       </Section>
 
       <Section title="🔤 الخطوط" className="span-2"

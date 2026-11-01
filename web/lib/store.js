@@ -10,8 +10,12 @@ import { useSyncExternalStore } from 'react';
 
 const listeners = new Set();
 const eventListeners = new Set();
+const speakListeners = new Set();
 const pending = new Map();
-let snap = { config: null, state: null, byId: new Map(), status: {}, gifts: [], connected: false, isAdmin: false, version: '', everConnected: false };
+let snap = { config: null, state: null, byId: new Map(), status: {}, gifts: [], connected: false, isAdmin: false, version: '', everConnected: false, round: null };
+
+/** Round with endsAt converted to this device's clock (server and device clocks can differ). */
+const localRound = (r) => (r ? { ...r, offset: (r.serverNow || Date.now()) - Date.now(), endsAtLocal: r.endsAt ? r.endsAt - ((r.serverNow || Date.now()) - Date.now()) : 0, celebrateUntilLocal: r.celebrateUntil ? r.celebrateUntil - ((r.serverNow || Date.now()) - Date.now()) : 0 } : null);
 let ws = null;
 let retry = 0;
 let reqSeq = 0;
@@ -39,13 +43,15 @@ function connect() {
         set({
           config: m.config, state: m.state, byId: new Map(m.state.teams.map((t) => [t.id, t])),
           status: m.status || {}, gifts: m.gifts || [], isAdmin: Boolean(m.isAdmin), version: m.version || '',
-          connected: true, everConnected: true,
+          connected: true, everConnected: true, round: localRound(m.round),
         });
         break;
       case 'state': set({ state: m.state, byId: new Map(m.state.teams.map((t) => [t.id, t])) }); break;
       case 'config': set({ config: m.config }); break;
       case 'status': set({ status: m.status || {} }); break;
       case 'catalog': set({ gifts: m.gifts || [] }); break;
+      case 'round': set({ round: localRound(m.round) }); break;
+      case 'speak': for (const l of speakListeners) { try { l(m); } catch (err) { console.error(err); } } break;
       case 'event': for (const l of eventListeners) { try { l(m.event); } catch (err) { console.error(err); } } break;
       case 'ack': {
         const p = pending.get(m.reqId);
@@ -94,6 +100,8 @@ export function cmd(action, payload = {}) {
     ws.send(JSON.stringify({ type: 'cmd', action, payload, reqId }));
   });
 }
+
+export function onSpeak(cb) { speakListeners.add(cb); return () => speakListeners.delete(cb); }
 
 export function onLiveEvent(cb) { eventListeners.add(cb); return () => eventListeners.delete(cb); }
 

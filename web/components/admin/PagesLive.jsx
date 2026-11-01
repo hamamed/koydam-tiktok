@@ -55,6 +55,8 @@ export function Overview({ live, notice, go }) {
         <div className="a-kpi"><Icon name="flag" /><div><span>المتصدر</span><b>{leader ? `${leader.emoji} ${leader.name}` : '—'}</b></div></div>
         <div className="a-kpi"><Icon name="users" /><div><span>الداعمون</span><b className="num-latin">{fmt(supporters)}</b></div></div>
         <div className="a-kpi"><Icon name="eye" /><div><span>المشاهدون</span><b className="num-latin">{fmt(status?.viewers || 0)}</b></div></div>
+        <div className="a-kpi"><span className="a-kpi-ico emoji">💛</span><div><span>متابعون جدد</span><b className="num-latin">{fmt(state?.social?.follows || 0)}</b></div></div>
+        <div className="a-kpi"><Icon name="trophy" /><div><span>الجولة</span><b className="num-latin">{live.round?.status === 'running' ? `#${live.round.number} جارية` : live.round?.number ? `#${live.round.number}` : '—'}</b></div></div>
       </div>
 
       <Section title="حالة البث" className="span-2" actions={<Btn size="sm" variant="ghost" icon="plug" onClick={() => go('connection')}>إعدادات الاتصال</Btn>}>
@@ -136,6 +138,11 @@ export function Connection({ live, notice }) {
       <Section title="واجهة OBS" desc="أضف «Browser Source» بالمقاس 1920×1080 واترك Custom CSS فارغاً.">
         <CopyField value={`${origin}/overlay/`} />
         <div className="a-row"><a className="a-btn ghost sm" href="/overlay/" target="_blank" rel="noopener"><Icon name="external" size={15} /><span>فتح المعاينة</span></a></div>
+      </Section>
+
+      <Section title="واجهة OBS العمودية (تيك توك)" desc="للبث العمودي من TikTok LIVE Studio أو OBS: Browser Source بالمقاس 1080×1920. فعّل «Control audio via OBS» لسماع القراءة الصوتية.">
+        <CopyField value={`${origin}/overlay-vertical/`} />
+        <div className="a-row"><a className="a-btn ghost sm" href="/overlay-vertical/" target="_blank" rel="noopener"><Icon name="external" size={15} /><span>فتح المعاينة</span></a></div>
       </Section>
 
       <Section title="الصفحة المباشرة للجمهور" desc="شارك هذا الرابط مع المتابعين لمشاهدة الترتيب على الهاتف.">

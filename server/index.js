@@ -29,6 +29,8 @@ const fsp = require('fs/promises');
 const path = require('path');
 const { EventEmitter } = require('events');
 const { WebSocketServer, WebSocket } = require('ws');
+const { createTTS, fillTemplate, VOICES, VOICE_IDS, TTS_RE } = require('./tts');
+const { Reports } = require('./reports');
 
 /* ----------------------------------------------------------------------------
  * 0. Runtime settings (CLI flags > env vars > defaults)
@@ -170,7 +172,34 @@ const DEFAULT_CONFIG = {
     bgBlur: 0,                  // px
     bgOnLive: true,             // show the picture on the live page
     bgOnOverlay: false,         // show the picture in OBS (covers the stream behind!)
+    // Vertical overlay (1080x1920, /overlay-vertical): TikTok's own buttons cover the top and the bottom.
+    vertical: { top: 170, side: 28, scale: 1, maxVisible: 5, showHeader: true, showToasts: true, toastsTop: 1080, showTicker: false },
     background: 'transparent',  // 'transparent' or a CSS color for previewing
+  },
+
+  // Timed rounds: countdown on screen, winner celebration, history.
+  rounds: { durationMin: 15, autoReset: true, autoRestart: false, celebrateSec: 12, showTimer: true },
+
+  // Followers & shares: points for the viewer's team, alerts, follow goal.
+  social: {
+    followPoints: 50, sharePoints: 10, shareMaxPerUser: 3,
+    followAlerts: true, shareAlerts: true,
+    followGoal: { enabled: true, target: 100, label: 'هدف المتابعين الجدد' },
+  },
+
+  // Arabic voice reading (server-made audio, played by the OBS overlay).
+  tts: {
+    enabled: false,
+    engine: 'edge',             // 'edge' (neural voices, recommended) | 'browser' (only works outside OBS)
+    voice: 'ar-SA-HamedNeural',
+    rate: 0,                    // -50..60 (%)
+    volume: 1,                  // 0..1 (overlay playback)
+    minPoints: 100,             // read gifts worth at least this many points
+    readGifts: true, readTakeover: true, readRoundWinner: true, readFollows: false,
+    giftTemplate: 'شكراً {name} على {gift} لفريق {team}',
+    takeoverTemplate: '{team} يتصدر الآن',
+    roundTemplate: 'انتهت الجولة، الفائز {team} بـ {points} نقطة',
+    followTemplate: 'شكراً {name} على المتابعة',
   },
 
   advanced: {
@@ -289,6 +318,7 @@ function sanitizeConfig(input) {
   const out = {
     title: str(src.title ?? D.title, 80),
     goal: {},
+    rounds: {}, social: {}, tts: {},
     subtitle: str(src.subtitle ?? D.subtitle, 160),
     category: str(src.category ?? D.category, 40),
     teams: [],
@@ -396,6 +426,15 @@ function sanitizeConfig(input) {
     bgBlur: numIn(th.bgBlur, 0, 30, DT.bgBlur),
     bgOnLive: bool(th.bgOnLive, DT.bgOnLive),
     bgOnOverlay: bool(th.bgOnOverlay, DT.bgOnOverlay),
+    vertical: (() => {
+      const v = isObj(th.vertical) ? th.vertical : {}; const DV = DT.vertical;
+      return {
+        top: Math.round(numIn(v.top, 0, 1400, DV.top)), side: Math.round(numIn(v.side, 0, 300, DV.side)),
+        scale: numIn(v.scale, 0.5, 2, DV.scale), maxVisible: Math.round(numIn(v.maxVisible, 1, 16, DV.maxVisible)),
+        showHeader: bool(v.showHeader, DV.showHeader), showToasts: bool(v.showToasts, DV.showToasts),
+        toastsTop: Math.round(numIn(v.toastsTop, 0, 1800, DV.toastsTop)), showTicker: bool(v.showTicker, DV.showTicker),
+      };
+    })(),
     showViewers: bool(th.showViewers, DT.showViewers),
     toastPosition: oneOf(th.toastPosition, ['left', 'right'], DT.toastPosition),
     // Only "transparent" or simple CSS colour tokens: no url(), no expressions.
@@ -408,6 +447,41 @@ function sanitizeConfig(input) {
     enabled: bool(g.enabled, D.goal.enabled),
     target: Math.round(numIn(g.target, 1, 1e12, D.goal.target)),
     label: str(g.label ?? D.goal.label, 80),
+  };
+
+  // ---- Rounds ----
+  const rd = isObj(src.rounds) ? src.rounds : {}; const DR = D.rounds;
+  out.rounds = {
+    durationMin: numIn(rd.durationMin, 1, 600, DR.durationMin),
+    autoReset: bool(rd.autoReset, DR.autoReset),
+    autoRestart: bool(rd.autoRestart, DR.autoRestart),
+    celebrateSec: Math.round(numIn(rd.celebrateSec, 3, 120, DR.celebrateSec)),
+    showTimer: bool(rd.showTimer, DR.showTimer),
+  };
+  // ---- Social ----
+  const so = isObj(src.social) ? src.social : {}; const DSo = D.social; const fg = isObj(so.followGoal) ? so.followGoal : {};
+  out.social = {
+    followPoints: numIn(so.followPoints, 0, 1e6, DSo.followPoints),
+    sharePoints: numIn(so.sharePoints, 0, 1e6, DSo.sharePoints),
+    shareMaxPerUser: Math.round(numIn(so.shareMaxPerUser, 0, 100, DSo.shareMaxPerUser)),
+    followAlerts: bool(so.followAlerts, DSo.followAlerts),
+    shareAlerts: bool(so.shareAlerts, DSo.shareAlerts),
+    followGoal: { enabled: bool(fg.enabled, DSo.followGoal.enabled), target: Math.round(numIn(fg.target, 1, 1e7, DSo.followGoal.target)), label: str(fg.label ?? DSo.followGoal.label, 60) },
+  };
+  // ---- Voice ----
+  const tt = isObj(src.tts) ? src.tts : {}; const DTt = D.tts;
+  const tpl = (v, d) => str(v ?? d, 200);
+  out.tts = {
+    enabled: bool(tt.enabled, DTt.enabled),
+    engine: oneOf(tt.engine, ['edge', 'browser'], DTt.engine),
+    voice: VOICE_IDS.includes(tt.voice) ? tt.voice : DTt.voice,
+    rate: Math.round(numIn(tt.rate, -50, 60, DTt.rate)),
+    volume: numIn(tt.volume, 0, 1, DTt.volume),
+    minPoints: numIn(tt.minPoints, 0, 1e9, DTt.minPoints),
+    readGifts: bool(tt.readGifts, DTt.readGifts), readTakeover: bool(tt.readTakeover, DTt.readTakeover),
+    readRoundWinner: bool(tt.readRoundWinner, DTt.readRoundWinner), readFollows: bool(tt.readFollows, DTt.readFollows),
+    giftTemplate: tpl(tt.giftTemplate, DTt.giftTemplate), takeoverTemplate: tpl(tt.takeoverTemplate, DTt.takeoverTemplate),
+    roundTemplate: tpl(tt.roundTemplate, DTt.roundTemplate), followTemplate: tpl(tt.followTemplate, DTt.followTemplate),
   };
 
   // ---- Advanced ----
@@ -509,6 +583,10 @@ class ScoreBoard extends EventEmitter {
     this.teams = new Map();       // teamId -> { score, contributors: Map, top: [] }
     this.allegiance = new Map();  // userId -> teamId
     this.voteCooldown = new Map();// userId -> last vote timestamp
+    // Followers & shares (kept across rounds; reset from the panel)
+    this.social = { follows: 0, shares: 0 };
+    this.followed = new Set();    // users already rewarded for following (once each)
+    this.shareCount = new Map();  // userId -> rewarded shares
     this.leaderId = null;
     this.applyConfig(config);
   }
@@ -527,6 +605,12 @@ class ScoreBoard extends EventEmitter {
     // Forget allegiances pointing at deleted teams
     for (const [uid, tid] of this.allegiance) if (!next.has(tid)) this.allegiance.delete(uid);
     this.leaderId = this._computeLeader(this.leaderId);
+    this._changed();
+  }
+
+  resetSocial() {
+    this.social = { follows: 0, shares: 0 };
+    this.followed.clear(); this.shareCount.clear();
     this._changed();
   }
 
@@ -675,7 +759,7 @@ class ScoreBoard extends EventEmitter {
       total += t.score;
       teams.push({ id, score: t.score, supporters: t.contributors.size, top: t.top.map(({ u, n, a, p }) => ({ u, n, a, p })) });
     }
-    return { rev: this.rev, total: Math.round(total * 100) / 100, leaderId: this.leaderId, teams, ts: Date.now() };
+    return { rev: this.rev, total: Math.round(total * 100) / 100, leaderId: this.leaderId, teams, social: { ...this.social }, ts: Date.now() };
   }
 
   /** Data saved to disk. */
@@ -687,7 +771,8 @@ class ScoreBoard extends EventEmitter {
         contributors: [...t.contributors.values()].sort((a, b) => b.p - a.p).slice(0, MAX_CONTRIB_PERSIST),
       };
     }
-    return { version: 1, savedAt: new Date().toISOString(), leaderId: this.leaderId, teams, allegiance: [...this.allegiance] };
+    return { version: 1, savedAt: new Date().toISOString(), leaderId: this.leaderId, teams, allegiance: [...this.allegiance],
+      social: { ...this.social, followed: [...this.followed].slice(-50000), shareCount: [...this.shareCount].slice(-50000) } };
   }
 
   restore(data) {
@@ -701,6 +786,11 @@ class ScoreBoard extends EventEmitter {
         if (c && c.id) team.contributors.set(String(c.id), { id: String(c.id), u: str(c.u, 64), n: str(c.n, 48), a: safeUrl(c.a), p: num(c.p, 0) });
       }
       this._rebuildTop(team);
+    }
+    if (isObj(data.social)) {
+      this.social = { follows: num(data.social.follows, 0), shares: num(data.social.shares, 0) };
+      if (Array.isArray(data.social.followed)) this.followed = new Set(data.social.followed.map(String));
+      if (Array.isArray(data.social.shareCount)) this.shareCount = new Map(data.social.shareCount.filter((x) => Array.isArray(x)));
     }
     if (Array.isArray(data.allegiance)) {
       for (const pair of data.allegiance.slice(-MAX_ALLEGIANCE)) {
@@ -931,6 +1021,41 @@ class Pipeline extends EventEmitter {
     if (joined || points) this.emit('event', { kind: 'join', teamId: this.board.allegiance.get(user.userId) || teamId, user, points, comment: comment.slice(0, 80) });
   }
 
+  /** New follower: counted once per viewer; points go to the viewer's team. */
+  handleFollow(raw) {
+    const user = normalizeUser(raw);
+    if (this.board.followed.has(user.userId)) return;
+    this.board.followed.add(user.userId);
+    this.board.social.follows++;
+    const s = this.board.config.social;
+    const teamId = this.board.allegiance.get(user.userId) || null;
+    let points = 0;
+    if (teamId && s.followPoints > 0) {
+      points = s.followPoints;
+      const r = this.board.addPoints(teamId, points, user);
+      if (r.takeover) this.emit('event', { kind: 'takeover', teamId, prevTeamId: r.prevLeader || null });
+    } else this.board._changed();
+    this.emit('event', { kind: 'follow', user, teamId, points });
+  }
+
+  /** Share: always counted; points for the first N shares of each viewer (stops share spam). */
+  handleShare(raw) {
+    const user = normalizeUser(raw);
+    this.board.social.shares++;
+    const s = this.board.config.social;
+    const n = (this.board.shareCount.get(user.userId) || 0) + 1;
+    this.board.shareCount.set(user.userId, n);
+    if (this.board.shareCount.size > 50000) this.board.shareCount.delete(this.board.shareCount.keys().next().value);
+    const teamId = this.board.allegiance.get(user.userId) || null;
+    let points = 0;
+    if (teamId && s.sharePoints > 0 && n <= s.shareMaxPerUser) {
+      points = s.sharePoints;
+      const r = this.board.addPoints(teamId, points, user);
+      if (r.takeover) this.emit('event', { kind: 'takeover', teamId, prevTeamId: r.prevLeader || null });
+    } else this.board._changed();
+    this.emit('event', { kind: 'share', user, teamId, points });
+  }
+
   /** Likes: optional points for viewers who already have a team. */
   handleLike(raw) {
     const s = this.board.config.scoring;
@@ -1066,9 +1191,18 @@ class TikTokManager extends EventEmitter {
     conn.on('gift', guard('gift', (d) => this.pipeline.handleGift(d)));
     conn.on('chat', guard('chat', (d) => this.pipeline.handleChat(d)));
     conn.on('like', guard('like', (d) => this.pipeline.handleLike(d)));
+    if (lib.kind === 'v2') {
+      conn.on('follow', guard('follow', (d) => this.pipeline.handleFollow(d)));
+      conn.on('share', guard('share', (d) => this.pipeline.handleShare(d)));
+    } else {
+      conn.on('social', guard('social', (d) => {
+        const t = String(d.displayType || '');
+        if (/follow/i.test(t)) this.pipeline.handleFollow(d); else if (/share/i.test(t)) this.pipeline.handleShare(d);
+      }));
+    }
     conn.on('roomUser', guard('roomUser', (d) => {
       const v = num(d.viewerCount ?? d.total ?? d.totalUser, NaN);
-      if (Number.isFinite(v) && v !== this.status.viewers) this._setStatus({ viewers: v });
+      if (Number.isFinite(v) && v !== this.status.viewers) { this._setStatus({ viewers: v }); this.emit('viewers', v); }
     }));
     conn.on('streamEnd', () => onLost('stream ended'));
     conn.on('disconnected', (info) => onLost(`disconnected${info && info.reason ? `: ${info.reason}` : ''}`));
@@ -1172,6 +1306,15 @@ class DemoSimulator {
   }
   _tick() {
     const user = this.users[Math.floor(Math.random() * this.users.length)];
+    const r = Math.random();
+    if (r < 0.05) { // a "new" follower (unique id so it counts), on the same team as this demo viewer
+      const id = `${user.id}${Date.now() % 100000}`;
+      const team = this.board.allegiance.get(user.id);
+      if (team) this.board.allegiance.set(id, team);
+      this.pipeline.handleFollow({ user: { ...user, id } });
+      return;
+    }
+    if (r < 0.08) { this.pipeline.handleShare({ user }); return; }
     const teams = this.board.config.teams;
     if (Math.random() < 0.25 || !this.board.allegiance.has(user.id)) {
       const t = teams[Math.floor(Math.random() * teams.length)];
@@ -1326,7 +1469,7 @@ function loginFailed(ip) {
  * ------------------------------------------------------------------------- */
 const APP_ROOT = path.resolve(__dirname, '..');
 const SKIP_DIRS = new Set(['node_modules', '.git', '.next', '.npm', '.cache', '.config', '.local']);
-const SKIP_REL = new Set(['web/out', 'data/uploads', 'data/gift-images']); // build output + uploaded images (binary)
+const SKIP_REL = new Set(['web/out', 'data/uploads', 'data/gift-images', 'data/tts-cache']); // build output + uploaded images (binary)
 const skipRel = (rel) => [...SKIP_REL].some((d) => rel === d || rel.startsWith(d + '/'));
 const MAX_EDIT_BYTES = 2 * 1024 * 1024;
 const httpErr = (status, message, extra) => Object.assign(new Error(message), { status, extra });
@@ -1523,6 +1666,101 @@ async function gitInfo(fetchRemote) {
 }
 
 /* ----------------------------------------------------------------------------
+ * 12d. Timed rounds
+ *      start -> countdown -> end: winner + top supporters (event 'roundEnd'),
+ *      saved to data/rounds.json; then optional auto-reset and auto-restart.
+ *      The running round is saved, so a server restart continues the countdown.
+ * ------------------------------------------------------------------------- */
+const ROUND_FILE = path.join(SETTINGS.dataDir, 'round.json');
+const ROUNDS_HISTORY_FILE = path.join(SETTINGS.dataDir, 'rounds.json');
+
+class RoundManager extends EventEmitter {
+  constructor(board, getConfig) {
+    super();
+    this.board = board; this.getConfig = getConfig;
+    const saved = readJsonSafe(ROUND_FILE) || {};
+    this.state = { status: 'idle', number: num(saved.number, 0), startedAt: 0, endsAt: 0, durationSec: 0, celebrateUntil: 0 };
+    this.history = Array.isArray(readJsonSafe(ROUNDS_HISTORY_FILE)) ? readJsonSafe(ROUNDS_HISTORY_FILE) : [];
+    this.timers = new Set();
+    this.tick = setInterval(() => this._check(), 500);
+    this.tick.unref();
+    if (saved.status === 'running' && num(saved.endsAt, 0) > Date.now()) {
+      Object.assign(this.state, { status: 'running', startedAt: num(saved.startedAt, Date.now()), endsAt: num(saved.endsAt, 0), durationSec: num(saved.durationSec, 0) });
+      log.info(`Round ${this.state.number} resumed (${Math.round((this.state.endsAt - Date.now()) / 1000)}s left)`);
+    } else if (saved.status === 'running') {
+      // Ended while the server was down: record it without the celebration.
+      Object.assign(this.state, { status: 'running', startedAt: num(saved.startedAt, 0), endsAt: num(saved.endsAt, 0), durationSec: num(saved.durationSec, 0) });
+      setTimeout(() => this.end('ended while offline', { quiet: true }), 2000);
+    }
+  }
+  public() { return { ...this.state, serverNow: Date.now() }; }
+  _save() { writeJsonAtomic(ROUND_FILE, this.state).catch(() => {}); }
+  _changed() { this._save(); this.emit('change', this.public()); }
+  _later(fn, ms) { const t = setTimeout(() => { this.timers.delete(t); fn(); }, ms); this.timers.add(t); }
+  _clearTimers() { for (const t of this.timers) clearTimeout(t); this.timers.clear(); }
+
+  start(durationMin) {
+    this._clearTimers();
+    const min = clamp(num(durationMin, this.getConfig().rounds.durationMin), 0.1, 600);
+    const now = Date.now();
+    this.state = { status: 'running', number: this.state.number + 1, startedAt: now, durationSec: Math.round(min * 60), endsAt: now + Math.round(min * 60000), celebrateUntil: 0 };
+    log.info(`Round ${this.state.number} started (${min} min)`);
+    this.emit('event', { kind: 'roundStart', number: this.state.number, durationSec: this.state.durationSec });
+    this._changed();
+  }
+  extend(sec) {
+    if (this.state.status !== 'running') throw new Error('لا توجد جولة جارية');
+    this.state.endsAt = Math.max(Date.now() + 5000, this.state.endsAt + num(sec, 60) * 1000);
+    this.state.durationSec += num(sec, 60);
+    this._changed();
+  }
+  cancel() {
+    this._clearTimers();
+    if (this.state.status === 'idle') return;
+    this.state = { ...this.state, status: 'idle', endsAt: 0, celebrateUntil: 0 };
+    log.info('Round cancelled');
+    this._changed();
+  }
+  _check() { if (this.state.status === 'running' && Date.now() >= this.state.endsAt) this.end('time'); }
+
+  /** Ends the round now: result, history, celebration, then optional reset/restart. */
+  end(reason = 'manual', { quiet = false } = {}) {
+    if (this.state.status !== 'running') throw new Error('لا توجد جولة جارية');
+    const cfg = this.getConfig();
+    const snap = this.board.snapshot();
+    const teamsById = new Map(cfg.teams.map((t) => [t.id, t]));
+    const ranked = this.board.ranked();
+    const w = ranked[0] && ranked[0].score > 0 ? teamsById.get(ranked[0].id) : null;
+    const supporters = snap.teams.flatMap((t) => (t.top || []).map((u) => ({ ...u, team: t.id }))).sort((a, b) => b.p - a.p).slice(0, 3);
+    const result = {
+      number: this.state.number, startedAt: this.state.startedAt, endedAt: Date.now(), reason,
+      durationSec: Math.round((Date.now() - this.state.startedAt) / 1000),
+      total: snap.total,
+      winner: w ? { id: w.id, name: w.name, emoji: w.emoji, color: w.color, image: w.image, score: ranked[0].score } : null,
+      standings: ranked.map((r) => ({ id: r.id, name: teamsById.get(r.id)?.name || r.id, score: r.score })),
+      topSupporters: supporters,
+    };
+    this.history.unshift(result);
+    if (this.history.length > 500) this.history.length = 500;
+    writeJsonAtomic(ROUNDS_HISTORY_FILE, this.history).catch(() => {});
+    log.info(`Round ${result.number} ended (${reason}): winner ${w ? w.name : 'none'}`);
+
+    const celebrate = quiet ? 0 : cfg.rounds.celebrateSec * 1000;
+    this.state = { ...this.state, status: celebrate ? 'celebrating' : 'idle', endsAt: 0, celebrateUntil: celebrate ? Date.now() + celebrate : 0 };
+    this._changed();
+    if (!quiet) this.emit('event', { kind: 'roundEnd', ...result, celebrateSec: cfg.rounds.celebrateSec });
+    this.emit('ended', result);
+
+    this._later(() => {
+      if (this.state.status === 'celebrating') { this.state.status = 'idle'; this.state.celebrateUntil = 0; this._changed(); }
+      if (cfg.rounds.autoReset) this.emit('reset');
+      if (cfg.rounds.autoRestart && !quiet) this.start(cfg.rounds.durationMin);
+    }, celebrate || 10);
+    return result;
+  }
+}
+
+/* ----------------------------------------------------------------------------
  * 13. Bootstrap state + persistence
  * ------------------------------------------------------------------------- */
 let config = sanitizeConfig(readJsonSafe(CONFIG_FILE) || DEFAULT_CONFIG);
@@ -1533,6 +1771,9 @@ catalog.load();
 const pipeline = new Pipeline(board, catalog);
 const tiktok = new TikTokManager(pipeline, () => config);
 const demo = new DemoSimulator(pipeline, board);
+const rounds = new RoundManager(board, () => config);
+const tts = createTTS({ dir: path.join(SETTINGS.dataDir, 'tts-cache'), log });
+const reports = new Reports({ dir: path.join(SETTINGS.dataDir, 'reports'), log, getConfig: () => config });
 
 // Throttled (not debounced) save: a busy stream changes state constantly, and a debounce
 // would keep postponing the write. This saves at most every 2s, including during traffic.
@@ -1585,6 +1826,15 @@ const httpServer = http.createServer(async (req, res) => {
       if (p === '/' && url.searchParams.get('obs') === '1') { res.writeHead(302, { Location: '/overlay/' }); return res.end(); }
       if (p === '/health') return json(200, { ok: true, version: VERSION, uptime: Math.round(process.uptime()), clients: wss.clients.size, tiktok: tiktok.status.state });
       if (p === '/api/state') return json(200, { config, state: board.snapshot(), status: publicStatus() });
+      if (p.startsWith('/tts/')) {
+        if (!TTS_RE.test(p)) return send(404, 'text/plain', 'Not found');
+        const file = path.join(tts.dir, path.basename(p));
+        const st = await fsp.stat(file).catch(() => null);
+        if (!st) return send(404, 'text/plain', 'Not found');
+        res.writeHead(200, { 'Content-Type': 'audio/mpeg', 'Content-Length': st.size, 'Cache-Control': 'public, max-age=86400', 'X-Content-Type-Options': 'nosniff' });
+        if (req.method === 'HEAD') return res.end();
+        return fs.createReadStream(file).on('error', () => res.destroy()).pipe(res);
+      }
       if (p.startsWith('/gift-img/')) {
         if (!GIFT_IMG_RE.test(p)) return send(404, 'text/plain', 'Not found');
         const file = path.join(GIFT_IMG_DIR, path.basename(p));
@@ -1712,6 +1962,34 @@ const httpServer = http.createServer(async (req, res) => {
     }
 
     if (p === '/api/jobs' && req.method === 'GET') return json(200, jobs);
+
+    // ---- Rounds history ----
+    if (p === '/api/rounds' && req.method === 'GET') return json(200, { round: rounds.public(), history: rounds.history });
+    if (p === '/api/rounds' && req.method === 'DELETE') { rounds.history = []; await writeJsonAtomic(ROUNDS_HISTORY_FILE, []); return json(200, { ok: true }); }
+
+    // ---- Stream reports ----
+    if (p === '/api/reports' && req.method === 'GET') return json(200, { reports: await reports.list(), currentId: reports.current?.id || null });
+    if (p === '/api/reports/new' && req.method === 'POST') { const r = reports.begin({ username: tiktok.status.username || '', demo: demo.running, reason: 'manual' }); return json(200, { ok: true, id: r.id }); }
+    if (p === '/api/reports/end' && req.method === 'POST') { const r = reports.end('manual'); return json(200, { ok: true, id: r?.id || null }); }
+    {
+      const m = /^\/api\/reports\/([0-9a-z-]+?)(\.csv)?$/.exec(p);
+      if (m) {
+        if (req.method === 'DELETE') { if (!(await reports.remove(m[1]))) throw httpErr(400, 'لا يمكن حذف هذا التقرير'); return json(200, { ok: true }); }
+        const r = await reports.get(m[1]);
+        if (!r) throw httpErr(404, 'التقرير غير موجود');
+        if (m[2]) return send(200, 'text/csv; charset=utf-8', reports.csv(r), { 'Content-Disposition': `attachment; filename="report-${r.id}.csv"` });
+        return json(200, { report: r });
+      }
+    }
+
+    // ---- Voice ----
+    if (p === '/api/tts/voices' && req.method === 'GET') return json(200, { voices: VOICES.map(([id, label]) => ({ id, label })) });
+    if (p === '/api/tts/test' && req.method === 'POST') {
+      const b = await readJsonBody(req, 4096);
+      const text = str(b.text || 'شكراً على الهدية، المغرب يتصدر الآن!', 200);
+      try { return json(200, { ok: true, url: await tts.synth(text, { voice: b.voice || config.tts.voice, rate: b.rate ?? config.tts.rate }) }); }
+      catch (e) { throw httpErr(502, `تعذر توليد الصوت: ${e.message}`); }
+    }
 
     if (p === '/api/gifts' && req.method === 'GET') return json(200, { gifts: catalog.list() });
 
@@ -1879,12 +2157,83 @@ const publicStatus = () => ({ ...tiktok.status, demo: demo.running });
 const broadcastState = throttle(() => broadcast({ type: 'state', state: board.snapshot() }), () => config.advanced.broadcastIntervalMs);
 
 board.on('change', () => { broadcastState(); saveState(); });
+const reportCtx = () => ({ username: tiktok.status.username || '', demo: demo.running });
 pipeline.on('event', (ev) => {
   // Events go out right away (lowest latency). The state update follows within broadcastIntervalMs.
   broadcastState.flush();
   broadcast({ type: 'event', event: { ...ev, ts: Date.now() } }, { essential: false });
+  if (ev.kind === 'gift') reports.onGift(ev, reportCtx());
+  else if (ev.kind === 'follow' || ev.kind === 'share' || (ev.kind === 'join' && ev.points)) reports.onPoints(ev, reportCtx());
+  speakFor(ev);
 });
 tiktok.on('status', () => broadcast({ type: 'status', status: publicStatus() }));
+
+// ---- Rounds -> screens, voice, reports, auto-reset ----
+rounds.on('change', (r) => broadcast({ type: 'round', round: r }));
+rounds.on('event', (ev) => { broadcast({ type: 'event', event: { ...ev, ts: Date.now() } }); speakFor(ev); });
+rounds.on('ended', (res) => reports.onRound(res));
+rounds.on('reset', () => {
+  board.reset(true);
+  pipeline.streaks.clear();
+  writeState();
+  broadcast({ type: 'event', event: { kind: 'reset', ts: Date.now(), auto: true } });
+});
+
+// ---- Stream sessions for reports follow the TikTok connection ----
+let lastConnState = 'idle';
+tiktok.on('status', (st) => {
+  if (st.state === lastConnState) return;
+  const prev = lastConnState; lastConnState = st.state;
+  if (st.state === 'connected') {
+    if (reports.current && reports.current.username && reports.current.username !== st.username) reports.end('new stream');
+    if (!reports.current) reports.begin({ username: st.username, reason: 'connected' });
+    else if (!reports.current.username) reports.current.username = st.username;
+  } else if (prev === 'connected' && st.state === 'offline') reports.end('stream ended');
+  else if (st.state === 'idle' && /host/i.test(st.message || '')) reports.end('disconnected');
+});
+tiktok.on('viewers', (v) => { reports.viewers = v; reports.onViewers(v); });
+
+// ---- Arabic voice reading ----
+const streakPoints = new Map();
+let lastTakeoverSpeech = 0;
+let ttsWarnedAt = 0;
+function sayText(text, { force = false } = {}) {
+  const t = config.tts;
+  if (!text || (!t.enabled && !force)) return Promise.resolve(null);
+  if (t.engine === 'browser') { broadcast({ type: 'speak', text, volume: t.volume }); return Promise.resolve(null); }
+  return tts.synth(text, { voice: t.voice, rate: t.rate })
+    .then((url) => { broadcast({ type: 'speak', url, text, volume: t.volume }); return url; })
+    .catch((e) => {
+      if (Date.now() - ttsWarnedAt > 60000) { ttsWarnedAt = Date.now(); log.warn('Voice (Edge TTS) failed, using browser voice:', e.message); }
+      broadcast({ type: 'speak', text, volume: t.volume }); // browser fallback (works outside OBS)
+      throw e;
+    });
+}
+function speakFor(ev) {
+  const t = config.tts;
+  if (!t.enabled) return;
+  const teamName = (id) => config.teams.find((x) => x.id === id)?.name || '';
+  let text = '';
+  if (ev.kind === 'gift' && t.readGifts) {
+    let pts = ev.points;
+    if (ev.streakKey) {                     // combo: speak once, at the end, with the full total
+      pts = (streakPoints.get(ev.streakKey) || 0) + ev.points;
+      if (!ev.final) { streakPoints.set(ev.streakKey, pts); if (streakPoints.size > 2000) streakPoints.clear(); return; }
+      streakPoints.delete(ev.streakKey);
+    }
+    if (pts < t.minPoints) return;
+    text = fillTemplate(t.giftTemplate, { name: ev.user.nickname, gift: ev.gift.name, count: ev.gift.count, team: teamName(ev.teamId), points: Math.round(pts) });
+  } else if (ev.kind === 'takeover' && t.readTakeover) {
+    if (Date.now() - lastTakeoverSpeech < 10000) return;
+    lastTakeoverSpeech = Date.now();
+    text = fillTemplate(t.takeoverTemplate, { team: teamName(ev.teamId) });
+  } else if (ev.kind === 'roundEnd' && t.readRoundWinner) {
+    text = ev.winner ? fillTemplate(t.roundTemplate, { team: ev.winner.name, points: Math.round(ev.winner.score) }) : 'انتهت الجولة بدون فائز';
+  } else if (ev.kind === 'follow' && t.readFollows) {
+    text = fillTemplate(t.followTemplate, { name: ev.user.nickname });
+  }
+  if (text) sayText(text).catch(() => {});
+}
 catalog.on('change', () => broadcast({ type: 'catalog', gifts: catalog.list() }, { essential: false }));
 
 wss.on('connection', (ws, req) => {
@@ -1897,7 +2246,7 @@ wss.on('connection', (ws, req) => {
 
   ws.send(JSON.stringify({
     type: 'hello', version: VERSION, config, state: board.snapshot(), status: publicStatus(),
-    gifts: catalog.list(), isAdmin: ws.isAdmin,
+    gifts: catalog.list(), isAdmin: ws.isAdmin, round: rounds.public(),
   }));
 
   ws.on('message', (buf) => {
@@ -1983,6 +2332,26 @@ async function handleCommand(ws, msg) {
       broadcast({ type: 'status', status: publicStatus() });
       return reply(ws, msg.reqId, true);
     }
+    case 'roundStart': { rounds.start(p.durationMin); return reply(ws, msg.reqId, true); }
+    case 'roundEnd': { rounds.end('manual'); return reply(ws, msg.reqId, true); }
+    case 'roundCancel': { rounds.cancel(); return reply(ws, msg.reqId, true); }
+    case 'roundExtend': { rounds.extend(num(p.sec, 60)); return reply(ws, msg.reqId, true); }
+    case 'socialReset': { board.resetSocial(); writeState(); return reply(ws, msg.reqId, true); }
+    case 'simulateFollow':
+    case 'simulateShare': {
+      const nick = str(p.nickname || 'متابع جديد', 48);
+      const id = msg.action === 'simulateFollow' ? `sim_f_${Date.now()}` : `sim_${slug(nick) || 'viewer'}`;
+      if (p.teamId && board.teams.has(p.teamId)) board.allegiance.set(id, p.teamId);
+      const raw = { user: { id, displayId: slug(nick) || 'viewer', nickname: nick } };
+      if (msg.action === 'simulateFollow') pipeline.handleFollow(raw); else pipeline.handleShare(raw);
+      return reply(ws, msg.reqId, true);
+    }
+    case 'say': {
+      const text = str(p.text, 200).trim();
+      if (!text) throw new Error('اكتب النص');
+      const url = await sayText(text, { force: true });
+      return reply(ws, msg.reqId, true, null, { url });
+    }
     case 'getState': {
       return reply(ws, msg.reqId, true, null, { config, state: board.snapshot(), status: publicStatus(), gifts: catalog.list() });
     }
@@ -2040,6 +2409,7 @@ async function shutdown(sig) {
   try {
     await tiktok.stop();
     await writeJsonAtomic(STATE_FILE, board.serialize());
+    reports.flush();
     for (const ws of wss.clients) ws.close(1012, 'Server restarting');
     wss.close();
     httpServer.close();
