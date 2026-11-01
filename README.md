@@ -128,6 +128,13 @@ npm run build && npm run demo
 ```
 Then open http://localhost:8080/admin/. The first-run password is printed in the terminal and saved to `data/initial-admin-password.txt`.
 
+### Promo video
+`tools/promo-video.js` records the real vertical overlay while a scripted gift battle races to 1,000,000 and ends on the winner screen (MP4, 1080×1920). Needs a build, Playwright with Chromium, and ffmpeg (run it on your computer, not the VPS):
+```bash
+node tools/promo-video.js --teams=sa,ae,kw,qa,eg,ma --winner=sa --skin=classic --out=promo.mp4
+```
+Add `--landscape` for 1920×1080. It uses its own temporary server and data, so your lives are not touched.
+
 ### Stack
 - **Backend:** `server/index.js`, Node.js ≥ 20.
   - TikTok connection via `tiktok-live-connector`, live updates via `ws`.
