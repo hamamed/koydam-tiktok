@@ -4,7 +4,7 @@
  * State comes from the server (store.game); this only draws it, with the live's look.
  */
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Crown, Shield, Skull, Swords, Timer, Trophy } from 'lucide-react';
+import { Cable, Castle, CircleHelp, Crown, FlagTriangleRight, Moon, Rocket, Shield, Skull, Swords, Timer, Trophy, Zap } from 'lucide-react';
 import { Flag, GiftIcon } from './bits';
 import { findGift, useGiftMap } from '@/lib/gifts';
 import { fmt } from '@/lib/format';
@@ -204,11 +204,186 @@ function Arena({ game, teams, giftMap }) {
   );
 }
 
+
+/* ------------------------------------------------------------- champion */
+function Champion({ team, title }) {
+  return (
+    <div className="gm-champ glass" style={{ '--team': team?.color }}>
+      <Crown className="gm-champ-crown" fill="currentColor" />
+      <div className="gm-champ-flag"><Flag team={team || {}} /></div>
+      <b className="gm-champ-name">{team?.name}</b>
+      <span className="gm-champ-sub">{title}</span>
+    </div>
+  );
+}
+
+/* ---------------------------------------------------------------- tug */
+function Tug({ game, teams, giftMap }) {
+  const byId = useMemo(() => new Map(teams.map((t) => [t.id, t])), [teams]);
+  const now = useNow(true);
+  if (game.status === 'idle') return <Waiting icon={Cable} title="شد الحبل" sub="دولتان، حبل واحد. كل هدية تسحب الحبل نحو دولتك!" />;
+  const A = byId.get(game.a); const B = byId.get(game.b);
+  const diff = (game.pa || 0) - (game.pb || 0);
+  const pos = Math.max(-1, Math.min(1, diff / (game.win || 1))); // + = towards A (right)
+  const brk = game.status === 'break';
+  const left = brk ? mmss((game.nextAtLocal || now) - now) : mmss((game.endsAtLocal || now) - now);
+  const W = brk ? byId.get(game.winner) : null;
+  return (
+    <div className="gm-tug glass">
+      <div className="gm-match-head">
+        <span className="gm-round"><Cable className="lc-inline" /> شد الحبل</span>
+        <span className={`gm-clock${brk ? ' brk' : ''}`}><Timer className="lc-inline" /> {brk ? `الجولة التالية ${left}` : left}</span>
+      </div>
+      <div className="gm-tug-teams">
+        {[['a', A], ['b', B]].map(([k, t]) => (
+          <div key={k} className={`gm-side ${k}${W && W.id === t?.id ? ' won' : ''}`} style={{ '--team': t?.color }}>
+            <div className="gm-flag"><Flag team={t || {}} /></div>
+            <b className="gm-name">{t?.name}</b>
+            <span className="gm-tug-pts num-latin">{fmt(game[`p${k}`] || 0)}</span>
+            {(game.wins?.[t?.id] || 0) > 0 && <span className="gm-wins"><Trophy className="lc-inline" /> {game.wins[t.id]}</span>}
+            {!brk && <SendGift team={t} giftMap={giftMap} />}
+          </div>
+        ))}
+      </div>
+      <div className="gm-rope" style={{ '--pos': pos, '--ta': A?.color, '--tb': B?.color }}>
+        <span className="gm-zone a" /><span className="gm-zone b" />
+        <span className="gm-rope-line" />
+        <span className="gm-knot" />
+      </div>
+      {W ? <div className="gm-result">الفائز: <b>{W.name}</b></div> : <div className="gm-hint">اسحب الحبل <b className="num-latin">{fmt(game.win)}</b> نقطة نحو دولتك لتفوز</div>}
+    </div>
+  );
+}
+
+/* --------------------------------------------------- horses / rockets */
+function Track({ game, teams, giftMap }) {
+  const byId = useMemo(() => new Map(teams.map((t) => [t.id, t])), [teams]);
+  const rockets = game.mode === 'rockets';
+  if (game.status === 'idle') return <Waiting icon={rockets ? Rocket : FlagTriangleRight} title={rockets ? 'سباق الصواريخ' : 'سباق الخيول'} sub={rockets ? 'أول صاروخ يصل القمر يفوز!' : 'أول خيل يعبر خط النهاية يفوز!'} />;
+  if (game.status === 'done') return <Champion team={byId.get(game.winner)} title={rockets ? 'وصل إلى القمر أولاً!' : 'بطل سباق الخيول'} />;
+  const runners = game.runners || [];
+  const lead = runners.reduce((m, r) => Math.max(m, r.dist), 0);
+  if (rockets) {
+    return (
+      <div className="gm-rockets glass">
+        <div className="gm-match-head"><span className="gm-round"><Rocket className="lc-inline" /> سباق الصواريخ</span><span className="gm-hint">المسافة <b className="num-latin">{fmt(game.length)}</b></span></div>
+        <div className="gm-sky">
+          <Moon className="gm-moon" fill="currentColor" />
+          {runners.map((r) => { const t = byId.get(r.id); const p = Math.min(100, (r.dist / game.length) * 100); return t && (
+            <div key={r.id} className={`gm-lane-v${r.dist === lead && lead > 0 ? ' lead' : ''}`} style={{ '--team': t.color, '--p': p }}>
+              <div className="gm-rocket"><Rocket className="gm-rocket-ico" /><span className="gm-rflag"><Flag team={t} /></span><span className="gm-flame" /></div>
+              <div className="gm-lane-foot"><SendGift team={t} giftMap={giftMap} /></div>
+            </div>
+          ); })}
+        </div>
+      </div>
+    );
+  }
+  return (
+    <div className="gm-track glass">
+      <div className="gm-match-head"><span className="gm-round"><FlagTriangleRight className="lc-inline" /> سباق الخيول</span><span className="gm-hint">المسافة <b className="num-latin">{fmt(game.length)}</b></span></div>
+      <div className="gm-lanes">
+        {runners.map((r, i) => { const t = byId.get(r.id); const p = Math.min(100, (r.dist / game.length) * 100); return t && (
+          <div key={r.id} className={`gm-lane${r.dist === lead && lead > 0 ? ' lead' : ''}`} style={{ '--team': t.color, '--p': p }}>
+            <span className="gm-lane-no num-latin">{i + 1}</span>
+            <div className="gm-lane-run">
+              <div className="gm-runner"><span className="gm-dust" /><span className="gm-rflag"><Flag team={t} /></span><Zap className="gm-zap" fill="currentColor" /></div>
+            </div>
+            <SendGift team={t} giftMap={giftMap} />
+          </div>
+        ); })}
+      </div>
+    </div>
+  );
+}
+
+/* ------------------------------------------------------------- castle */
+function Castles({ game, teams, giftMap }) {
+  const byId = useMemo(() => new Map(teams.map((t) => [t.id, t])), [teams]);
+  const now = useNow(true);
+  if (game.status === 'idle') return <Waiting icon={Castle} title="حماية العاصمة" sub="ابنِ أسوار عاصمتك بالهدايا واهدم أسوار الخصوم!" />;
+  if (game.status === 'done') return <Champion team={byId.get(game.winner)} title="عاصمتها صمدت حتى النهاية" />;
+  const hit = game.lastHit && Date.now() - (game.lastHit.at || 0) < 900 ? game.lastHit : null;
+  return (
+    <div className="gm-castles glass">
+      <div className="gm-match-head">
+        <span className="gm-round"><Castle className="lc-inline" /> حماية العاصمة</span>
+        <span className="gm-clock"><Timer className="lc-inline" /> {mmss((game.endsAtLocal || now) - now)}</span>
+      </div>
+      <div className="gm-towers" style={{ '--n': (game.castles || []).length }}>
+        {(game.castles || []).map((c) => { const t = byId.get(c.id); const p = Math.max(2, Math.min(100, (c.wall / game.max) * 100)); return t && (
+          <div key={c.id} className={`gm-tower${hit && hit.to === c.id ? ' hurt' : ''}${hit && hit.from === c.id ? ' atk' : ''}`} style={{ '--team': t.color, '--p': p }}>
+            <span className="gm-wall-n num-latin">{fmt(c.wall)}</span>
+            <div className="gm-wall"><Castle className="gm-castle-ico" />{hit && hit.to === c.id && <span key={hit.at} className="gm-dmg num-latin">-{fmt(hit.dmg)}</span>}</div>
+            <span className="gm-tflag"><Flag team={t} /></span>
+            <SendGift team={t} giftMap={giftMap} />
+          </div>
+        ); })}
+      </div>
+      <div className="gm-hint">هداياك تبني سور دولتك وتهدم أعلى سور عند الخصوم</div>
+    </div>
+  );
+}
+
+/* -------------------------------------------- activities (any game) */
+export function Activities({ acts, config }) {
+  const now = useNow(Boolean(acts?.boost || acts?.quiz));
+  const byId = useMemo(() => new Map((config.teams || []).map((t) => [t.id, t])), [config.teams]);
+  if (!acts) return null;
+  const { boost, quiz, throne } = acts;
+  const tt = throne && byId.get(throne.teamId);
+  const showThrone = throne && config.game?.throne?.enabled !== false;
+  if (!boost && !quiz && !showThrone) return null;
+  const qLeft = quiz ? Math.max(0, quiz.endsAtLocal - now) : 0;
+  const qPct = quiz ? Math.max(0, Math.min(100, (qLeft / (quiz.endsAtLocal - quiz.startedLocal)) * 100)) : 0;
+  return (
+    <div className="acts">
+      {boost && (
+        <div className="act-boost">
+          <Zap className="act-boost-ico" fill="currentColor" />
+          <b>الدقيقة الذهبية</b>
+          <span className="act-mult num-latin">×{boost.mult}</span>
+          <span className="act-left num-latin">{mmss(boost.untilLocal - now)}</span>
+        </div>
+      )}
+      {quiz && (
+        <div className={`act-quiz glass${quiz.done ? ' done' : ''}`}>
+          <div className="act-q-head"><CircleHelp className="lc-inline" /> {quiz.kind === 'flag' ? 'خمّن العلم' : 'سؤال وجواب'} · <span>اكتب الجواب في الشات</span> · <b className="num-latin">+{fmt(quiz.points)}</b></div>
+          {quiz.kind === 'flag' && (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img className="act-flag" src={`/flags/${quiz.flag}.svg`} alt="" style={{ filter: quiz.done ? 'none' : `blur(${Math.round((qPct / 100) * 22)}px)` }} />
+          )}
+          <div className="act-q">{quiz.q}</div>
+          {!quiz.done && <div className="act-q-bar"><span style={{ width: `${qPct}%` }} /></div>}
+          {quiz.done && (
+            <div className="act-q-res">
+              الجواب: <b>{quiz.show}</b>
+              {quiz.winner ? <> · أول جواب صحيح: <b>{quiz.winner.nickname}</b>{quiz.winner.teamId && byId.get(quiz.winner.teamId) ? <> لـ {byId.get(quiz.winner.teamId).name}</> : null}</> : <> · لم يجب أحد</>}
+            </div>
+          )}
+        </div>
+      )}
+      {showThrone && (
+        <div className="act-throne glass" style={{ '--team': tt?.color }}>
+          <Crown className="act-crown" fill="currentColor" />
+          <span className="act-th-av">{throne.user.avatar ? /* eslint-disable-next-line @next/next/no-img-element */ <img src={throne.user.avatar} alt="" referrerPolicy="no-referrer" /> : (throne.user.nickname || '?').slice(0, 1)}</span>
+          <div className="act-th-txt"><small>على العرش</small><b>{throne.user.nickname}</b></div>
+          {tt && <span className="act-th-flag"><Flag team={tt} /></span>}
+          <span className="act-th-pts num-latin">{fmt(throne.points)}</span>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function GameView({ config, game, gifts }) {
   const giftMap = useGiftMap(gifts);
   const mode = config.game?.mode;
   const g = game && game.mode === mode ? game : { mode, status: 'idle' };
   if (mode === 'cup') return <Cup game={g} teams={config.teams} giftMap={giftMap} />;
   if (mode === 'arena') return <Arena game={g} teams={config.teams} giftMap={giftMap} />;
+  if (mode === 'tug') return <Tug game={g} teams={config.teams} giftMap={giftMap} />;
+  if (mode === 'horses' || mode === 'rockets') return <Track game={g} teams={config.teams} giftMap={giftMap} />;
+  if (mode === 'castle') return <Castles game={g} teams={config.teams} giftMap={giftMap} />;
   return null;
 }

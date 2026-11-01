@@ -12,7 +12,7 @@ const listeners = new Set();
 const eventListeners = new Set();
 const speakListeners = new Set();
 const pending = new Map();
-let snap = { config: null, state: null, byId: new Map(), status: {}, gifts: [], connected: false, isAdmin: false, version: '', everConnected: false, round: null, game: null };
+let snap = { config: null, state: null, byId: new Map(), status: {}, gifts: [], connected: false, isAdmin: false, version: '', everConnected: false, round: null, game: null, acts: null };
 
 /** Round with endsAt converted to this device's clock (server and device clocks can differ). */
 /** Game state with server times turned into local times (endsAt / nextAt). */
@@ -22,7 +22,18 @@ const localGame = (g) => {
   const out = { ...g };
   if (g.match) out.match = { ...g.match, endsAtLocal: g.match.endsAt - off };
   if (g.nextAt) out.nextAtLocal = g.nextAt - off;
+  if (g.endsAt) out.endsAtLocal = g.endsAt - off;
   return out;
+};
+/** Activities (golden minute, quiz, throne) with local times. */
+const localActs = (a) => {
+  if (!a) return null;
+  const off = (a.serverNow || Date.now()) - Date.now();
+  return {
+    ...a,
+    boost: a.boost && { ...a.boost, untilLocal: a.boost.until - off },
+    quiz: a.quiz && { ...a.quiz, startedLocal: a.quiz.startedAt - off, endsAtLocal: a.quiz.endsAt - off },
+  };
 };
 const localRound = (r) => (r ? { ...r, offset: (r.serverNow || Date.now()) - Date.now(), endsAtLocal: r.endsAt ? r.endsAt - ((r.serverNow || Date.now()) - Date.now()) : 0, celebrateUntilLocal: r.celebrateUntil ? r.celebrateUntil - ((r.serverNow || Date.now()) - Date.now()) : 0 } : null);
 let ws = null;
@@ -67,7 +78,7 @@ function connect() {
         set({
           config: m.config, state: m.state, byId: new Map(m.state.teams.map((t) => [t.id, t])),
           status: m.status || {}, gifts: m.gifts || [], isAdmin: Boolean(m.isAdmin), version: m.version || '',
-          connected: true, everConnected: true, round: localRound(m.round), game: localGame(m.game),
+          connected: true, everConnected: true, round: localRound(m.round), game: localGame(m.game), acts: localActs(m.acts),
         });
         break;
       case 'state': set({ state: m.state, byId: new Map(m.state.teams.map((t) => [t.id, t])) }); break;
@@ -76,6 +87,7 @@ function connect() {
       case 'catalog': set({ gifts: m.gifts || [] }); break;
       case 'round': set({ round: localRound(m.round) }); break;
       case 'game': set({ game: localGame(m.game) }); break;
+      case 'acts': set({ acts: localActs(m.acts) }); break;
       case 'speak': for (const l of speakListeners) { try { l(m); } catch (err) { console.error(err); } } break;
       case 'event': for (const l of eventListeners) { try { l(m.event); } catch (err) { console.error(err); } } break;
       case 'ack': {

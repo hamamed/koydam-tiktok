@@ -21,7 +21,7 @@ export default function OverlayPage() {
   if (!live.config) return null;
   return (
     <>
-      <Overlay config={live.config} state={live.state} byId={live.byId} status={live.status} gifts={live.gifts} round={live.round} game={live.game} orientation={tall ? 'portrait' : 'landscape'} speak />
+      <Overlay config={live.config} state={live.state} byId={live.byId} status={live.status} gifts={live.gifts} round={live.round} game={live.game} acts={live.acts} orientation={tall ? 'portrait' : 'landscape'} speak />
       {!live.connected && <div className="offline-pill">الخادم غير متصل، جارٍ إعادة الاتصال…</div>}
     </>
   );

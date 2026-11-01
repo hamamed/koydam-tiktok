@@ -6,7 +6,7 @@ import { RoundTimer, WinnerScreen, useRoundWinner } from './Rounds';
 import Speaker from './Speaker';
 import { AnimatedNumber, GiftLegend, GoalBar, Logo } from './bits';
 import GiftStrip from './GiftStrip';
-import GameView from './Games';
+import GameView, { Activities } from './Games';
 import { Eye } from 'lucide-react';
 import { useGiftMap } from '@/lib/gifts';
 import { ensureFont, fmt, partsProps, safeUrl, themeVars } from '@/lib/format';
@@ -26,7 +26,7 @@ export function ScenePhoto({ theme }) {
  *  - portrait:  1080x1920 (/overlay-vertical) for TikTok LIVE Studio / phones;
  *    keeps clear of TikTok's own UI at the top and bottom (settings in theme.vertical).
  */
-export default function Overlay({ config, state, byId, status, gifts, round, game, preview = false, orientation = 'landscape', speak = false }) {
+export default function Overlay({ config, state, byId, status, gifts, round, game, acts, preview = false, orientation = 'landscape', speak = false }) {
   const gameMode = config.game?.mode && config.game.mode !== 'race' ? config.game.mode : null;
   const th = config.theme;
   const portrait = orientation === 'portrait';
@@ -138,6 +138,7 @@ export default function Overlay({ config, state, byId, status, gifts, round, gam
       {th.bgOnOverlay && <ScenePhoto theme={th} />}
       {stripTeams.length > 0 && <GiftStrip ref={stripRef} teams={stripTeams} giftMap={giftMap} s={strip} style={stripStyle} />}
       <div ref={panelRef} className={`ov-panel ${portrait ? `portrait v-${vLayout} v-align-${v.sideAlign === 'left' ? 'left' : 'right'}` : `pos-${th.position} layout-${th.layout}`}`}>
+        <Activities acts={acts} config={config} />
         {showHeader && (
           <header className={`ov-header glass${portrait && vHeader === 'compact' ? ' hdr-compact' : ''}`}>
             {th.showLogo && <Logo small className="ov-logo" src={th.logo} alt={config.title} />}

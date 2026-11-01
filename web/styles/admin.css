@@ -638,3 +638,7 @@ html[data-admin-theme="light"] .admin-root .goal-pct { color: #1c1a22; text-shad
 .a-game .a-game-ico { width: 34px; height: 34px; color: var(--gold); }
 .a-game.on { border-color: var(--gold); box-shadow: 0 0 0 2px rgba(245,179,1,.35); background: linear-gradient(180deg, rgba(245,179,1,.10), var(--panel-2)); }
 .a-games-flags { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 12px; }
+.a-acts { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; }
+.a-act { padding: 14px; border-radius: 14px; border: 1px solid var(--line); background: var(--panel-2); display: flex; flex-direction: column; gap: 10px; }
+.a-act .a-sub { margin: 0; }
+.a-act .a-form { grid-template-columns: 1fr 1fr; }

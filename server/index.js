@@ -31,7 +31,7 @@ const { EventEmitter } = require('events');
 const { WebSocketServer, WebSocket } = require('ws');
 const { createTTS, fillTemplate, VOICES, VOICE_IDS, TTS_RE } = require('./tts');
 const { Reports } = require('./reports');
-const { GameManager } = require('./games');
+const { GameManager, Activities } = require('./games');
 
 /* ----------------------------------------------------------------------------
  * 0. Runtime settings (CLI flags > env vars > defaults)
@@ -201,6 +201,13 @@ const DEFAULT_CONFIG = {
     mode: 'race',
     cup: { matchSec: 90, goalPoints: 500, size: 8, breakSec: 8, shuffle: true },
     arena: { hp: 5000, healPct: 25, target: 'leader' },
+    tug: { sec: 60, win: 1000, breakSec: 6, a: '', b: '' },
+    track: { length: 3000, lanes: 8 },
+    castle: { sec: 180, max: 5000, dmgPct: 50, size: 8 },
+    // add-ons that work with every game
+    boost: { mult: 3, sec: 60, auto: false, everyMin: 10 },
+    quiz: { points: 100, sec: 30, auto: false, everyMin: 3, kinds: 'both' },
+    throne: { enabled: true },
   },
 
   // Followers & shares: points for the viewer's team, alerts, follow goal.
@@ -504,13 +511,21 @@ function sanitizeConfig(input) {
     const gm = isObj(src.game) ? src.game : {}; const DG = D.game;
     const c = isObj(gm.cup) ? gm.cup : {}; const a = isObj(gm.arena) ? gm.arena : {};
     out.game = {
-      mode: oneOf(gm.mode, ['race', 'cup', 'arena'], DG.mode),
+      mode: oneOf(gm.mode, ['race', 'cup', 'arena', 'tug', 'horses', 'rockets', 'castle'], DG.mode),
       cup: {
         matchSec: Math.round(numIn(c.matchSec, 20, 1800, DG.cup.matchSec)), goalPoints: Math.round(numIn(c.goalPoints, 1, 1e7, DG.cup.goalPoints)),
         size: oneOf(Number(c.size), [2, 4, 8, 16, 32], DG.cup.size), breakSec: Math.round(numIn(c.breakSec, 2, 120, DG.cup.breakSec)), shuffle: bool(c.shuffle, DG.cup.shuffle),
       },
       arena: { hp: Math.round(numIn(a.hp, 10, 1e8, DG.arena.hp)), healPct: Math.round(numIn(a.healPct, 0, 100, DG.arena.healPct)), target: oneOf(a.target, ['leader', 'random'], DG.arena.target) },
     };
+    const o = (k) => (isObj(gm[k]) ? gm[k] : {});
+    const tg = o('tug'); const tr = o('track'); const cs = o('castle'); const bo = o('boost'); const qz = o('quiz'); const th2 = o('throne');
+    out.game.tug = { sec: Math.round(numIn(tg.sec, 10, 900, DG.tug.sec)), win: Math.round(numIn(tg.win, 1, 1e8, DG.tug.win)), breakSec: Math.round(numIn(tg.breakSec, 2, 120, DG.tug.breakSec)), a: str(tg.a, 60), b: str(tg.b, 60) };
+    out.game.track = { length: Math.round(numIn(tr.length, 10, 1e8, DG.track.length)), lanes: Math.round(numIn(tr.lanes, 2, 12, DG.track.lanes)) };
+    out.game.castle = { sec: Math.round(numIn(cs.sec, 20, 3600, DG.castle.sec)), max: Math.round(numIn(cs.max, 10, 1e8, DG.castle.max)), dmgPct: Math.round(numIn(cs.dmgPct, 0, 200, DG.castle.dmgPct)), size: Math.round(numIn(cs.size, 2, 12, DG.castle.size)) };
+    out.game.boost = { mult: numIn(bo.mult, 1.5, 10, DG.boost.mult), sec: Math.round(numIn(bo.sec, 10, 600, DG.boost.sec)), auto: bool(bo.auto, DG.boost.auto), everyMin: numIn(bo.everyMin, 1, 120, DG.boost.everyMin) };
+    out.game.quiz = { points: Math.round(numIn(qz.points, 0, 1e7, DG.quiz.points)), sec: Math.round(numIn(qz.sec, 10, 300, DG.quiz.sec)), auto: bool(qz.auto, DG.quiz.auto), everyMin: numIn(qz.everyMin, 1, 120, DG.quiz.everyMin), kinds: oneOf(qz.kinds, ['both', 'trivia', 'flag'], DG.quiz.kinds) };
+    out.game.throne = { enabled: bool(th2.enabled, DG.throne.enabled) };
   }
 
   // ---- Goal ----
@@ -703,7 +718,7 @@ class ScoreBoard extends EventEmitter {
     const base = gift.diamonds > 0 ? gift.diamonds * s.pointsPerDiamond : s.unknownGiftValue;
     const gm = s.giftMultipliers;
     const mult = gm[normalizeText(gift.name)] ?? gm[String(gift.giftId)] ?? 1;
-    return Math.round(base * count * mult * s.globalMultiplier * 100) / 100;
+    return Math.round(base * count * mult * s.globalMultiplier * (this.boost || 1) * 100) / 100; // boost: golden minute
   }
 
   /** Works out the team for a gift: gift mapping > viewer allegiance > fallback policy. */
@@ -1074,6 +1089,7 @@ class Pipeline extends EventEmitter {
     const comment = str(raw.comment, 300);
     if (!comment) return;
     this.stats.chats++;
+    this.emit('chat', { user: normalizeUser(raw), comment }); // quiz answers
     const teamId = this.board.match(comment);
     if (!teamId) return;
     const user = normalizeUser(raw);
@@ -2001,6 +2017,14 @@ class Live {
     this.rounds = new RoundManager(this.board, () => this.config, { round: this.files.round, history: this.files.history });
     this.reports = new Reports({ dir: this.files.reports, log, getConfig: () => this.config });
     this.game = new GameManager(() => this.config);
+    this.acts = new Activities({
+      board: this.board, getConfig: () => this.config,
+      award: (teamId, points, user) => {
+        const r = this.board.addPoints(teamId, points, user);
+        this.game.onPoints(teamId, points);
+        if (r.takeover) this.pipeline.emit('event', { kind: 'takeover', teamId, prevTeamId: r.prevLeader || null });
+      },
+    });
     this.clients = new Set();
     this.streakPoints = new Map(); this.lastTakeoverSpeech = 0; this.ttsWarnedAt = 0; this.lastConnState = 'idle';
     this._wire();
@@ -2031,7 +2055,7 @@ class Live {
   hello(ws) {
     return {
       type: 'hello', version: VERSION, config: this.config, state: this.board.snapshot(), status: this.publicStatus(),
-      gifts: catalog.list(), isAdmin: ws.isAdmin, round: this.rounds.public(), game: this.game.public(), live: { slug: this.slug, name: this.meta.name },
+      gifts: catalog.list(), isAdmin: ws.isAdmin, round: this.rounds.public(), game: this.game.public(), acts: this.acts.public(), live: { slug: this.slug, name: this.meta.name },
     };
   }
 
@@ -2042,7 +2066,9 @@ class Live {
     this.broadcastState = throttle(() => this.broadcast({ type: 'state', state: board.snapshot() }), () => this.config.advanced.broadcastIntervalMs);
     board.on('change', () => { this.broadcastState(); this.saveState(); });
     const ctx = () => ({ username: tiktok.status.username || '', demo: demo.running });
+    pipeline.on('chat', (c) => this.acts.onChat(c));
     pipeline.on('event', (ev) => {
+      if (ev.kind === 'gift') this.acts.onGift(ev);
       if ((ev.kind === 'gift' || ev.kind === 'follow' || ev.kind === 'share' || ev.kind === 'join') && ev.points) this.game.onPoints(ev.teamId, ev.points);
       this.broadcastState.flush();
       this.broadcast({ type: 'event', event: { ...ev, ts: Date.now() } }, { essential: false });
@@ -2065,6 +2091,9 @@ class Live {
     rounds.on('change', (r) => this.broadcast({ type: 'round', round: r }));
     this.broadcastGame = throttle(() => this.broadcast({ type: 'game', game: this.game.public() }), () => 120);
     this.game.on('change', () => this.broadcastGame());
+    this.broadcastActs = throttle(() => this.broadcast({ type: 'acts', acts: this.acts.public() }), () => 150);
+    this.acts.on('change', () => this.broadcastActs());
+    this.acts.on('event', (ev) => { this.broadcastActs.flush(); this.broadcast({ type: 'event', event: { ...ev, ts: Date.now() } }); this.speakFor(ev); });
     this.game.on('event', (ev) => { this.broadcastGame.flush(); this.broadcast({ type: 'event', event: { ...ev, ts: Date.now() } }); this.speakFor(ev); });
     rounds.on('event', (ev) => { this.broadcast({ type: 'event', event: { ...ev, ts: Date.now() } }); this.speakFor(ev); });
     rounds.on('ended', (res) => reports.onRound(res));
@@ -2114,7 +2143,14 @@ class Live {
         : ev.type === 'champion' ? `${n(ev.teamId)} بطل كأس العرب!`
         : ev.type === 'ko' ? `خرجت ${n(ev.teamId)} من الحلبة`
         : ev.type === 'revive' ? `عادت ${n(ev.teamId)} إلى الحلبة!`
-        : ev.type === 'arenaWinner' ? `${n(ev.teamId)} بطل الحلبة!` : '';
+        : ev.type === 'arenaWinner' ? `${n(ev.teamId)} بطل الحلبة!`
+        : ev.type === 'tugWin' ? `${n(ev.teamId)} تفوز في شد الحبل!`
+        : ev.type === 'raceWinner' ? `${n(ev.teamId)} تصل أولاً وتفوز بالسباق!`
+        : ev.type === 'castleWinner' ? `قلعة ${n(ev.teamId)} صمدت، ${n(ev.teamId)} تفوز!`
+        : ev.type === 'boost' ? `الدقيقة الذهبية! كل النقاط مضاعفة ${ev.mult} مرات`
+        : ev.type === 'quiz' ? `سؤال: ${ev.q}`
+        : ev.type === 'quizWin' ? `أحسنت ${ev.name}! الجواب ${ev.answer}`
+        : ev.type === 'throne' ? `${ev.name} يجلس على العرش!` : '';
     } else if (ev.kind === 'follow' && t.readFollows) {
       text = fillTemplate(t.followTemplate, { name: ev.user.nickname });
     }
@@ -2172,6 +2208,11 @@ class Live {
       case 'gameStart': this.game.start(); return null;
       case 'gameStop': this.game.stop(); return null;
       case 'gameNext': this.game.next(); return null;
+      case 'actBoost': this.acts.startBoost(num(p.mult, 0), num(p.sec, 0)); return null;
+      case 'actBoostStop': this.acts.stopBoost(); return null;
+      case 'actQuiz': this.acts.ask(p.kind); return null;
+      case 'actQuizStop': this.acts.stopQuiz(); return null;
+      case 'actThroneReset': this.acts.resetThrone(); return null;
       case 'roundStart': rounds.start(p.durationMin); return null;
       case 'roundEnd': rounds.end('manual'); return null;
       case 'roundCancel': rounds.cancel(); return null;
@@ -2209,6 +2250,7 @@ class Live {
     await this.stop();
     this.rounds.destroy();
     this.game.destroy();
+    this.acts.destroy();
     for (const ws of this.clients) ws.close(4004, 'Live deleted');
   }
 }

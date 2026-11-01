@@ -4,7 +4,7 @@
  * or the Country Arena (HP battle), with each game's settings and live controls.
  */
 import { useState } from 'react';
-import { Flag as FlagIco, Play, SkipForward, Square, Swords, Trophy } from 'lucide-react';
+import { Cable, Castle, CircleHelp, Crown, Flag as FlagIco, FlagTriangleRight, Play, Rocket, SkipForward, Square, Swords, Trophy, Zap } from 'lucide-react';
 import { cmd } from '@/lib/store';
 import { ARAB_COUNTRIES, countryTeam } from '@/lib/flags';
 import { Flag } from '../bits';
@@ -14,6 +14,10 @@ const GAMES = [
   ['race', Trophy, 'سباق المليون', 'الترتيب الكلاسيكي: كل الدول تتسابق نحو المليون نقطة.'],
   ['cup', FlagIco, 'كأس العرب', 'خروج المغلوب: دولتان في كل مباراة بوقت محدد، كل عدد من النقاط = هدف، والفائز يتأهل حتى النهائي.'],
   ['arena', Swords, 'حلبة الدول', 'كل دولة لها طاقة. هدايا دولتك تهاجم الخصوم وتعالجها، ومن تصل طاقته للصفر يخرج. آخر دولة تبقى تفوز.'],
+  ['tug', Cable, 'شد الحبل', 'دولتان على طرفي حبل، كل هدية تسحب الحبل نحو دولتها. من يسحبه لخطّه أو يتقدم عند انتهاء الوقت يفوز، ثم مواجهة جديدة.'],
+  ['horses', FlagTriangleRight, 'سباق الخيول', 'كل دولة في مضمار، الهدايا تدفعها للأمام. أول دولة تعبر خط النهاية تفوز.'],
+  ['rockets', Rocket, 'سباق الصواريخ', 'صواريخ الدول تصعد نحو القمر بالهدايا. أول صاروخ يصل يفوز. مثالي للشاشة العمودية.'],
+  ['castle', Castle, 'حماية العاصمة', 'لكل دولة سور: هداياها تبنيه وتهدم أعلى سور عند الخصوم. عند انتهاء الوقت أعلى سور يفوز.'],
 ];
 const POP = ['Rose', 'TikTok', 'Heart Me', 'GG', 'Ice Cream Cone', 'Finger Heart', 'Weights', 'Perfume', 'Doughnut', 'Hand Hearts', 'Cap', 'Sunglasses', 'Corgi', 'Money Gun', 'Galaxy', 'Lion', 'Friendship Necklace', 'Love you', 'Cake Slice', 'Hat and Mustache', 'Mic', 'Swan'];
 
@@ -21,6 +25,16 @@ export function GamesPage({ live, draft, edit, dirty, notice }) {
   const g = draft.game || { mode: 'race', cup: {}, arena: {} };
   const cup = { matchSec: 90, goalPoints: 500, size: 8, breakSec: 8, shuffle: true, ...(g.cup || {}) };
   const arena = { hp: 5000, healPct: 25, target: 'leader', ...(g.arena || {}) };
+  const tug = { sec: 60, win: 1000, breakSec: 6, a: '', b: '', ...(g.tug || {}) };
+  const track = { length: 3000, lanes: 8, ...(g.track || {}) };
+  const castle = { sec: 180, max: 5000, dmgPct: 50, size: 8, ...(g.castle || {}) };
+  const boost = { mult: 3, sec: 60, auto: false, everyMin: 10, ...(g.boost || {}) };
+  const quiz = { points: 100, sec: 30, auto: false, everyMin: 3, kinds: 'both', ...(g.quiz || {}) };
+  const throne = { enabled: true, ...(g.throne || {}) };
+  const setK = (key, base) => (k) => (v) => edit((c) => { c.game = { ...(c.game || {}), [key]: { ...base, ...(c.game?.[key] || {}), [k]: v } }; });
+  const setTug = setK('tug', tug); const setTrack = setK('track', track); const setCastle = setK('castle', castle);
+  const setBoost = setK('boost', boost); const setQuiz = setK('quiz', quiz); const setThrone = setK('throne', throne);
+  const teamOpts = [['', 'تلقائي (كل الدول بالتناوب)'], ...draft.teams.map((t) => [t.id || t.name, t.name])];
   const setG = (patch) => edit((c) => { c.game = { ...(c.game || {}), ...patch }; });
   const setCup = (k) => (v) => edit((c) => { c.game = { ...(c.game || {}), cup: { ...cup, ...(c.game?.cup || {}), [k]: v } }; });
   const setArena = (k) => (v) => edit((c) => { c.game = { ...(c.game || {}), arena: { ...arena, ...(c.game?.arena || {}), [k]: v } }; });
@@ -85,11 +99,83 @@ export function GamesPage({ live, draft, edit, dirty, notice }) {
         </Section>
       )}
 
+      {g.mode === 'tug' && (
+        <Section title="🪢 إعدادات شد الحبل" className="span-2">
+          <div className="a-form">
+            <Field label="الدولة الأولى"><Select value={tug.a} onChange={setTug('a')} options={teamOpts} /></Field>
+            <Field label="الدولة الثانية"><Select value={tug.b} onChange={setTug('b')} options={teamOpts} /></Field>
+            <Field label="نقاط الفوز" hint="الفرق المطلوب لسحب الحبل كاملاً"><Num value={tug.win} min={1} onChange={setTug('win')} /></Field>
+            <Field label="مدة المواجهة (ثانية)"><Num value={tug.sec} min={10} max={900} onChange={setTug('sec')} /></Field>
+            <Field label="استراحة بين المواجهات (ثانية)"><Num value={tug.breakSec} min={2} max={120} onChange={setTug('breakSec')} /></Field>
+          </div>
+          <p className="a-muted">اترك الدولتين «تلقائي» لتتناوب كل الدول في مواجهات متتالية. احفظ الفرق أولاً ليظهر اختيار الدول.</p>
+        </Section>
+      )}
+      {(g.mode === 'horses' || g.mode === 'rockets') && (
+        <Section title={g.mode === 'rockets' ? '🚀 إعدادات سباق الصواريخ' : '🏁 إعدادات سباق الخيول'} className="span-2">
+          <div className="a-form">
+            <Field label="طول السباق (نقاط)" hint="النقاط التي تحتاجها الدولة للوصول"><Num value={track.length} min={10} onChange={setTrack('length')} /></Field>
+            <Field label="عدد المتسابقين"><Num value={track.lanes} min={2} max={12} onChange={setTrack('lanes')} /></Field>
+          </div>
+        </Section>
+      )}
+      {g.mode === 'castle' && (
+        <Section title="🏰 إعدادات حماية العاصمة" className="span-2">
+          <div className="a-form">
+            <Field label="مدة المعركة (ثانية)"><Num value={castle.sec} min={20} max={3600} onChange={setCastle('sec')} /></Field>
+            <Field label="أقصى ارتفاع للسور"><Num value={castle.max} min={10} onChange={setCastle('max')} /></Field>
+            <Field label="قوة الهدم (%)" hint="نسبة نقاط الهدية التي تهدم من أعلى سور خصم"><Num value={castle.dmgPct} min={0} max={200} onChange={setCastle('dmgPct')} /></Field>
+            <Field label="عدد الدول"><Num value={castle.size} min={2} max={12} onChange={setCastle('size')} /></Field>
+          </div>
+        </Section>
+      )}
+
+      <Section title="✨ إضافات تعمل مع أي لعبة" className="span-2" desc="تظهر فوق اللعبة أو الترتيب في OBS والصفحة المباشرة. شغّلها يدوياً بالأزرار أو تلقائياً كل عدة دقائق.">
+        <div className="a-acts">
+          <div className="a-act">
+            <h4 className="a-sub"><Zap className="lc-inline" /> الدقيقة الذهبية</h4>
+            <div className="a-form">
+              <Field label="المضاعف"><Select value={String(boost.mult)} onChange={(v) => setBoost('mult')(Number(v))} options={[['2', '×2'], ['3', '×3'], ['5', '×5']]} /></Field>
+              <Field label="المدة (ثانية)"><Num value={boost.sec} min={10} max={600} onChange={setBoost('sec')} /></Field>
+              <Toggle label="تلقائياً" checked={boost.auto} onChange={setBoost('auto')} />
+              {boost.auto && <Field label="كل (دقيقة)"><Num value={boost.everyMin} min={1} max={120} onChange={setBoost('everyMin')} /></Field>}
+            </div>
+            <div className="a-row">
+              <Btn variant="gold" size="sm" busy={busy === 'actBoost'} onClick={() => run('actBoost', 'بدأت الدقيقة الذهبية')}><Zap className="lc-inline" /> شغّلها الآن</Btn>
+              {live.acts?.boost && <Btn size="sm" variant="ghost" onClick={() => run('actBoostStop', 'توقفت')}>إيقاف</Btn>}
+            </div>
+          </div>
+          <div className="a-act">
+            <h4 className="a-sub"><CircleHelp className="lc-inline" /> سؤال وجواب / خمّن العلم</h4>
+            <div className="a-form">
+              <Field label="النوع"><Select value={quiz.kinds} onChange={setQuiz('kinds')} options={[['both', 'الاثنان بالتناوب'], ['trivia', 'أسئلة فقط'], ['flag', 'خمّن العلم فقط']]} /></Field>
+              <Field label="نقاط الجواب الصحيح" hint="تُضاف لدولة صاحب الجواب"><Num value={quiz.points} min={0} onChange={setQuiz('points')} /></Field>
+              <Field label="وقت السؤال (ثانية)"><Num value={quiz.sec} min={10} max={300} onChange={setQuiz('sec')} /></Field>
+              <Toggle label="تلقائياً" checked={quiz.auto} onChange={setQuiz('auto')} />
+              {quiz.auto && <Field label="كل (دقيقة)"><Num value={quiz.everyMin} min={1} max={120} onChange={setQuiz('everyMin')} /></Field>}
+            </div>
+            <div className="a-row">
+              <Btn variant="gold" size="sm" busy={busy === 'actQuiz'} onClick={() => run('actQuiz', 'ظهر السؤال')}>سؤال الآن</Btn>
+              <Btn size="sm" variant="ghost" onClick={async () => { if (dirty) return notice('احفظ أولاً', 'err'); try { await cmd('actQuiz', { kind: 'flag' }); notice('ظهر العلم'); } catch (e) { notice(e.message, 'err'); } }}>علم الآن</Btn>
+              {live.acts?.quiz && <Btn size="sm" variant="ghost" onClick={() => run('actQuizStop', 'أُغلق السؤال')}>إغلاق</Btn>}
+            </div>
+          </div>
+          <div className="a-act">
+            <h4 className="a-sub"><Crown className="lc-inline" /> العرش</h4>
+            <div className="a-form">
+              <Toggle label="إظهار العرش" checked={throne.enabled !== false} onChange={setThrone('enabled')} />
+            </div>
+            <p className="a-muted">أكبر هدية واحدة تأخذ العرش باسم صاحبها وعلم دولته، حتى يرسل أحد هدية أكبر. قيمة العرش تنقص 5% كل دقيقة ليتغير الجالس.</p>
+            {live.acts?.throne && <div className="a-row"><span>الآن: <b>{live.acts.throne.user.nickname}</b></span><Btn size="sm" variant="ghost" onClick={() => run('actThroneReset', 'أُفرغ العرش')}>إفراغ العرش</Btn></div>}
+          </div>
+        </div>
+      </Section>
+
       {g.mode !== 'race' && (
         <Section title="🕹️ التحكم في اللعبة" className="span-2" desc={`الحالة: ${stateText}`}>
           <div className="a-row">
             <Btn variant="gold" busy={busy === 'gameStart'} onClick={() => run('gameStart', 'بدأت اللعبة')}><Play className="lc-inline" /> {running ? 'إعادة البدء' : 'ابدأ اللعبة'}</Btn>
-            {g.mode === 'cup' && running && st.status !== 'done' && <Btn variant="ghost" busy={busy === 'gameNext'} onClick={() => run('gameNext', st.status === 'break' ? 'بدأت المباراة التالية' : 'انتهت المباراة')}><SkipForward className="lc-inline" /> {st.status === 'break' ? 'المباراة التالية الآن' : 'إنهاء المباراة الآن'}</Btn>}
+            {(g.mode === 'cup' || g.mode === 'tug') && running && st.status !== 'done' && <Btn variant="ghost" busy={busy === 'gameNext'} onClick={() => run('gameNext', st.status === 'break' ? 'بدأت المباراة التالية' : 'انتهت المباراة')}><SkipForward className="lc-inline" /> {st.status === 'break' ? 'المباراة التالية الآن' : 'إنهاء المباراة الآن'}</Btn>}
             {running && <Btn variant="ghost" busy={busy === 'gameStop'} onClick={() => run('gameStop', 'توقفت اللعبة')}><Square className="lc-inline" /> إيقاف</Btn>}
           </div>
           {dirty && <p className="a-muted">لديك تغييرات غير محفوظة: احفظها قبل البدء.</p>}
