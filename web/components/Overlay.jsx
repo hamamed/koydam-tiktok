@@ -4,7 +4,7 @@ import Board from './Board';
 import { Banner, Ticker, Toasts, useAlerts } from './Effects';
 import { RoundTimer, WinnerScreen, useRoundWinner } from './Rounds';
 import Speaker from './Speaker';
-import { AnimatedNumber, GiftLegend, GoalBar, Logo } from './bits';
+import { AnimatedNumber, Flag, GiftIcon, GiftLegend, GoalBar, Logo } from './bits';
 import { useGiftMap } from '@/lib/gifts';
 import { ensureFont, fmt, partsProps, safeUrl, themeVars } from '@/lib/format';
 import { skinTone, skinVars, useActiveSkin } from '@/lib/skins';
@@ -39,13 +39,23 @@ export default function Overlay({ config, state, byId, status, gifts, round, pre
   const showTicker = portrait ? Boolean(v.showTicker) : th.showTicker;
   const fg = config.social?.followGoal;
   // Shrink the panel when header + cards are taller than the screen (many teams visible).
-  const rootRef = useRef(null); const panelRef = useRef(null);
+  const rootRef = useRef(null); const panelRef = useRef(null); const stripRef = useRef(null);
   const [fit, setFit] = useState(1);
+  // Top bar with EVERY team's flag + gift, so viewers know how to push a team that is not on the board.
+  const stripTeams = th.giftStrip !== false ? config.teams.filter((t) => t.gifts?.length) : [];
+  const [stripH, setStripH] = useState(0);
+  useLayoutEffect(() => {
+    const el = stripRef.current;
+    if (!el) { setStripH(0); return undefined; }
+    const m = () => setStripH(el.offsetHeight);
+    m(); const ro = new ResizeObserver(m); ro.observe(el);
+    return () => ro.disconnect();
+  }, [stripTeams.length]);
   useLayoutEffect(() => {
     if (portrait) return undefined;
     const measure = () => {
       const root = rootRef.current; const panel = panelRef.current; if (!root || !panel) return;
-      const avail = root.clientHeight - 36 - (showTicker ? 110 : 30);
+      const avail = root.clientHeight - panel.offsetTop - (showTicker ? 110 : 30);
       const h = panel.offsetHeight;
       const k = h > avail && avail > 0 ? Math.max(0.4, Math.floor((avail / h) * 100) / 100) : 1;
       setFit((f) => (Math.abs(f - k) > 0.005 ? k : f));
@@ -55,7 +65,7 @@ export default function Overlay({ config, state, byId, status, gifts, round, pre
     if (panelRef.current) ro.observe(panelRef.current);
     if (rootRef.current) ro.observe(rootRef.current);
     return () => ro.disconnect();
-  }, [portrait, showTicker]);
+  }, [portrait, showTicker, stripH]);
   // Gift legend: only the teams shown on the board (by score), so 20+ teams don't fill the header.
   const legendTeams = (() => {
     const max = portrait ? v.maxVisible ?? 5 : th.maxVisible ?? 8;
@@ -69,8 +79,18 @@ export default function Overlay({ config, state, byId, status, gifts, round, pre
   if (portrait) Object.assign(vars, { '--fs': (th.fontScale ?? 1) * (v.scale ?? 1), '--v-top': `${v.top ?? 170}px`, '--v-side': `${v.side ?? 28}px`, '--v-toasts-top': `${v.toastsTop ?? 1080}px` });
 
   return (
-    <div className={`overlay-root${preview ? ' preview' : ''}${portrait ? ' portrait' : ''}`} data-skin={skin} data-tone={skinTone(skin, th)} data-hide={parts['data-hide']} style={{ ...vars, '--fit': fit }} ref={rootRef}>
+    <div className={`overlay-root${preview ? ' preview' : ''}${portrait ? ' portrait' : ''}`} data-skin={skin} data-tone={skinTone(skin, th)} data-hide={parts['data-hide']} style={{ ...vars, '--fit': fit, '--strip-h': `${stripH ? stripH + 14 : 0}px` }} ref={rootRef}>
       {th.bgOnOverlay && <ScenePhoto theme={th} />}
+      {stripTeams.length > 0 && (
+        <div ref={stripRef} className="gift-strip glass">
+          {stripTeams.map((t) => (
+            <span key={t.id} className="gs-item" style={{ '--team': t.color }} title={t.name}>
+              <span className="gs-flag"><Flag team={t} /></span>
+              {t.gifts.slice(0, 2).map((n) => <GiftIcon key={n} gift={giftMap?.get(String(n).toLowerCase())} name={n} className="gs-gift" />)}
+            </span>
+          ))}
+        </div>
+      )}
       <div ref={panelRef} className={`ov-panel ${portrait ? 'portrait' : `pos-${th.position} layout-${th.layout}`}`}>
         {showHeader && (
           <header className="ov-header glass">
@@ -86,7 +106,7 @@ export default function Overlay({ config, state, byId, status, gifts, round, pre
               </div>
               {on('goal') && <GoalBar total={state?.total || 0} goal={config.goal} compact />}
               {on('followGoal') && fg?.enabled && <GoalBar total={state?.social?.follows || 0} goal={{ ...fg, label: `💛 ${fg.label}` }} compact variant="follow" />}
-              {th.showGiftLegend !== false && <GiftLegend teams={legendTeams} giftMap={giftMap} />}
+              {!stripTeams.length && th.showGiftLegend !== false && <GiftLegend teams={legendTeams} giftMap={giftMap} />}
             </div>
           </header>
         )}

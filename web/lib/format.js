@@ -61,7 +61,7 @@ export function ensureFont(family) {
  * Keep in sync with PART_KEYS / SIZE_KEYS in server/index.js.
  */
 export const PART_KEYS = ['title', 'subtitle', 'category', 'points', 'goal', 'followGoal', 'rank', 'flag', 'crown', 'medal', 'name', 'share', 'bar', 'score', 'pts', 'gap'];
-export const SIZE_KEYS = ['title', 'subtitle', 'chips', 'goal', 'legend', 'score', 'share', 'contribs', 'rank', 'gifts', 'gap'];
+export const SIZE_KEYS = ['title', 'subtitle', 'chips', 'goal', 'legend', 'score', 'share', 'contribs', 'rank', 'gifts', 'gap', 'strip'];
 export function partsProps(th = {}) {
   const p = th.parts || {};
   const s = th.sizes || {};

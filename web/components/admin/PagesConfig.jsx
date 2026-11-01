@@ -394,7 +394,8 @@ function PartsEditor({ draft, edit }) {
           <div className="a-part-row"><Toggle label="مؤقت الجولة" checked={draft.rounds?.showTimer !== false} onChange={(v) => edit((c) => { c.rounds = { ...(c.rounds || {}), showTimer: v }; })} /><span className="a-muted a-part-note">نفس حجم الشارات</span></div>
           <div className="a-part-row"><Toggle label="هدف المليون" {...part('goal')} /><Range {...size('goal')} /></div>
           <div className="a-part-row"><Toggle label="هدف المتابعين" {...part('followGoal')} /><span className="a-muted a-part-note">نفس حجم الهدف</span></div>
-          <div className="a-part-row"><Toggle label="دليل «العلم = الهدية»" {...theme('showGiftLegend')} /><Range {...size('legend')} /></div>
+          <div className="a-part-row"><Toggle label="شريط كل الدول وهداياها (أعلى الشاشة)" checked={t.giftStrip !== false} onChange={(v) => edit((c) => { c.theme.giftStrip = v; })} /><Range {...size('strip')} /></div>
+          <div className="a-part-row"><Toggle label="دليل «العلم = الهدية» داخل الرأس (عند إيقاف الشريط)" {...theme('showGiftLegend')} /><Range {...size('legend')} /></div>
         </div>
         <div className="a-parts-col">
           <h4 className="a-sub">بطاقات الفرق (OBS والصفحة المباشرة)</h4>

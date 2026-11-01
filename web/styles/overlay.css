@@ -154,3 +154,26 @@
 .ov-header .chips { zoom: var(--sz-chips, 1); }
 .ov-header .goal { zoom: var(--sz-goal, 1); }
 .ov-header .gift-legend { zoom: var(--sz-legend, 1); }
+
+/* ---- Top bar: every team's flag + gift (theme.giftStrip). Pushes the panel and toasts down. ---- */
+.gift-strip {
+  --gs: var(--sz-strip, 1);
+  position: absolute; z-index: 3; top: 14px; left: 50%; transform: translateX(-50%);
+  max-width: calc(100% - 60px); width: max-content;
+  display: flex; flex-wrap: wrap; justify-content: center; gap: calc(6px * var(--gs));
+  padding: calc(6px * var(--gs)) calc(10px * var(--gs)); border-radius: calc(18px * var(--gs));
+}
+.gs-item {
+  display: inline-flex; align-items: center; gap: calc(3px * var(--gs));
+  padding: calc(3px * var(--gs)) calc(8px * var(--gs)) calc(3px * var(--gs)) calc(3px * var(--gs)); border-radius: 999px;
+  background: rgba(0,0,0,.4); border: 1.5px solid color-mix(in srgb, var(--team) 80%, transparent);
+}
+.gs-flag { width: calc(30px * var(--gs)); height: calc(30px * var(--gs)); border-radius: 50%; overflow: hidden; display: grid; place-items: center; font-size: calc(22px * var(--gs)); flex: none; box-shadow: 0 0 0 1.5px rgba(255,255,255,.35); }
+.gs-flag img { width: 100%; height: 100%; object-fit: cover; }
+.gs-gift { width: calc(30px * var(--gs)); height: calc(30px * var(--gs)); object-fit: contain; filter: drop-shadow(0 2px 4px rgba(0,0,0,.5)); }
+.gs-gift.emoji { font-size: calc(22px * var(--gs)); width: auto; height: auto; }
+[data-tone="light"] .gs-item { background: rgba(255,255,255,.85); }
+.ov-panel { top: calc(36px + var(--strip-h, 0px)); }
+.toasts { top: calc(36px + var(--strip-h, 0px)); }
+.overlay-root.portrait .gift-strip { top: var(--v-top); max-width: calc(100% - 2 * var(--v-side)); }
+.ov-panel.portrait { top: calc(var(--v-top) + var(--strip-h, 0px)); }

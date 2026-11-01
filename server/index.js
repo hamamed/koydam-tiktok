@@ -150,7 +150,8 @@ const DEFAULT_CONFIG = {
     fontFamily: 'Cairo',        // main font: 17 bundled Arabic fonts (web/lib/fonts.js) or any Google font
     titleFont: '',              // display font for titles / team names / banner ('' = same as main)
     showTeamGifts: true,        // gift images on each team card
-    showGiftLegend: true,       // "🇲🇦 = 🌹" strip in the overlay header
+    showGiftLegend: true,       // "🇲🇦 = 🌹" strip in the overlay header (only when giftStrip is off)
+    giftStrip: true,            // bar at the top of OBS with every team's flag + gift (also teams not on the board)
     layout: 'list',             // 'list' | 'grid'
     position: 'right',          // 'left' | 'center' | 'right' (RTL default: right)
     width: 620,                 // px panel width (list layout)
@@ -223,7 +224,7 @@ const SKIN_IDS = [
 
 /** Parts of the header card / team cards that can be hidden or resized. Must match web/lib/format.js. */
 const PART_KEYS = ['title', 'subtitle', 'category', 'points', 'goal', 'followGoal', 'rank', 'flag', 'crown', 'medal', 'name', 'share', 'bar', 'score', 'pts', 'gap'];
-const SIZE_KEYS = ['title', 'subtitle', 'chips', 'goal', 'legend', 'score', 'share', 'contribs', 'rank', 'gifts', 'gap'];
+const SIZE_KEYS = ['title', 'subtitle', 'chips', 'goal', 'legend', 'score', 'share', 'contribs', 'rank', 'gifts', 'gap', 'strip'];
 
 /* ----------------------------------------------------------------------------
  * 2. Small utilities
@@ -417,6 +418,7 @@ function sanitizeConfig(input) {
     titleFont: str(th.titleFont, 40).replace(/[^\w \-]/g, '').trim(),
     showTeamGifts: bool(th.showTeamGifts, DT.showTeamGifts),
     showGiftLegend: bool(th.showGiftLegend, DT.showGiftLegend),
+    giftStrip: bool(th.giftStrip, DT.giftStrip),
     layout: oneOf(th.layout, ['list', 'grid'], DT.layout),
     position: oneOf(th.position, ['left', 'center', 'right'], DT.position),
     width: numIn(th.width, 320, 1800, DT.width),
