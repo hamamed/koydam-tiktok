@@ -1,23 +1,17 @@
-/** Ready-made team sets for the Teams page. */
+/** Ready-made team sets for the Teams page. Countries use picture flags (web/lib/flags.js). */
+import { countryTeam } from './flags';
+
+// 22 different, common gifts so each country gets its own gift.
+const GIFTS = ['Rose', 'TikTok', 'Finger Heart', 'Ice Cream Cone', 'GG', 'Heart Me', 'Hand Hearts', 'Perfume', 'Doughnut', 'Cap',
+  'Sunglasses', 'Corgi', 'Money Gun', 'Weights', 'Friendship Necklace', 'Love you', 'Cake Slice', 'Hat and Mustache', 'Mic', 'Swan', 'Galaxy', 'Lion'];
+const countries = (codes) => ({ category: 'الدول', teams: codes.map((c, i) => countryTeam(c, GIFTS[i % GIFTS.length])) });
+
 export const PRESETS = {
-  'دول المغرب العربي': {
-    category: 'الدول',
-    teams: [
-      { name: 'المغرب', emoji: '🇲🇦', color: '#c1272d', keywords: ['morocco', 'maroc', 'maghrib', 'مغرب', 'المغرب'], gifts: ['Rose'] },
-      { name: 'الجزائر', emoji: '🇩🇿', color: '#00a651', keywords: ['algeria', 'algerie', 'dz', 'djazair', 'الجزائر', 'جزائر'], gifts: ['TikTok'] },
-      { name: 'تونس', emoji: '🇹🇳', color: '#e70013', keywords: ['tunisia', 'tunisie', 'tounes', 'تونس'], gifts: ['Finger Heart'] },
-      { name: 'مصر', emoji: '🇪🇬', color: '#d4a017', keywords: ['egypt', 'egypte', 'masr', 'مصر'], gifts: ['Ice Cream Cone'] },
-    ],
-  },
-  'دول الخليج': {
-    category: 'الدول',
-    teams: [
-      { name: 'السعودية', emoji: '🇸🇦', color: '#006c35', keywords: ['saudi', 'ksa', 'السعودية'], gifts: ['Rose'] },
-      { name: 'الإمارات', emoji: '🇦🇪', color: '#c8102e', keywords: ['uae', 'emirates', 'الامارات', 'الإمارات'], gifts: ['TikTok'] },
-      { name: 'الكويت', emoji: '🇰🇼', color: '#007a3d', keywords: ['kuwait', 'الكويت'], gifts: ['Finger Heart'] },
-      { name: 'قطر', emoji: '🇶🇦', color: '#8a1538', keywords: ['qatar', 'قطر'], gifts: ['Ice Cream Cone'] },
-    ],
-  },
+  'كل الدول العربية (22)': countries(['sa', 'eg', 'ma', 'dz', 'tn', 'ly', 'mr', 'sd', 'ae', 'kw', 'qa', 'bh', 'om', 'ye', 'iq', 'sy', 'jo', 'lb', 'ps', 'so', 'dj', 'km']),
+  'دول المغرب العربي': countries(['ma', 'dz', 'tn', 'ly', 'mr']),
+  'دول الخليج': countries(['sa', 'ae', 'kw', 'qa', 'bh', 'om']),
+  'دول المشرق': countries(['iq', 'sy', 'jo', 'lb', 'ps']),
+  'وادي النيل والقرن الأفريقي': countries(['eg', 'sd', 'so', 'dj', 'km', 'ye']),
   'الأندية': {
     category: 'الأندية',
     teams: [

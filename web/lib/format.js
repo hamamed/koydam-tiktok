@@ -13,7 +13,7 @@ export const fmtFull = (n) => nf.format(Math.round(Number(n) || 0));
 /** Allowed image URLs: https:// or files uploaded in the panel (/uploads/<hash>.<ext>). */
 export const safeUrl = (u) => {
   const s = String(u || '');
-  return /^https?:\/\//i.test(s) || /^\/uploads\/[a-f0-9]{16}\.(png|jpg|webp|gif)$/.test(s) || /^\/gift-img\/\d{1,20}\.(png|jpg|webp|gif)$/.test(s) ? s : '';
+  return /^https?:\/\//i.test(s) || /^\/uploads\/[a-f0-9]{16}\.(png|jpg|webp|gif)$/.test(s) || /^\/gift-img\/\d{1,20}\.(png|jpg|webp|gif)$/.test(s) || /^\/flags\/[a-z]{2}(-[a-z0-9]{2,3})?\.svg$/.test(s) ? s : '';
 };
 export const clamp = (n, a, b) => Math.min(b, Math.max(a, n));
 export const clone = (o) => JSON.parse(JSON.stringify(o));

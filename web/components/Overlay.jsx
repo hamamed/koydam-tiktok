@@ -1,5 +1,5 @@
 'use client';
-import { useEffect } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import Board from './Board';
 import { Banner, Ticker, Toasts, useAlerts } from './Effects';
 import { RoundTimer, WinnerScreen, useRoundWinner } from './Rounds';
@@ -38,13 +38,38 @@ export default function Overlay({ config, state, byId, status, gifts, round, pre
   const showToasts = portrait ? v.showToasts !== false : true;
   const showTicker = portrait ? Boolean(v.showTicker) : th.showTicker;
   const fg = config.social?.followGoal;
+  // Shrink the panel when header + cards are taller than the screen (many teams visible).
+  const rootRef = useRef(null); const panelRef = useRef(null);
+  const [fit, setFit] = useState(1);
+  useLayoutEffect(() => {
+    if (portrait) return undefined;
+    const measure = () => {
+      const root = rootRef.current; const panel = panelRef.current; if (!root || !panel) return;
+      const avail = root.clientHeight - 36 - (showTicker ? 110 : 30);
+      const h = panel.offsetHeight;
+      const k = h > avail && avail > 0 ? Math.max(0.4, Math.floor((avail / h) * 100) / 100) : 1;
+      setFit((f) => (Math.abs(f - k) > 0.005 ? k : f));
+    };
+    measure();
+    const ro = new ResizeObserver(measure);
+    if (panelRef.current) ro.observe(panelRef.current);
+    if (rootRef.current) ro.observe(rootRef.current);
+    return () => ro.disconnect();
+  }, [portrait, showTicker]);
+  // Gift legend: only the teams shown on the board (by score), so 20+ teams don't fill the header.
+  const legendTeams = (() => {
+    const max = portrait ? v.maxVisible ?? 5 : th.maxVisible ?? 8;
+    if (config.teams.length <= max) return config.teams;
+    const score = new Map((state?.teams || []).map((x) => [x.id, x.score || 0]));
+    return [...config.teams].sort((a, b) => (score.get(b.id) || 0) - (score.get(a.id) || 0)).slice(0, max);
+  })();
   const vars = { ...themeVars(th), ...skinVars(th), background: th.background || 'transparent' };
   if (portrait) Object.assign(vars, { '--fs': (th.fontScale ?? 1) * (v.scale ?? 1), '--v-top': `${v.top ?? 170}px`, '--v-side': `${v.side ?? 28}px`, '--v-toasts-top': `${v.toastsTop ?? 1080}px` });
 
   return (
-    <div className={`overlay-root${preview ? ' preview' : ''}${portrait ? ' portrait' : ''}`} data-skin={skin} data-tone={skinTone(skin, th)} style={vars}>
+    <div className={`overlay-root${preview ? ' preview' : ''}${portrait ? ' portrait' : ''}`} data-skin={skin} data-tone={skinTone(skin, th)} style={{ ...vars, '--fit': fit }} ref={rootRef}>
       {th.bgOnOverlay && <ScenePhoto theme={th} />}
-      <div className={`ov-panel ${portrait ? 'portrait' : `pos-${th.position} layout-${th.layout}`}`}>
+      <div ref={panelRef} className={`ov-panel ${portrait ? 'portrait' : `pos-${th.position} layout-${th.layout}`}`}>
         {showHeader && (
           <header className="ov-header glass">
             {th.showLogo && <Logo small className="ov-logo" src={th.logo} alt={config.title} />}
@@ -59,7 +84,7 @@ export default function Overlay({ config, state, byId, status, gifts, round, pre
               </div>
               <GoalBar total={state?.total || 0} goal={config.goal} compact />
               {fg?.enabled && <GoalBar total={state?.social?.follows || 0} goal={{ ...fg, label: `💛 ${fg.label}` }} compact variant="follow" />}
-              {th.showGiftLegend !== false && <GiftLegend teams={config.teams} giftMap={giftMap} />}
+              {th.showGiftLegend !== false && <GiftLegend teams={legendTeams} giftMap={giftMap} />}
             </div>
           </header>
         )}

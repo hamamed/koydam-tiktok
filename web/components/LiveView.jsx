@@ -8,7 +8,7 @@ import Board from './Board';
 import { Banner, useAlerts } from './Effects';
 import { ScenePhoto } from './Overlay';
 import { RoundTimer, WinnerScreen, useRoundWinner } from './Rounds';
-import { AnimatedNumber, Avatar, Flag, GiftIcon, GoalBar, Logo } from './bits';
+import { AnimatedNumber, Avatar, Flag, GiftIcon, GoalBar, Logo, TeamName } from './bits';
 import { findGift, useGiftMap } from '@/lib/gifts';
 import { ensureFont, fmt, fontVars, safeUrl } from '@/lib/format';
 import { useEffect } from 'react';
@@ -89,7 +89,7 @@ export default function LiveView({ config, state, byId, status, gifts, round, co
                     <Avatar src={f.user.avatar} name={f.user.nickname} color={f.team?.color} className="avatar lg" />
                     <div className="feed-main">
                       <b>{f.user.nickname}</b>
-                      <span className="muted">أرسل <bdi dir="ltr">{f.gift.name} ×{f.gift.count}</bdi> لـ {f.team?.emoji} {f.team?.name}</span>
+                      <span className="muted">أرسل <bdi dir="ltr">{f.gift.name} ×{f.gift.count}</bdi> لـ <TeamName team={f.team} /></span>
                     </div>
                     <GiftIcon gift={{ name: f.gift.name, image: f.gift.image || findGift(giftMap, f.gift.name)?.image }} className="feed-gift" />
                     <div className="feed-pts"><b>+{fmt(f.points)}</b><span className="muted">{timeAgo(f.ts)}</span></div>
@@ -107,7 +107,7 @@ export default function LiveView({ config, state, byId, status, gifts, round, co
                   <li key={`${u.team.id}-${u.u || u.n}-${i}`}>
                     <span className={`pos p${i + 1}`}>{i + 1}</span>
                     <Avatar src={u.a} name={u.n} color={u.team.color} className="avatar lg" />
-                    <div className="feed-main"><b>{u.n || u.u}</b><span className="muted">{u.team.emoji} {u.team.name}</span></div>
+                    <div className="feed-main"><b>{u.n || u.u}</b><span className="muted"><TeamName team={u.team} /></span></div>
                     <b className="num-latin">{fmt(u.p)}</b>
                   </li>
                 ))}

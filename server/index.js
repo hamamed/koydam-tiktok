@@ -250,9 +250,11 @@ function safeUrl(u) {
 
 /** Image URL for config fields: https URL or an uploaded file (/uploads/<hash>.<ext>). */
 const UPLOAD_RE = /^\/uploads\/[a-f0-9]{16}\.(png|jpg|webp|gif)$/;
+/** Bundled country flags (web/public/flags/<code>.svg). */
+const FLAG_RE = /^\/flags\/[a-z]{2}(-[a-z0-9]{2,3})?\.svg$/;
 function imgUrl(u) {
   const s = str(u, 1000).trim();
-  return UPLOAD_RE.test(s) ? s : safeUrl(s);
+  return UPLOAD_RE.test(s) || FLAG_RE.test(s) ? s : safeUrl(s);
 }
 
 /** Picks a browser-renderable URL from a TikTok image list (skips HEIC). */
@@ -334,7 +336,7 @@ function sanitizeConfig(input) {
   // ---- Teams ----
   const rawTeams = Array.isArray(src.teams) && src.teams.length ? src.teams : D.teams;
   const usedIds = new Set();
-  for (const t of rawTeams.slice(0, 16)) {
+  for (const t of rawTeams.slice(0, 30)) {
     if (!isObj(t)) continue;
     const name = str(t.name, 40).trim();
     if (!name) continue;
@@ -412,7 +414,7 @@ function sanitizeConfig(input) {
     layout: oneOf(th.layout, ['list', 'grid'], DT.layout),
     position: oneOf(th.position, ['left', 'center', 'right'], DT.position),
     width: numIn(th.width, 320, 1800, DT.width),
-    maxVisible: Math.round(numIn(th.maxVisible, 1, 16, DT.maxVisible)),
+    maxVisible: Math.round(numIn(th.maxVisible, 1, 30, DT.maxVisible)),
     showContributors: bool(th.showContributors, DT.showContributors),
     contributorsCount: Math.round(numIn(th.contributorsCount, 1, 5, DT.contributorsCount)),
     showTicker: bool(th.showTicker, DT.showTicker),
@@ -443,7 +445,7 @@ function sanitizeConfig(input) {
       const v = isObj(th.vertical) ? th.vertical : {}; const DV = DT.vertical;
       return {
         top: Math.round(numIn(v.top, 0, 1400, DV.top)), side: Math.round(numIn(v.side, 0, 300, DV.side)),
-        scale: numIn(v.scale, 0.5, 2, DV.scale), maxVisible: Math.round(numIn(v.maxVisible, 1, 16, DV.maxVisible)),
+        scale: numIn(v.scale, 0.5, 2, DV.scale), maxVisible: Math.round(numIn(v.maxVisible, 1, 30, DV.maxVisible)),
         showHeader: bool(v.showHeader, DV.showHeader), showToasts: bool(v.showToasts, DV.showToasts),
         toastsTop: Math.round(numIn(v.toastsTop, 0, 1800, DV.toastsTop)), showTicker: bool(v.showTicker, DV.showTicker),
       };

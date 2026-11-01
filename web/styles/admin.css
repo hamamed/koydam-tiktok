@@ -480,3 +480,12 @@ button.a-avatar { border: 0; cursor: pointer; }
   background: repeating-conic-gradient(rgba(255,255,255,.05) 0 25%, transparent 0 50%) 0 0 / 16px 16px; }
 .a-logo-thumb img { max-width: 100%; max-height: 100%; object-fit: contain; }
 .a-logo-thumb img.def { opacity: .45; }
+
+/* Arab countries picker */
+.a-countries { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 8px; }
+.a-country { display: flex; align-items: center; gap: 8px; padding: 7px 10px; border-radius: 12px; border: 1px solid var(--line); background: var(--panel-2); color: inherit; font: inherit; font-weight: 700; font-size: 13.5px; cursor: pointer; transition: border-color .15s, background .15s; min-width: 0; }
+.a-country img { width: 30px; height: 30px; border-radius: 50%; object-fit: cover; flex: none; box-shadow: 0 0 0 1px rgba(255,255,255,.15); }
+.a-country span { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-align: start; }
+.a-country:hover { border-color: var(--line-2); }
+.a-country.on { border-color: var(--gold); background: rgba(245,179,1,.1); }
+.a-country.on svg { color: var(--gold); flex: none; }

@@ -7,9 +7,8 @@ import { useEffect, useRef, useState } from 'react';
 import { onLiveEvent } from '@/lib/store';
 import { confettiBurst, confettiRain } from '@/lib/confetti';
 import { fmt, safeUrl } from '@/lib/format';
-import { Avatar, Flag } from './bits';
+import { Avatar, Flag, TeamName, teamImage } from './bits';
 
-const teamLabel = (t) => (t ? `${t.emoji || ''} ${t.name}`.trim() : '؟');
 
 export function useAlerts(config, { confetti = true, toasts = true } = {}) {
   const cfg = useRef(config);
@@ -61,7 +60,7 @@ export function useAlerts(config, { confetti = true, toasts = true } = {}) {
             });
             arm(key);
           }
-          addTick(team, [['b', ev.user.nickname], ['', ' '], ...(safeUrl(ev.gift.image) ? [['img', ev.gift.image]] : []), ['g', `${ev.gift.name} ×${ev.gift.count}`], ['', ` ← ${teamLabel(team)} `], ['tp', `+${fmt(ev.points)}`]]);
+          addTick(team, [['b', ev.user.nickname], ['', ' '], ...(safeUrl(ev.gift.image) ? [['img', ev.gift.image]] : []), ['g', `${ev.gift.name} ×${ev.gift.count}`], ['', ' ← '], ['team', team], ['', ' '], ['tp', `+${fmt(ev.points)}`]]);
           if (ev.major && confetti) {
             const el = document.querySelector(`[data-team-card="${ev.teamId}"]`);
             const r = el && el.offsetParent ? el.getBoundingClientRect() : null;
@@ -71,7 +70,7 @@ export function useAlerts(config, { confetti = true, toasts = true } = {}) {
           break;
         }
         case 'join':
-          if (a.showJoins) addTick(team, [['', '👋 '], ['b', ev.user.nickname], ['', ` انضم إلى ${teamLabel(team)}`], ...(ev.points ? [['tp', ` +${fmt(ev.points)}`]] : [])]);
+          if (a.showJoins) addTick(team, [['', '👋 '], ['b', ev.user.nickname], ['', ' انضم إلى '], ['team', team], ...(ev.points ? [['tp', ` +${fmt(ev.points)}`]] : [])]);
           break;
         case 'unassigned':
           if (a.showUnassigned) {
@@ -94,7 +93,7 @@ export function useAlerts(config, { confetti = true, toasts = true } = {}) {
             });
             arm(key);
           }
-          addTick(team, [['', isFollow ? '💛 ' : '🔁 '], ['b', ev.user.nickname], ['', isFollow ? ' تابع البث' : ' شارك البث'], ...(team ? [['', ` (${teamLabel(team)})`]] : []), ...(ev.points ? [['tp', ` +${fmt(ev.points)}`]] : [])]);
+          addTick(team, [['', isFollow ? '💛 ' : '🔁 '], ['b', ev.user.nickname], ['', isFollow ? ' تابع البث' : ' شارك البث'], ...(team ? [['', ' ('], ['team', team], ['', ')']] : []), ...(ev.points ? [['tp', ` +${fmt(ev.points)}`]] : [])]);
           break;
         }
         case 'roundStart':
@@ -106,7 +105,7 @@ export function useAlerts(config, { confetti = true, toasts = true } = {}) {
         case 'takeover':
           if (team) {
             setBanner({ key: Math.random(), team, prev: ev.prevTeamId ? teamOf(ev.prevTeamId) : null });
-            addTick(team, [['', '👑 '], ['b', teamLabel(team)], ['', ' يتصدّر الآن!']]);
+            addTick(team, [['', '👑 '], ['team', team], ['', ' يتصدّر الآن!']]);
             if (a.confettiOnTakeover && confetti) confettiRain([team.color, '#ffd54a', '#ffffff'], 140, team.emoji);
           }
           break;
@@ -131,7 +130,7 @@ export function Toasts({ list, side = 'left' }) {
           <Avatar src={t.user.avatar} name={t.user.nickname} color={t.team?.color} />
           <div className="tbody">
             <div className="tuser">{t.user.nickname}</div>
-            <div className="tline">{t.kind === 'follow' ? 'تابع البث! شكراً 💛' : 'شارك البث! 🔁'}{t.team && <> · <span className="tteam">{teamLabel(t.team)}</span></>}</div>
+            <div className="tline">{t.kind === 'follow' ? 'تابع البث! شكراً 💛' : 'شارك البث! 🔁'}{t.team && <> · <TeamName team={t.team} className="tteam team-inline" /></>}</div>
           </div>
           <div className="tsocial emoji">{t.kind === 'follow' ? '💛' : '🔁'}</div>
           {t.points > 0 && <div className="tpts">+{fmt(t.points)}</div>}
@@ -142,7 +141,7 @@ export function Toasts({ list, side = 'left' }) {
           <div className="tbody">
             <div className="tuser">{t.user.nickname}</div>
             <div className="tline">
-              أرسل <bdi dir="ltr" className="tgift">{t.gift.name} <span key={t.combo} className="tcount">×{t.count}</span></bdi> لـ <span className="tteam">{teamLabel(t.team)}</span>
+              أرسل <bdi dir="ltr" className="tgift">{t.gift.name} <span key={t.combo} className="tcount">×{t.count}</span></bdi> لـ <TeamName team={t.team} className="tteam team-inline" />
             </div>
           </div>
           {safeUrl(t.gift.image) && <img className="gimg" src={t.gift.image} alt="" referrerPolicy="no-referrer" />}
@@ -160,7 +159,7 @@ export function Ticker({ ticks }) {
       <div className="ticker-items">
         {ticks.map((t) => (
           <span key={t.id} className="tick" style={{ '--team': t.team?.color }}>
-            {t.parts.map(([cls, text], i) => (cls === 'b' ? <b key={i}>{text}</b> : cls === 'g' ? <bdi key={i} dir="ltr" className="tg">{text}</bdi> : cls === 'img' ? <img key={i} className="tick-gift" src={text} alt="" referrerPolicy="no-referrer" /> : cls ? <span key={i} className={cls}>{text}</span> : <span key={i}>{text}</span>))}
+            {t.parts.map(([cls, text], i) => (cls === 'team' ? <TeamName key={i} team={text} /> : cls === 'b' ? <b key={i}>{text}</b> : cls === 'g' ? <bdi key={i} dir="ltr" className="tg">{text}</bdi> : cls === 'img' ? <img key={i} className="tick-gift" src={text} alt="" referrerPolicy="no-referrer" /> : cls ? <span key={i} className={cls}>{text}</span> : <span key={i}>{text}</span>))}
           </span>
         ))}
       </div>
@@ -173,9 +172,9 @@ export function Banner({ banner }) {
   const { team, prev } = banner;
   return (
     <div key={banner.key} className="banner glass show" style={{ '--team': team.color, borderColor: team.color }}>
-      <span className="bflag emoji">{team.image ? <span className="bphoto"><Flag team={team} /></span> : team.emoji || '🏆'}</span>
+      <span className="bflag emoji">{teamImage(team) ? <span className="bphoto"><Flag team={team} /></span> : team.emoji || '🏆'}</span>
       <div className="btext">{team.name} يتصدّر!</div>
-      <div className="bsub">{prev ? `تجاوز ${prev.emoji || ''} ${prev.name}` : 'أول النقاط! 🔥'}</div>
+      <div className="bsub">{prev ? <>تجاوز <TeamName team={prev} /></> : 'أول النقاط! 🔥'}</div>
     </div>
   );
 }

@@ -3,7 +3,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { cmd, getStoreLive, liveQuery } from '@/lib/store';
 import { fmt } from '@/lib/format';
 import { useAlerts } from '../Effects';
-import { AnimatedNumber, Avatar, Flag, GoalBar } from '../bits';
+import { AnimatedNumber, Avatar, Flag, GoalBar, TeamName } from '../bits';
 import { Btn, CopyField, Field, Icon, Section, Text } from './ui';
 
 function useConnActions(live, notice) {
@@ -52,7 +52,7 @@ export function Overview({ live, notice, go }) {
     <div className="a-grid">
       <div className="a-kpis">
         <div className="a-kpi gold"><Icon name="trophy" /><div><span>إجمالي النقاط</span><b className="num-latin"><AnimatedNumber value={total} /></b></div></div>
-        <div className="a-kpi"><Icon name="flag" /><div><span>المتصدر</span><b>{leader ? `${leader.emoji} ${leader.name}` : '—'}</b></div></div>
+        <div className="a-kpi"><Icon name="flag" /><div><span>المتصدر</span><b>{leader ? <TeamName team={leader} /> : '—'}</b></div></div>
         <div className="a-kpi"><Icon name="users" /><div><span>الداعمون</span><b className="num-latin">{fmt(supporters)}</b></div></div>
         <div className="a-kpi"><Icon name="eye" /><div><span>المشاهدون</span><b className="num-latin">{fmt(status?.viewers || 0)}</b></div></div>
         <div className="a-kpi"><span className="a-kpi-ico emoji">💛</span><div><span>متابعون جدد</span><b className="num-latin">{fmt(state?.social?.follows || 0)}</b></div></div>
@@ -96,7 +96,7 @@ export function Overview({ live, notice, go }) {
             {feed.slice(0, 10).map((f) => (
               <li key={f.id} className={f.major ? 'major' : ''} style={{ '--team': f.team?.color }}>
                 <Avatar src={f.user.avatar} name={f.user.nickname} color={f.team?.color} className="avatar md" />
-                <div><b>{f.user.nickname}</b><span className="a-muted"><bdi dir="ltr">{f.gift.name} ×{f.gift.count}</bdi> ← {f.team?.emoji} {f.team?.name}</span></div>
+                <div><b>{f.user.nickname}</b><span className="a-muted"><bdi dir="ltr">{f.gift.name} ×{f.gift.count}</bdi> ← <TeamName team={f.team} /></span></div>
                 <b className="num-latin a-gold">+{fmt(f.points)}</b>
               </li>
             ))}

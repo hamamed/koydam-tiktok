@@ -2,7 +2,8 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import Overlay from '../Overlay';
 import LiveView from '../LiveView';
-import { Flag, GiftIcon } from '../bits';
+import { Flag, GiftIcon, teamImage } from '../bits';
+import { ARAB_COUNTRIES, countryTeam, flagCode, flagPath } from '@/lib/flags';
 import { GiftFetcher, GiftGrid, GiftPickerModal } from './GiftPicker';
 import { findGift, useGiftMap } from '@/lib/gifts';
 import { FONTS } from '@/lib/fonts';
@@ -26,8 +27,51 @@ function UploadBtn({ max = 512, onDone, children = 'رفع صورة', variant = 
   return <Btn variant={variant} size={size} icon="plus" busy={busy} onClick={go}>{children}</Btn>;
 }
 
+/** Code of the country a team stands for (from its flag picture or flag emoji). */
+const teamCountry = (t) => (/^\/flags\/([a-z]{2})\.svg$/.exec(t.image || '') || [])[1] || flagCode(t.emoji);
+
+/** Click a flag to add / remove that Arab country as a team (picture flags, ready keywords, a free gift). */
+function ArabCountries({ d, edit, giftMap }) {
+  const have = new Map(d.teams.map((t, i) => [teamCountry(t), i]));
+  const used = new Set(d.teams.flatMap((t) => t.gifts.map((g) => g.toLowerCase())));
+  const freeGift = () => POPULAR_GIFTS.find((g) => !used.has(g.toLowerCase()) && (!giftMap?.size || findGift(giftMap, g)));
+  const toggle = (code) => edit((c) => {
+    const i = c.teams.findIndex((t) => teamCountry(t) === code);
+    if (i >= 0) { if (c.teams.length > 1) c.teams.splice(i, 1); return; }
+    if (c.teams.length >= 30) return;
+    c.teams.push({ id: '', nameScale: 1, ...countryTeam(code, freeGift()) });
+    c.category = c.category || 'الدول';
+  });
+  const addAll = () => edit((c) => {
+    const keep = c.teams.filter((t) => !ARAB_COUNTRIES.some((x) => x.code === teamCountry(t)) && /^فريق \d+$/.test(t.name) === false);
+    const taken = new Set(keep.flatMap((t) => t.gifts.map((g) => g.toLowerCase())));
+    const gifts = POPULAR_GIFTS.filter((g) => !taken.has(g.toLowerCase()));
+    c.teams = [...keep, ...ARAB_COUNTRIES.map((x, i) => ({ id: '', nameScale: 1, ...countryTeam(x.code, gifts[i]) }))].slice(0, 30);
+    c.category = 'الدول';
+  });
+  return (
+    <Section title="🌍 الدول العربية" className="span-2"
+      desc="اضغط على العلم لإضافة الدولة كفريق (أو لحذفها). الأعلام صور حقيقية تظهر في OBS على كل الأجهزة، مع كلمات شات جاهزة وهدية مختلفة لكل دولة."
+      actions={<div className="a-inline">
+        <Btn size="sm" variant="gold" onClick={addAll}>إضافة كل الدول (22)</Btn>
+        <Btn size="sm" variant="ghost" onClick={() => edit((c) => { c.teams.forEach((t) => { const code = teamCountry(t); if (code && !t.image) t.image = flagPath(code); }); })}>تحويل الإيموجي إلى صور أعلام</Btn>
+      </div>}>
+      <div className="a-countries">
+        {ARAB_COUNTRIES.map((x) => (
+          <button key={x.code} type="button" className={`a-country${have.has(x.code) ? ' on' : ''}`} onClick={() => toggle(x.code)} title={have.has(x.code) ? 'حذف من الفرق' : 'إضافة كفريق'}>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={flagPath(x.code)} alt="" />
+            <span>{x.name}</span>
+            {have.has(x.code) && <Icon name="check" size={14} />}
+          </button>
+        ))}
+      </div>
+    </Section>
+  );
+}
+
 // Cheap, well-known gifts first when auto-assigning one distinct gift per team.
-const POPULAR_GIFTS = ['Rose', 'TikTok', 'Heart Me', 'GG', 'Ice Cream Cone', 'Finger Heart', 'Weights', 'Perfume', 'Doughnut', 'Hand Hearts', 'Cap', 'Sunglasses', 'Corgi', 'Money Gun', 'Galaxy', 'Lion'];
+const POPULAR_GIFTS = ['Rose', 'TikTok', 'Heart Me', 'GG', 'Ice Cream Cone', 'Finger Heart', 'Weights', 'Perfume', 'Doughnut', 'Hand Hearts', 'Cap', 'Sunglasses', 'Corgi', 'Money Gun', 'Galaxy', 'Lion', 'Friendship Necklace', 'Love you', 'Cake Slice', 'Hat and Mustache', 'Mic', 'Swan', 'Paper Crane', 'Rosa'];
 
 /** Overview: each team's gift(s), conflicts, and one-click distinct assignment. */
 function TeamGiftsOverview({ d, edit, live, onPick }) {
@@ -120,14 +164,16 @@ export function Teams({ live, draft, edit }) {
         </div>
       </Section>
 
+      <ArabCountries d={d} edit={edit} giftMap={giftMap} />
+
       <Section title={`الفرق (${d.teams.length})`} className="span-2"
         desc="كلمات الشات تجعل المشاهد ينضم للفريق فتُحسب هداياه له. الهدايا المحددة للفريق تُحسب له دائماً. اسم الفريق وعلمه يعملان ككلمات تلقائياً."
-        actions={<Btn variant="gold" size="sm" icon="plus" disabled={d.teams.length >= 16} onClick={() => edit((c) => { c.teams.push({ id: '', name: `فريق ${c.teams.length + 1}`, emoji: '🏳️', color: colors[c.teams.length % colors.length], image: '', nameScale: 1, keywords: [], gifts: [] }); })}>إضافة فريق</Btn>}>
+        actions={<Btn variant="gold" size="sm" icon="plus" disabled={d.teams.length >= 30} onClick={() => edit((c) => { c.teams.push({ id: '', name: `فريق ${c.teams.length + 1}`, emoji: '🏳️', color: colors[c.teams.length % colors.length], image: '', nameScale: 1, keywords: [], gifts: [] }); })}>إضافة فريق</Btn>}>
         <div className="a-teams">
           {d.teams.map((t, i) => (
             <div key={t.id || `new-${i}`} className="a-team" style={{ '--team': t.color }}>
               <div className="a-team-head">
-                <span className={`a-team-photo${t.image ? ' has' : ''}`}><Flag team={t} /></span>
+                <span className={`a-team-photo${teamImage(t) ? ' has' : ''}`}><Flag team={t} /></span>
                 <input className="a-input a-emoji emoji" value={t.emoji} onChange={(e) => edit((c) => { c.teams[i].emoji = e.target.value; })} aria-label="الإيموجي" title="الإيموجي (يُستخدم إذا لم توجد صورة)" />
                 <input className="a-input a-team-name" value={t.name} onChange={(e) => edit((c) => { c.teams[i].name = e.target.value; })} aria-label="اسم الفريق" />
                 <Color value={t.color} onChange={(v) => edit((c) => { c.teams[i].color = v; })} />
@@ -414,7 +460,7 @@ export function Theme({ live, draft, edit }) {
               <Field label="المسافة من الأعلى" hint="اترك مكاناً لاسمك وأزرار تيك توك"><Range value={t.vertical.top} min={0} max={900} step={10} suffix="px" onChange={(v) => edit((c) => { c.theme.vertical.top = v; })} /></Field>
               <Field label="الهامش الجانبي"><Range value={t.vertical.side} min={0} max={200} step={2} suffix="px" onChange={(v) => edit((c) => { c.theme.vertical.side = v; })} /></Field>
               <Field label="الحجم"><Range value={t.vertical.scale} min={0.5} max={2} step={0.05} suffix="×" onChange={(v) => edit((c) => { c.theme.vertical.scale = v; })} /></Field>
-              <Field label="عدد الفرق الظاهرة"><Num value={t.vertical.maxVisible} min={1} max={16} onChange={(v) => edit((c) => { c.theme.vertical.maxVisible = v; })} /></Field>
+              <Field label="عدد الفرق الظاهرة"><Num value={t.vertical.maxVisible} min={1} max={30} onChange={(v) => edit((c) => { c.theme.vertical.maxVisible = v; })} /></Field>
               <Field label="موضع التنبيهات (من الأعلى)"><Range value={t.vertical.toastsTop} min={0} max={1800} step={10} suffix="px" onChange={(v) => edit((c) => { c.theme.vertical.toastsTop = v; })} /></Field>
               <Toggle label="إظهار الرأس" checked={t.vertical.showHeader} onChange={(v) => edit((c) => { c.theme.vertical.showHeader = v; })} />
               <Toggle label="إظهار التنبيهات" checked={t.vertical.showToasts} onChange={(v) => edit((c) => { c.theme.vertical.showToasts = v; })} />
@@ -495,7 +541,7 @@ export function Theme({ live, draft, edit }) {
           <Field label="موضع اللوحة"><Select value={t.position} onChange={set('position')} options={[['right', 'يمين'], ['center', 'وسط'], ['left', 'يسار']]} /></Field>
           <Field label="جهة التنبيهات"><Select value={t.toastPosition} onChange={set('toastPosition')} options={[['left', 'يسار'], ['right', 'يمين']]} /></Field>
           <Field label="عرض اللوحة"><Range value={t.width} min={360} max={1200} step={10} suffix="px" onChange={set('width')} /></Field>
-          <Field label="أقصى عدد فرق ظاهرة"><Num value={t.maxVisible} min={1} max={16} onChange={set('maxVisible')} /></Field>
+          <Field label="أقصى عدد فرق ظاهرة"><Num value={t.maxVisible} min={1} max={30} onChange={set('maxVisible')} /></Field>
           <Field label="عدد الداعمين لكل فريق"><Num value={t.contributorsCount} min={1} max={5} onChange={set('contributorsCount')} /></Field>
           <Toggle label="إظهار الداعمين" checked={t.showContributors} onChange={set('showContributors')} />
           <Toggle label="إظهار الرأس" checked={t.showHeader} onChange={set('showHeader')} />

@@ -142,3 +142,8 @@
 .ov-logo { width: calc(96px * var(--fs) * var(--logo-s, 1)); }
 .overlay-root.portrait .ov-logo { width: calc(86px * var(--fs) * var(--logo-s, 1)); }
 .ov-logo.own-logo { max-height: calc(110px * var(--fs) * var(--logo-s, 1)); object-fit: contain; }
+
+/* Auto-fit: --fit (set by Overlay.jsx) shrinks the panel when it is taller than the screen */
+.ov-panel.pos-right { transform: scale(var(--fit, 1)); transform-origin: top right; }
+.ov-panel.pos-left { transform: scale(var(--fit, 1)); transform-origin: top left; }
+.ov-panel.pos-center { transform: translateX(-50%) scale(var(--fit, 1)); transform-origin: top center; }

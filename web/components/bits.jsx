@@ -1,6 +1,7 @@
 'use client';
 import { useEffect, useRef, useState } from 'react';
 import { fmt, initial, safeUrl } from '@/lib/format';
+import { emojiFlagUrl } from '@/lib/flags';
 
 /** Number that tweens to its new value (ease-out, 700ms). */
 export function AnimatedNumber({ value, format = fmt }) {
@@ -33,12 +34,31 @@ export function Avatar({ src, name, color, className = 'avatar' }) {
 }
 
 /** Team flag: image URL or emoji. */
+/** Team photo, else the picture of its flag emoji (emoji flags don't show on Windows/OBS), else the emoji. */
+export function teamImage(team) {
+  return safeUrl(team?.image) || emojiFlagUrl(team?.emoji);
+}
 export function Flag({ team }) {
   const [failed, setFailed] = useState(false);
-  const url = safeUrl(team.image);
+  const url = teamImage(team);
   // eslint-disable-next-line @next/next/no-img-element
   if (url && !failed) return <img src={url} alt="" referrerPolicy="no-referrer" onError={() => setFailed(true)} />;
   return <span className="emoji">{team.emoji || '🏳️'}</span>;
+}
+
+/** Small inline flag + team name, for toasts, the ticker and feeds. */
+export function TeamName({ team, className = 'team-inline' }) {
+  const [failed, setFailed] = useState(false);
+  if (!team) return <span className={className}>؟</span>;
+  const url = teamImage(team);
+  return (
+    <span className={className}>
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      {url && !failed ? <img className="mini-flag" src={url} alt="" referrerPolicy="no-referrer" onError={() => setFailed(true)} />
+        : team.emoji ? <span className="emoji">{team.emoji}</span> : null}
+      <span>{team.name}</span>
+    </span>
+  );
 }
 
 /** Real TikTok gift image (from the catalog), or a 🎁 when the image isn't known yet. */
