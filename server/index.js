@@ -151,7 +151,9 @@ const DEFAULT_CONFIG = {
     titleFont: '',              // display font for titles / team names / banner ('' = same as main)
     showTeamGifts: true,        // gift images on each team card
     showGiftLegend: true,       // "🇲🇦 = 🌹" strip in the overlay header (only when giftStrip is off)
-    giftStrip: true,            // bar at the top of OBS with every team's flag + gift (also teams not on the board)
+    giftStrip: true,            // bar in OBS with every team's flag + gift (also teams not on the board)
+    // mode: 'scroll' (news ticker) | 'static'; pos: 'top' | 'bottom'; offset px from that edge; width %; align; speed px/s; dir: items move 'right' | 'left'
+    strip: { mode: 'scroll', pos: 'top', offset: 14, width: 100, align: 'center', speed: 60, dir: 'right', label: '' },
     layout: 'list',             // 'list' | 'grid'
     position: 'right',          // 'left' | 'center' | 'right' (RTL default: right)
     width: 620,                 // px panel width (list layout)
@@ -419,6 +421,15 @@ function sanitizeConfig(input) {
     showTeamGifts: bool(th.showTeamGifts, DT.showTeamGifts),
     showGiftLegend: bool(th.showGiftLegend, DT.showGiftLegend),
     giftStrip: bool(th.giftStrip, DT.giftStrip),
+    strip: (() => {
+      const x = isObj(th.strip) ? th.strip : {}; const D2 = DT.strip;
+      return {
+        mode: oneOf(x.mode, ['scroll', 'static'], D2.mode), pos: oneOf(x.pos, ['top', 'bottom'], D2.pos),
+        offset: Math.round(numIn(x.offset, 0, 1600, D2.offset)), width: Math.round(numIn(x.width, 20, 100, D2.width)),
+        align: oneOf(x.align, ['center', 'right', 'left'], D2.align), speed: Math.round(numIn(x.speed, 10, 300, D2.speed)),
+        dir: oneOf(x.dir, ['right', 'left'], D2.dir), label: str(x.label, 40).trim(),
+      };
+    })(),
     layout: oneOf(th.layout, ['list', 'grid'], DT.layout),
     position: oneOf(th.position, ['left', 'center', 'right'], DT.position),
     width: numIn(th.width, 320, 1800, DT.width),

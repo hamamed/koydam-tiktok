@@ -155,16 +155,33 @@
 .ov-header .goal { zoom: var(--sz-goal, 1); }
 .ov-header .gift-legend { zoom: var(--sz-legend, 1); }
 
-/* ---- Top bar: every team's flag + gift (theme.giftStrip). Pushes the panel and toasts down. ---- */
+/* ---- Bar with every team's flag + gift (GiftStrip.jsx): top/bottom, offset, width, align, scroll or static ---- */
 .gift-strip {
   --gs: var(--sz-strip, 1);
-  position: absolute; z-index: 3; top: 14px; left: 50%; transform: translateX(-50%);
-  max-width: calc(100% - 60px); width: max-content;
-  display: flex; flex-wrap: wrap; justify-content: center; gap: calc(6px * var(--gs));
-  padding: calc(6px * var(--gs)) calc(10px * var(--gs)); border-radius: calc(18px * var(--gs));
+  position: absolute; z-index: 3; display: flex; align-items: stretch; overflow: hidden;
+  padding: calc(6px * var(--gs)) calc(10px * var(--gs)); border-radius: calc(18px * var(--gs)); gap: calc(10px * var(--gs));
 }
+.gift-strip.align-center { left: 50%; transform: translateX(-50%); }
+.gift-strip.align-right { right: 30px; }
+.gift-strip.align-left { left: 30px; }
+.overlay-root.portrait .gift-strip.align-right { right: var(--v-side); }
+.overlay-root.portrait .gift-strip.align-left { left: var(--v-side); }
+.gift-strip.is-static { width: max-content; }
+.gs-label { flex: none; display: flex; align-items: center; padding: 0 calc(14px * var(--gs)); margin: calc(-6px * var(--gs)) 0; margin-inline-start: calc(-10px * var(--gs));
+  font-weight: 900; font-size: calc(16px * var(--gs)); white-space: nowrap; color: #fff;
+  background: linear-gradient(135deg, var(--red), var(--red-2)); box-shadow: 4px 0 14px rgba(0,0,0,.35); }
+.gs-view { flex: 1; min-width: 0; overflow: hidden; display: flex; align-items: center;
+  mask-image: linear-gradient(90deg, transparent, #000 4%, #000 96%, transparent); -webkit-mask-image: linear-gradient(90deg, transparent, #000 4%, #000 96%, transparent); }
+.gs-track { display: flex; gap: calc(6px * var(--gs)); width: max-content; will-change: transform; animation: gsRight 30s linear infinite; }
+.gs-view.dir-left { direction: ltr; }
+.gs-track.dir-left { animation-name: gsLeft; }
+.gs-track.dir-left .gs-list { direction: rtl; }
+@keyframes gsRight { from { transform: translateX(0); } to { transform: translateX(var(--gs-shift, 0)); } }
+@keyframes gsLeft { from { transform: translateX(0); } to { transform: translateX(calc(-1 * var(--gs-shift, 0px))); } }
+.gs-list { display: flex; gap: calc(6px * var(--gs)); flex: none; }
+.gs-list.wrap { flex-wrap: wrap; justify-content: center; flex: 1; }
 .gs-item {
-  display: inline-flex; align-items: center; gap: calc(3px * var(--gs));
+  display: inline-flex; align-items: center; gap: calc(3px * var(--gs)); flex: none;
   padding: calc(3px * var(--gs)) calc(8px * var(--gs)) calc(3px * var(--gs)) calc(3px * var(--gs)); border-radius: 999px;
   background: rgba(0,0,0,.4); border: 1.5px solid color-mix(in srgb, var(--team) 80%, transparent);
 }
@@ -173,7 +190,7 @@
 .gs-gift { width: calc(30px * var(--gs)); height: calc(30px * var(--gs)); object-fit: contain; filter: drop-shadow(0 2px 4px rgba(0,0,0,.5)); }
 .gs-gift.emoji { font-size: calc(22px * var(--gs)); width: auto; height: auto; }
 [data-tone="light"] .gs-item { background: rgba(255,255,255,.85); }
+@media (prefers-reduced-motion: reduce) { .gs-track { animation-duration: 120s !important; } }
 .ov-panel { top: calc(36px + var(--strip-h, 0px)); }
 .toasts { top: calc(36px + var(--strip-h, 0px)); }
-.overlay-root.portrait .gift-strip { top: var(--v-top); max-width: calc(100% - 2 * var(--v-side)); }
 .ov-panel.portrait { top: calc(var(--v-top) + var(--strip-h, 0px)); }

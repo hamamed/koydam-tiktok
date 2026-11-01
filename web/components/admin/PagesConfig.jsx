@@ -369,6 +369,37 @@ function Library({ onUse, onLogo, refreshKey }) {
   );
 }
 
+/** The bar with every team's flag + gift: news ticker or fixed, top/bottom and where exactly. */
+function StripEditor({ draft, edit }) {
+  const t = draft.theme;
+  const s = { mode: 'scroll', pos: 'top', offset: 14, width: 100, align: 'center', speed: 60, dir: 'right', label: '', ...(t.strip || {}) };
+  const set = (k) => (v) => edit((c) => { c.theme.strip = { ...s, ...(c.theme.strip || {}), [k]: v }; });
+  const seg = (k, opts) => (
+    <div className="a-seg">{opts.map(([v, l]) => <button key={v} className={s[k] === v ? 'on' : ''} onClick={() => set(k)(v)}>{l}</button>)}</div>
+  );
+  return (
+    <Section title="🚆 شريط الدول والهدايا" className="span-2"
+      desc="شريط فيه علم كل دولة وهديتها (حتى الدول غير الظاهرة في الترتيب) ليعرف المشاهد ماذا يرسل. يتحرك مثل شريط الأخبار أو يبقى ثابتاً، وضعه أينما تريد. شاهد النتيجة في المعاينة أعلاه."
+      actions={<Toggle label="إظهار الشريط" checked={t.giftStrip !== false} onChange={(v) => edit((c) => { c.theme.giftStrip = v; })} />}>
+      <div className="a-form">
+        <Field label="الحركة">{seg('mode', [['scroll', '🚆 متحرك (شريط أخبار)'], ['static', 'ثابت']])}</Field>
+        <Field label="المكان">{seg('pos', [['top', '⬆️ أعلى الشاشة'], ['bottom', '⬇️ أسفل الشاشة']])}</Field>
+        <Field label={s.pos === 'top' ? 'المسافة من الأعلى' : 'المسافة من الأسفل'} hint="قريب من الحافة = يُنزل لوحة الترتيب تلقائياً. أبعد = يطفو فوق المشهد في المكان الذي تختاره">
+          <Range value={s.offset} min={0} max={1000} step={2} suffix="px" onChange={set('offset')} />
+        </Field>
+        <Field label="العرض"><Range value={s.width} min={20} max={100} step={1} suffix="%" onChange={set('width')} /></Field>
+        <Field label="المحاذاة">{seg('align', [['right', 'يمين'], ['center', 'وسط'], ['left', 'يسار']])}</Field>
+        <Field label="الحجم"><Range value={t.sizes?.strip ?? 1} min={0.5} max={2.5} step={0.05} suffix="×" onChange={(v) => edit((c) => { c.theme.sizes = { ...(c.theme.sizes || {}), strip: v }; })} /></Field>
+        {s.mode === 'scroll' && <>
+          <Field label="السرعة"><Range value={s.speed} min={10} max={300} step={5} suffix=" px/ث" onChange={set('speed')} /></Field>
+          <Field label="الاتجاه">{seg('dir', [['right', '← نحو اليمين (مثل الأخبار العربية)'], ['left', 'نحو اليسار →']])}</Field>
+        </>}
+        <Field label="عنوان على طرف الشريط (اختياري)" hint="مثل: أرسل لدولتك — اتركه فارغاً بدون عنوان"><Text value={s.label} onChange={set('label')} /></Field>
+      </div>
+    </Section>
+  );
+}
+
 /** Show / hide and resize every part of the OBS header card and the team cards. */
 function PartsEditor({ draft, edit }) {
   const t = draft.theme;
@@ -394,7 +425,6 @@ function PartsEditor({ draft, edit }) {
           <div className="a-part-row"><Toggle label="مؤقت الجولة" checked={draft.rounds?.showTimer !== false} onChange={(v) => edit((c) => { c.rounds = { ...(c.rounds || {}), showTimer: v }; })} /><span className="a-muted a-part-note">نفس حجم الشارات</span></div>
           <div className="a-part-row"><Toggle label="هدف المليون" {...part('goal')} /><Range {...size('goal')} /></div>
           <div className="a-part-row"><Toggle label="هدف المتابعين" {...part('followGoal')} /><span className="a-muted a-part-note">نفس حجم الهدف</span></div>
-          <div className="a-part-row"><Toggle label="شريط كل الدول وهداياها (أعلى الشاشة)" checked={t.giftStrip !== false} onChange={(v) => edit((c) => { c.theme.giftStrip = v; })} /><Range {...size('strip')} /></div>
           <div className="a-part-row"><Toggle label="دليل «العلم = الهدية» داخل الرأس (عند إيقاف الشريط)" {...theme('showGiftLegend')} /><Range {...size('legend')} /></div>
         </div>
         <div className="a-parts-col">
@@ -519,6 +549,7 @@ export function Theme({ live, draft, edit }) {
         {view === 'live' && <ScaledStage w={1440} h={1000}><LiveView config={draft} state={live.state} byId={live.byId} status={live.status} gifts={live.gifts} round={live.round} preview /></ScaledStage>}
       </Section>
 
+      <StripEditor draft={draft} edit={edit} />
       <PartsEditor draft={draft} edit={edit} />
 
       <Section title="🔤 الخطوط" className="span-2"
