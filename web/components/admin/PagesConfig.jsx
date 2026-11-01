@@ -421,7 +421,7 @@ function VerticalControls({ t, edit }) {
 /** The bar with every team's flag + gift: news ticker or fixed, top/bottom and where exactly. */
 function StripEditor({ draft, edit }) {
   const t = draft.theme;
-  const s = { mode: 'scroll', pos: 'top', offset: 14, width: 100, align: 'center', speed: 60, dir: 'right', label: '', ...(t.strip || {}) };
+  const s = { mode: 'scroll', pos: 'top', offset: 14, width: 100, align: 'panel', speed: 60, dir: 'right', label: '', ...(t.strip || {}) };
   const set = (k) => (v) => edit((c) => { c.theme.strip = { ...s, ...(c.theme.strip || {}), [k]: v }; });
   const seg = (k, opts) => (
     <div className="a-seg">{opts.map(([v, l]) => <button key={v} className={s[k] === v ? 'on' : ''} onClick={() => set(k)(v)}>{l}</button>)}</div>
@@ -436,8 +436,8 @@ function StripEditor({ draft, edit }) {
         <Field label={s.pos === 'top' ? 'المسافة من الأعلى' : 'المسافة من الأسفل'} hint="قريب من الحافة = يُنزل لوحة الترتيب تلقائياً. أبعد = يطفو فوق المشهد في المكان الذي تختاره">
           <Range value={s.offset} min={0} max={1000} step={2} suffix="px" onChange={set('offset')} />
         </Field>
-        <Field label="العرض"><Range value={s.width} min={20} max={100} step={1} suffix="%" onChange={set('width')} /></Field>
-        <Field label="المحاذاة">{seg('align', [['right', 'يمين'], ['center', 'وسط'], ['left', 'يسار']])}</Field>
+        <Field label="المحاذاة" hint="«مع اللوحة» = نفس عرض ومكان مربعات الترتيب تحته">{seg('align', [['panel', 'مع اللوحة'], ['right', 'يمين'], ['center', 'وسط'], ['left', 'يسار']])}</Field>
+        {s.align !== 'panel' && <Field label="العرض"><Range value={s.width} min={20} max={100} step={1} suffix="%" onChange={set('width')} /></Field>}
         <Field label="الحجم"><Range value={t.sizes?.strip ?? 1} min={0.5} max={2.5} step={0.05} suffix="×" onChange={(v) => edit((c) => { c.theme.sizes = { ...(c.theme.sizes || {}), strip: v }; })} /></Field>
         {s.mode === 'scroll' && <>
           <Field label="السرعة"><Range value={s.speed} min={10} max={300} step={5} suffix=" px/ث" onChange={set('speed')} /></Field>

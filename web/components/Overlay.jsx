@@ -53,12 +53,17 @@ export default function Overlay({ config, state, byId, status, gifts, round, pre
   const stripTeams = th.giftStrip !== false ? config.teams.filter((t) => t.gifts?.length) : [];
   const [stripH, setStripH] = useState(0);
   // Placement: top or bottom, distance from that edge, width and alignment (theme.strip).
-  const strip = { mode: 'scroll', pos: 'top', offset: 14, width: 100, align: 'center', speed: 60, dir: 'right', label: '', ...(th.strip || {}) };
+  const strip = { mode: 'scroll', pos: 'top', offset: 14, width: 100, align: 'panel', speed: 60, dir: 'right', label: '', ...(th.strip || {}) };
+  const [panelBox, setPanelBox] = useState(null); // where the boxes are on screen (for align 'panel')
   const stripTop = strip.pos !== 'bottom';
   const edgeBase = stripTop ? (portrait ? v.top ?? 170 : 0) : (showTicker ? (portrait ? 108 : 92) : (portrait ? 40 : 0));
+  const alignPanel = strip.align === 'panel' && panelBox;
   const stripStyle = {
     [stripTop ? 'top' : 'bottom']: `${edgeBase + (strip.offset ?? 14)}px`,
-    [strip.mode === 'static' ? 'maxWidth' : 'width']: `calc(${strip.width ?? 100}% - ${portrait ? 2 * (v.side ?? 28) : 60}px)`,
+    ...(alignPanel
+      // Same left edge and width as the boxes under it.
+      ? { left: `${panelBox.left}px`, width: `${panelBox.width}px`, right: 'auto', transform: 'none', maxWidth: 'none' }
+      : { [strip.mode === 'static' ? 'maxWidth' : 'width']: `calc(${strip.width ?? 100}% - ${portrait ? 2 * (v.side ?? 28) : 60}px)` }),
   };
   // Push the board down only when the bar sits at the very top (otherwise it floats where you put it).
   const pushDown = stripTop && (strip.offset ?? 14) <= 60 && stripH ? (strip.offset ?? 14) + stripH + 12 - (portrait ? 0 : 36) : 0;
@@ -82,6 +87,8 @@ export default function Overlay({ config, state, byId, status, gifts, round, pre
       // Vertical: the board ends above the gift alerts zone (when the alerts are below the board's top).
       if (portrait && showToasts) { const tt = Number(v.toastsTop ?? 1080); if (tt > top + 200) avail = Math.min(avail, tt - top - 14); }
       const h = pr.height / px / cur; // natural height before the current fit
+      const box = { left: Math.round((pr.left - rr.left) / px), width: Math.round(pr.width / px) };
+      setPanelBox((b) => (b && Math.abs(b.left - box.left) < 2 && Math.abs(b.width - box.width) < 2 ? b : box));
       let k = h > avail && avail > 0 ? Math.floor((avail / h) * 100) / 100 : 1;
       // Never shrink below 85% (that would undo the overall size): show fewer teams instead.
       if (k < 0.85) {
@@ -109,7 +116,7 @@ export default function Overlay({ config, state, byId, status, gifts, round, pre
     if (panelRef.current) ro.observe(panelRef.current);
     if (rootRef.current) ro.observe(rootRef.current);
     return () => ro.disconnect();
-  }, [portrait, showTicker, stripH, reserveBottom, th.zoom, cap, showToasts, v.toastsTop]);
+  }, [portrait, showTicker, stripH, reserveBottom, th.zoom, cap, showToasts, v.toastsTop, fit]);
   useEffect(() => { setCap(0); }, [th.zoom, portrait, v.maxVisible, th.maxVisible, v.layout, v.columns, config.teams.length, stripH, v.scale, th.fontScale, v.toastsTop, showToasts]);
   // Gift legend: only the teams shown on the board (by score), so 20+ teams don't fill the header.
   const legendTeams = (() => {

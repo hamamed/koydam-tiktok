@@ -42,7 +42,7 @@ const GiftStrip = forwardRef(function GiftStrip({ teams, giftMap, s, style }, re
 
   const speed = Math.max(10, s.speed || 60);
   return (
-    <div ref={ref} className={`gift-strip glass ${scroll ? 'is-scroll' : 'is-static'} pos-${s.pos || 'top'} align-${s.align || 'center'}`} style={style}>
+    <div ref={ref} className={`gift-strip glass ${scroll ? 'is-scroll' : 'is-static'} pos-${s.pos || 'top'} align-${s.align || 'panel'}`} style={style}>
       {s.label && <span className="gs-label">{s.label}</span>}
       {scroll ? (
         <div ref={view} className={`gs-view${s.dir === 'left' ? ' dir-left' : ''}`}>

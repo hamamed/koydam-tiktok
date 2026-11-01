@@ -153,7 +153,7 @@ const DEFAULT_CONFIG = {
     showGiftLegend: true,       // "🇲🇦 = 🌹" strip in the overlay header (only when giftStrip is off)
     giftStrip: true,            // bar in OBS with every team's flag + gift (also teams not on the board)
     // mode: 'scroll' (news ticker) | 'static'; pos: 'top' | 'bottom'; offset px from that edge; width %; align; speed px/s; dir: items move 'right' | 'left'
-    strip: { mode: 'scroll', pos: 'top', offset: 14, width: 100, align: 'center', speed: 60, dir: 'right', label: '' },
+    strip: { mode: 'scroll', pos: 'top', offset: 14, width: 100, align: 'panel', speed: 60, dir: 'right', label: '' },
     layout: 'list',             // 'list' | 'grid'
     position: 'right',          // 'left' | 'center' | 'right' (RTL default: right)
     width: 620,                 // px panel width (list layout)
@@ -432,7 +432,8 @@ function sanitizeConfig(input) {
       return {
         mode: oneOf(x.mode, ['scroll', 'static'], D2.mode), pos: oneOf(x.pos, ['top', 'bottom'], D2.pos),
         offset: Math.round(numIn(x.offset, 0, 1600, D2.offset)), width: Math.round(numIn(x.width, 20, 100, D2.width)),
-        align: oneOf(x.align, ['center', 'right', 'left'], D2.align), speed: Math.round(numIn(x.speed, 10, 300, D2.speed)),
+        // v2: old saved 'center' becomes 'panel' (aligned with the boxes) once
+        align: oneOf(!x.v2 && (x.align === 'center' || !x.align) ? 'panel' : x.align, ['panel', 'center', 'right', 'left'], D2.align), v2: true, speed: Math.round(numIn(x.speed, 10, 300, D2.speed)),
         dir: oneOf(x.dir, ['right', 'left'], D2.dir), label: str(x.label, 40).trim(),
       };
     })(),
