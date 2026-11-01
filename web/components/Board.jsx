@@ -58,7 +58,7 @@ const Card = memo(function Card({ team, data, rank, isLeader, barPct, share, gap
       className={`card${isLeader ? ' is-leader' : ''}${hidden ? ' is-hidden' : ''}`}
       data-rank={rank}
       data-team-card={team.id}
-      style={{ '--team': team.color, '--name-scale': team.nameScale || 1, transform: `translate(${-x}px, ${y}px)`, zIndex: 100 - rank }}
+      style={{ '--team': team.color, '--name-scale': team.nameScale || 1, '--name-len': Math.max(3, [...String(team.name || '')].length), transform: `translate(${-x}px, ${y}px)`, zIndex: 100 - rank }}
     >
       <div ref={inner} className="card-inner glass">
         <div className="rank">{rank}</div>

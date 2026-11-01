@@ -11,7 +11,7 @@
 .card.is-hidden { opacity: 0; pointer-events: none; }
 .card-inner {
   position: relative; overflow: hidden;
-  display: grid; grid-template-columns: auto auto 1fr auto auto; align-items: center;
+  display: grid; grid-template-columns: auto auto minmax(0, 1fr) auto auto; align-items: center;
   gap: calc(14px * var(--fs));
   padding: calc(12px * var(--fs)) calc(12px * var(--fs)) calc(12px * var(--fs)) calc(18px * var(--fs));
   transition: box-shadow .5s var(--ease-out), border-color .5s;
@@ -186,3 +186,14 @@
   .live-root .tg-icon.emoji { font-size: 20px; }
   .live-root .card-inner { column-gap: 8px; }
 }
+
+/* ---- Room for the team name: no reserved width for the points, compact gift box,
+        and long names shrink to fit the space instead of being cut ("ال...") ---- */
+.card .score { min-width: 0; }
+.card .main { container-type: inline-size; }
+.card .name {
+  font-size: min(calc(23px * var(--fs) * var(--name-g, 1) * var(--name-scale, 1)), calc(100cqi / (var(--name-len, 6) * 0.58)));
+  text-overflow: clip;
+}
+.card-inner > .team-gifts { padding: calc(4px * var(--fs)) calc(6px * var(--fs)); }
+.card .tg-icon { width: calc(36px * var(--fs)); height: calc(36px * var(--fs)); }
