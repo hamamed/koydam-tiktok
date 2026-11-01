@@ -313,6 +313,12 @@ EOF
     ;;
 esac
 
+# --- 6b. Promo video tools (optional: Chromium + ffmpeg for «فيديو ترويجي») -------------
+if [[ "${SKIP_VIDEO:-0}" != "1" ]]; then
+  c_info "Video tools (ffmpeg + Chromium)"
+  APP_DIR="$APP_DIR" APP_USER="$APP_USER" bash "$APP_DIR/deploy/install-video.sh" || echo "⚠ Video tools not installed now. Later: sudo bash $APP_DIR/deploy/install-video.sh"
+fi
+
 # --- 7. Summary --------------------------------------------------------------------
 LOGIN_EMAIL="$(node -e "try{console.log(require('$APP_DIR/data/settings.json').adminEmail)}catch{console.log('$ADMIN_EMAIL')}")"
 echo
@@ -328,6 +334,7 @@ else
 fi
 echo "   التحديث          Update      : from the panel (التحديثات) or: sudo bash $APP_DIR/deploy/update.sh"
 echo "   السجلات          Logs        : journalctl -u $SERVICE -f"
+echo "   أدوات الفيديو     Video tools : sudo bash $APP_DIR/deploy/install-video.sh"
 }
 
 main "$@"

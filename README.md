@@ -16,6 +16,7 @@
 - **كل الدول العربية (22) بأعلام صور حقيقية** (تعمل في OBS على ويندوز بدون إيموجي): من صفحة «الفرق والهدف» اضغط على العلم لإضافة الدولة، أو «إضافة كل الدول». حتى 30 فريقاً، والواجهة تصغر تلقائياً لتتسع للشاشة.
 - **تخصيص البطاقات:** أظهر أو أخفِ كل جزء من بطاقة الرأس (الشعار، العنوان، الشارات، الأهداف، دليل الهدايا) وبطاقات الفرق (الاسم، العلم، الترتيب، النسبة، الداعمون، النقاط…) وغيّر حجم كل جزء، من صفحة «المظهر».
 - **مظهر لوحة التحكم:** وضع فاتح أو داكن أو حسب الجهاز (زر ☀️/🌙 في الأعلى)، واختيار خط اللوحة من 17 خطاً عربياً وحجم النص، من صفحة «حسابي».
+- **فيديو ترويجي من اللوحة:** صفحة «فيديو ترويجي» تصنع على الخادم فيديو MP4 (عمودي أو أفقي) بنفس إعدادات البث: سباق تمثيلي حتى المليون مع الفائز الذي تختاره، ثم زر تحميل. يحتاج تشغيل `sudo bash /opt/koydam-tiktok/deploy/install-video.sh` مرة واحدة.
 - **شعار خاص لكل بث:** ارفع شعارك (PNG شفاف) ليظهر بدل الشعار الافتراضي في OBS والصفحة المباشرة، مع التحكم في حجمه.
   - اختر شكلاً ثابتاً أو بدّل تلقائياً **كل يوم أو كل أسبوع**.
 - **صور خاصة:**
@@ -129,11 +130,9 @@ npm run build && npm run demo
 Then open http://localhost:8080/admin/. The first-run password is printed in the terminal and saved to `data/initial-admin-password.txt`.
 
 ### Promo video
-`tools/promo-video.js` records the real vertical overlay while a scripted gift battle races to 1,000,000 and ends on the winner screen (MP4, 1080×1920). Needs a build, Playwright with Chromium, and ffmpeg (run it on your computer, not the VPS):
-```bash
-node tools/promo-video.js --teams=sa,ae,kw,qa,eg,ma --winner=sa --skin=classic --out=promo.mp4
-```
-Add `--landscape` for 1920×1080. It uses its own temporary server and data, so your lives are not touched.
+- **From the panel:** page *فيديو ترويجي* records the live's own overlay (teams, look, logo, gift pictures) during a scripted race to 1,000,000, with the winner you pick. The result is a downloadable MP4, vertical or landscape. One render at a time, and the last 6 per live are kept in `data/lives/<slug>/videos/`.
+- **One-time server setup** (ffmpeg, emoji font, Chromium and its libraries): `sudo bash /opt/koydam-tiktok/deploy/install-video.sh`. New installs run it automatically; set `SKIP_VIDEO=1` to skip it.
+- **Stand-alone:** `node tools/promo-video.js --teams=sa,ae,kw,qa,eg,ma --winner=sa --skin=classic --out=promo.mp4` (add `--landscape` for 1920×1080).
 
 ### Stack
 - **Backend:** `server/index.js`, Node.js ≥ 20.

@@ -1717,6 +1717,103 @@ function startJob(name, steps, onSuccess) {
   return job;
 }
 
+/* ----------------------------------------------------------------------------
+ * 12d. Promo videos (tools/promo-video.js): a scripted race to 1,000,000 recorded
+ *      from the live's own overlay. One render at a time on the server; files in
+ *      data/lives/<slug>/videos/ (the last 6 per live are kept).
+ * ------------------------------------------------------------------------- */
+const PROMO_TOOL = path.join(APP_ROOT, 'tools', 'promo-video.js');
+const PROMO_KEEP = 6;
+const promo = { current: null, last: new Map() }; // last result per live slug
+let promoToolsCache = { at: 0, value: null };
+const promoEnv = () => {
+  const env = { ...process.env };
+  const local = path.join(APP_ROOT, '.browsers');
+  if (!env.PLAYWRIGHT_BROWSERS_PATH && fs.existsSync(local)) env.PLAYWRIGHT_BROWSERS_PATH = local;
+  return env;
+};
+async function promoTools(fresh) {
+  if (!fresh && promoToolsCache.value && Date.now() - promoToolsCache.at < 60000) return promoToolsCache.value;
+  const value = await new Promise((resolve) => {
+    let out = '';
+    const ch = spawn(process.execPath, [PROMO_TOOL, '--check'], { cwd: APP_ROOT, env: promoEnv() });
+    ch.stdout.on('data', (d) => { out += d; });
+    ch.on('error', () => resolve({ playwright: false, chromium: false, ffmpeg: false }));
+    ch.on('close', () => { try { resolve(JSON.parse(out.trim().split('\n').pop())); } catch { resolve({ playwright: false, chromium: false, ffmpeg: false }); } });
+  });
+  value.ready = Boolean(value.playwright && value.chromium && value.ffmpeg);
+  promoToolsCache = { at: Date.now(), value };
+  return value;
+}
+const VIDEO_ID_RE = /^[a-z0-9-]{6,60}$/;
+const videoDir = (l) => path.join(l.dir, 'videos');
+async function listVideos(l) {
+  const dir = videoDir(l);
+  const names = (await fsp.readdir(dir).catch(() => [])).filter((n) => n.endsWith('.json'));
+  const out = [];
+  for (const n of names) {
+    const meta = readJsonSafe(path.join(dir, n));
+    const st = await fsp.stat(path.join(dir, n.replace(/\.json$/, '.mp4'))).catch(() => null);
+    if (meta && st) out.push({ ...meta, size: st.size });
+  }
+  return out.sort((a, b) => b.createdAt - a.createdAt);
+}
+function startPromo(l, opt, user) {
+  if (promo.current) throw httpErr(409, promo.current.slug === l.slug ? 'يتم صنع فيديو الآن' : 'يتم صنع فيديو لبث آخر الآن، انتظر قليلاً');
+  const teamIds = l.config.teams.map((t) => t.id);
+  if (teamIds.length < 2) throw httpErr(400, 'يحتاج البث إلى فريقين على الأقل');
+  const winner = teamIds.includes(opt.winner) ? opt.winner : teamIds[0];
+  const rival = teamIds.includes(opt.rival) && opt.rival !== winner ? opt.rival : teamIds.find((t) => t !== winner);
+  const landscape = opt.orientation === 'landscape';
+  const id = `${new Date().toISOString().replace(/[-:T]/g, '').slice(0, 14)}-${crypto.randomBytes(3).toString('hex')}`;
+  const dir = videoDir(l); fs.mkdirSync(dir, { recursive: true });
+  const file = path.join(dir, `${id}.mp4`);
+  const job = { slug: l.slug, id, pct: 0, text: 'بدء', startedAt: Date.now(), ok: null, error: null };
+  promo.current = job;
+  const argsList = [PROMO_TOOL, `--config=${l.files.config}`, `--data=${SETTINGS.dataDir}`, `--winner=${winner}`, `--rival=${rival}`, `--out=${file}`];
+  if (landscape) argsList.push('--landscape');
+  log.info(`[${l.slug}] Promo video ${id} started (${landscape ? 'landscape' : 'vertical'}, winner ${winner})`);
+  (async () => {
+    let done = null; let lastErr = '';
+    const r = await new Promise((resolve) => {
+      const ch = spawn(process.execPath, argsList, { cwd: APP_ROOT, env: promoEnv() });
+      let buf = '';
+      const onData = (d) => {
+        buf += d.toString(); const lines = buf.split(/\r?\n/); buf = lines.pop();
+        for (const line of lines) {
+          const m = /^PROGRESS (\d+) (.*)$/.exec(line);
+          if (m) { job.pct = Number(m[1]); job.text = m[2]; continue; }
+          if (line.startsWith('DONE ')) { try { done = JSON.parse(line.slice(5)); } catch { /* ignore */ } continue; }
+          if (line.startsWith('ERROR ')) lastErr = line.slice(6);
+          else if (line.trim()) lastErr = lastErr || line.trim().slice(0, 300);
+        }
+      };
+      ch.stdout.on('data', onData); ch.stderr.on('data', onData);
+      const timer = setTimeout(() => ch.kill('SIGKILL'), 6 * 60 * 1000);
+      ch.on('error', (e) => { clearTimeout(timer); resolve({ code: -1, err: e.message }); });
+      ch.on('close', (code) => { clearTimeout(timer); resolve({ code }); });
+    });
+    if (r.code === 0 && done && fs.existsSync(file)) {
+      const teams = new Map(l.config.teams.map((t) => [t.id, t.name]));
+      const meta = { id, createdAt: Date.now(), orientation: landscape ? 'landscape' : 'vertical', width: done.width, height: done.height,
+        seconds: done.seconds, total: done.total, winner, winnerName: teams.get(winner) || winner, rivalName: teams.get(rival) || rival, by: user.email };
+      await writeJsonAtomic(path.join(dir, `${id}.json`), meta);
+      job.ok = true; job.pct = 100; job.text = 'تم';
+      // keep the newest PROMO_KEEP videos
+      const all = await listVideos(l);
+      for (const v of all.slice(PROMO_KEEP)) { await fsp.rm(path.join(dir, `${v.id}.mp4`), { force: true }); await fsp.rm(path.join(dir, `${v.id}.json`), { force: true }); }
+      log.info(`[${l.slug}] Promo video ${id} ready`);
+    } else {
+      job.ok = false; job.error = lastErr || r.err || `فشل صنع الفيديو (رمز ${r.code})`;
+      await fsp.rm(file, { force: true });
+      log.error(`[${l.slug}] Promo video failed: ${job.error}`);
+    }
+    job.finishedAt = Date.now();
+    promo.last.set(l.slug, job); promo.current = null;
+  })();
+  return job;
+}
+
 async function gitInfo(fetchRemote) {
   if (!isGitRepo()) return { git: false };
   const g = async (...a) => (await run('git', [...GIT, ...a], { timeout: 60000 })).out.trim();
@@ -2369,6 +2466,32 @@ const httpServer = http.createServer(async (req, res) => {
     }
 
     // ---- Live-scoped: rounds, reports, voice test ----
+    // ---- Promo videos (per live) ----
+    if (p === '/api/promo' && req.method === 'GET') {
+      const l = reqLive();
+      const job = promo.current && promo.current.slug === l.slug ? promo.current : promo.last.get(l.slug) || null;
+      return json(200, { tools: await promoTools(url.searchParams.get('check') === '1'), busy: Boolean(promo.current && promo.current.slug !== l.slug), job, videos: await listVideos(l) });
+    }
+    if (p === '/api/promo' && req.method === 'POST') {
+      const l = reqLive(); const b = await readJsonBody(req, 4096);
+      const tools = await promoTools(true);
+      if (!tools.ready) throw httpErr(400, 'أدوات الفيديو غير مثبتة على الخادم. شغّل مرة واحدة: sudo bash /opt/koydam-tiktok/deploy/install-video.sh');
+      return json(202, { ok: true, job: startPromo(l, { winner: str(b.winner, 60), rival: str(b.rival, 60), orientation: str(b.orientation, 20) }, me) });
+    }
+    if (p === '/api/promo/file' && (req.method === 'GET' || req.method === 'HEAD')) {
+      const l = reqLive(); const id = String(url.searchParams.get('id') || '');
+      if (!VIDEO_ID_RE.test(id)) throw httpErr(400, 'معرف غير صالح');
+      const dl = url.searchParams.get('download') === '1';
+      return sendFile(res, req, path.join(videoDir(l), `${id}.mp4`), 'video/mp4', 'private, max-age=3600',
+        dl ? { 'Content-Disposition': `attachment; filename="1m-${l.slug}-${id}.mp4"` } : {});
+    }
+    if (p === '/api/promo' && req.method === 'DELETE') {
+      const l = reqLive(); const id = String(url.searchParams.get('id') || '');
+      if (!VIDEO_ID_RE.test(id)) throw httpErr(400, 'معرف غير صالح');
+      await fsp.rm(path.join(videoDir(l), `${id}.mp4`), { force: true }); await fsp.rm(path.join(videoDir(l), `${id}.json`), { force: true });
+      return json(200, { ok: true });
+    }
+
     if (p === '/api/rounds' && req.method === 'GET') { const l = reqLive(); return json(200, { round: l.rounds.public(), history: l.rounds.history }); }
     if (p === '/api/rounds' && req.method === 'DELETE') { const l = reqLive(); l.rounds.history = []; await writeJsonAtomic(l.files.history, []); return json(200, { ok: true }); }
     if (p === '/api/reports' && req.method === 'GET') { const l = reqLive(); return json(200, { reports: await l.reports.list(), currentId: l.reports.current?.id || null }); }

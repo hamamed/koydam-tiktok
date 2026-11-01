@@ -549,3 +549,23 @@ html[data-admin-theme="light"] .admin-root .goal-pct { color: #1c1a22; text-shad
 .a-scene-bg { position: relative; display: block; aspect-ratio: 16 / 9; overflow: hidden; }
 .a-scene-bg > .live-bg { position: absolute; inset: 0; }
 .a-scene small { display: block; padding: 5px 6px; font-size: calc(11.5px * var(--a-fs, 1)); font-weight: 800; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* Promo video page */
+.a-cmd { margin: 8px 0; padding: 8px 12px; border-radius: 10px; background: var(--code-bg); border: 1px solid var(--line-2); font: calc(13px * var(--a-fs, 1))/1.6 ui-monospace, Menlo, Consolas, monospace; white-space: pre-wrap; word-break: break-all; text-align: left; }
+.a-vid-duel { display: flex; align-items: center; justify-content: center; gap: 18px; margin: 14px 0; flex-wrap: wrap; }
+.a-vid-duel::before { content: 'ضد'; order: 1; font-weight: 900; color: var(--muted); }
+.a-vid-team { display: inline-flex; align-items: center; gap: 8px; padding: 6px 14px 6px 6px; border-radius: 999px; border: 2px solid var(--team); background: var(--panel-2); }
+.a-vid-team:last-child { order: 2; }
+.a-vid-flag { width: 34px; height: 34px; border-radius: 50%; overflow: hidden; display: grid; place-items: center; font-size: 22px; }
+.a-vid-flag img { width: 100%; height: 100%; object-fit: cover; }
+.a-vid-job { display: flex; align-items: center; gap: 12px; margin-top: 14px; padding: 12px 14px; border-radius: 12px; background: var(--panel-2); border: 1px solid var(--line); flex-wrap: wrap; }
+.a-vid-job.err { border-color: #7f1d1d; color: var(--err-t); }
+.a-vid-bar { flex: 1; min-width: 200px; height: 10px; border-radius: 99px; background: var(--panel-3); overflow: hidden; }
+.a-vid-bar span { display: block; height: 100%; border-radius: 99px; background: linear-gradient(90deg, var(--gold), var(--gold-2)); transition: width .6s; }
+.a-videos { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 14px; }
+.a-video { display: flex; flex-direction: column; gap: 8px; padding: 10px; border-radius: 14px; border: 1px solid var(--line); background: var(--panel-2); min-width: 0; }
+.a-video video, .a-video-poster { width: 100%; aspect-ratio: 9 / 16; max-height: 420px; border-radius: 10px; background: #000; object-fit: contain; }
+.a-video.landscape video, .a-video.landscape .a-video-poster { aspect-ratio: 16 / 9; }
+.a-video-poster { display: flex; align-items: center; justify-content: center; gap: 8px; border: 0; color: #fff; font: inherit; font-weight: 800; cursor: pointer;
+  background: radial-gradient(60% 50% at 50% 30%, rgba(245,179,1,.35), transparent 70%), #0b0a0f; }
+.a-video-meta { display: flex; flex-direction: column; gap: 2px; min-width: 0; }

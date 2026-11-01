@@ -17,3 +17,4 @@ web/.next/
 # promo videos (tools/promo-video.js)
 *.mp4
 *.webm
+.browsers/
