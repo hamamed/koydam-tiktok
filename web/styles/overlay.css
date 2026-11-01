@@ -194,3 +194,6 @@
 .ov-panel { top: calc(36px + var(--strip-h, 0px)); }
 .toasts { top: calc(36px + var(--strip-h, 0px)); }
 .ov-panel.portrait { top: calc(var(--v-top) + var(--strip-h, 0px)); }
+
+/* Vertical overlay also shrinks to fit 1920px when there are many teams */
+.ov-panel.portrait { transform: scale(var(--fit, 1)); transform-origin: top center; }

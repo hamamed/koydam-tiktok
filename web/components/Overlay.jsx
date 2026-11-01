@@ -64,10 +64,9 @@ export default function Overlay({ config, state, byId, status, gifts, round, pre
     return () => ro.disconnect();
   }, [stripTeams.length]);
   useLayoutEffect(() => {
-    if (portrait) return undefined;
     const measure = () => {
       const root = rootRef.current; const panel = panelRef.current; if (!root || !panel) return;
-      const avail = root.clientHeight - panel.offsetTop - Math.max(showTicker ? 110 : 30, reserveBottom + (showTicker ? 92 : 0));
+      const avail = root.clientHeight - panel.offsetTop - Math.max(showTicker ? (portrait ? 130 : 110) : 30, reserveBottom + (showTicker ? 92 : 0));
       const h = panel.offsetHeight;
       const k = h > avail && avail > 0 ? Math.max(0.4, Math.floor((avail / h) * 100) / 100) : 1;
       setFit((f) => (Math.abs(f - k) > 0.005 ? k : f));
