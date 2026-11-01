@@ -95,3 +95,38 @@ a { color: inherit; }
 /* Inline team label with a small picture flag (toasts, ticker, feeds) */
 .team-inline { display: inline-flex; align-items: center; gap: .3em; vertical-align: middle; }
 .team-inline .mini-flag { width: 1.25em; height: 1.25em; border-radius: 50%; object-fit: cover; flex: none; box-shadow: 0 0 0 1px rgba(255,255,255,.25); }
+
+/* ==========================================================================
+   Scrollbars matching the theme (gold thumb on the page colour).
+   Page: live site (dark). Dashboard: html[data-admin-theme] dark / light (admin.css vars).
+   ========================================================================== */
+html {
+  --sb-track: #0b0a0f; --sb-thumb: rgba(245,179,1,.6); --sb-thumb-hover: #f5b301; --sb-thumb-hi: #ffd54a;
+}
+html[data-admin-theme="dark"] { --sb-track: #09080d; --sb-thumb: rgba(245,179,1,.55); }
+html[data-admin-theme="light"] { --sb-track: #f4f2ee; --sb-thumb: rgba(196,143,0,.38); --sb-thumb-hover: #d99a00; --sb-thumb-hi: #f5b301; }
+/* Firefox (no ::-webkit-scrollbar). Not set in Chrome/Safari: there it would switch off the styled bar below. */
+@supports not selector(::-webkit-scrollbar) {
+  * { scrollbar-color: var(--sb-thumb) transparent; scrollbar-width: thin; }
+  html { scrollbar-color: var(--sb-thumb) var(--sb-track); }
+}
+
+::-webkit-scrollbar { width: 12px; height: 12px; }
+::-webkit-scrollbar-track { background: transparent; }
+html::-webkit-scrollbar-track { background: var(--sb-track); }
+::-webkit-scrollbar-thumb {
+  border-radius: 999px; border: 3px solid transparent; background-clip: padding-box;
+  background-color: var(--sb-thumb);
+  min-height: 40px;
+}
+::-webkit-scrollbar-thumb:hover { background-image: linear-gradient(180deg, var(--sb-thumb-hi), var(--sb-thumb-hover)); background-color: transparent; border-width: 2px; }
+::-webkit-scrollbar-thumb:active { background-image: linear-gradient(180deg, var(--sb-thumb-hover), #c48f00); background-color: transparent; border-width: 2px; }
+::-webkit-scrollbar-corner { background: transparent; }
+::-webkit-scrollbar-button { display: none; height: 0; width: 0; }
+/* Small scroll areas (menus, lists, code): slimmer bar */
+.a-nav::-webkit-scrollbar, .a-modal::-webkit-scrollbar, .a-logs::-webkit-scrollbar, .a-job-out::-webkit-scrollbar,
+.a-code-editor::-webkit-scrollbar, .a-gtext code::-webkit-scrollbar, .a-faq code::-webkit-scrollbar { width: 8px; height: 8px; }
+.a-nav::-webkit-scrollbar-thumb { border-width: 2px; }
+/* OBS overlay never shows scrollbars */
+.overlay-root, .overlay-root * { scrollbar-width: none; } /* fine in Chrome too: the overlay hides bars anyway */
+.overlay-root ::-webkit-scrollbar, .overlay-root::-webkit-scrollbar { display: none; }
