@@ -11,7 +11,7 @@
 .card.is-hidden { opacity: 0; pointer-events: none; }
 .card-inner {
   position: relative; overflow: hidden;
-  display: grid; grid-template-columns: auto auto 1fr auto; align-items: center;
+  display: grid; grid-template-columns: auto auto 1fr auto auto; align-items: center;
   gap: calc(14px * var(--fs));
   padding: calc(12px * var(--fs)) calc(12px * var(--fs)) calc(12px * var(--fs)) calc(18px * var(--fs));
   transition: box-shadow .5s var(--ease-out), border-color .5s;
@@ -150,7 +150,8 @@
 .card-inner > .rank { grid-column: 1; }
 .card-inner > .flag-wrap { grid-column: 2; }
 .card-inner > .main { grid-column: 3; }
-.card-inner > .score { grid-column: 4; }
+.card-inner > .team-gifts { grid-column: 4; }
+.card-inner > .score { grid-column: 5; }
 [data-hide~="rank"] .card .rank, [data-hide~="flag"] .card .flag-wrap, [data-hide~="crown"] .card .crown,
 [data-hide~="medal"] .card .medal, [data-hide~="name"] .card .name, [data-hide~="share"] .card .share,
 [data-hide~="bar"] .card .bar, [data-hide~="score"] .card .score, [data-hide~="pts"] .card .pts,
@@ -163,17 +164,25 @@
 .card .team-gifts { zoom: var(--sz-gifts, 1); }
 .card .gap, .card .pts { zoom: var(--sz-gap, 1); }
 
-/* ---- "أرسل <gift>" under the team's flag ---- */
-.flag-wrap { display: flex; flex-direction: column; align-items: center; gap: calc(5px * var(--fs)); }
+/* ---- "أرسل <gift>" between the bar and the points ---- */
 .team-gifts {
-  display: inline-flex; align-items: center; justify-content: center; gap: calc(3px * var(--fs)); white-space: nowrap;
-  padding: calc(2px * var(--fs)) calc(8px * var(--fs)) calc(2px * var(--fs)) calc(4px * var(--fs)); border-radius: 999px;
-  background: rgba(0,0,0,.5); border: 1.5px solid color-mix(in srgb, var(--gold) 75%, transparent);
-  box-shadow: 0 3px 10px rgba(0,0,0,.35);
-  font-size: calc(12.5px * var(--fs)); font-weight: 900; line-height: 1.3; text-shadow: 0 1px 2px rgba(0,0,0,.6);
+  position: relative; z-index: 1; align-self: center;
+  display: flex; flex-direction: column; align-items: center; gap: calc(2px * var(--fs));
+  padding: calc(5px * var(--fs)) calc(10px * var(--fs)); border-radius: calc(14px * var(--fs));
+  background: rgba(0,0,0,.45); border: 1.5px solid color-mix(in srgb, var(--gold) 75%, transparent);
+  box-shadow: 0 0 14px color-mix(in srgb, var(--gold) 22%, transparent), 0 4px 12px rgba(0,0,0,.35);
+  white-space: nowrap; line-height: 1.2; text-shadow: 0 1px 2px rgba(0,0,0,.6);
 }
-.tg-label { color: var(--gold-2); }
-.tg-icon { width: calc(28px * var(--fs)); height: calc(28px * var(--fs)); object-fit: contain; filter: drop-shadow(0 2px 4px rgba(0,0,0,.5)); }
-.tg-icon.emoji { font-size: calc(20px * var(--fs)); width: auto; height: auto; }
+.tg-label { font-size: calc(12.5px * var(--fs)); font-weight: 900; color: var(--gold-2); }
+.tg-icons { display: flex; align-items: center; gap: calc(4px * var(--fs)); }
+.tg-icon { width: calc(40px * var(--fs)); height: calc(40px * var(--fs)); object-fit: contain; filter: drop-shadow(0 2px 5px rgba(0,0,0,.5)); }
+.tg-icon.emoji { font-size: calc(30px * var(--fs)); width: auto; height: auto; }
 [data-tone="light"] .team-gifts { background: rgba(255,255,255,.92); text-shadow: none; }
 [data-tone="light"] .tg-label { color: var(--gold); }
+@media (max-width: 640px) {
+  .live-root .team-gifts { padding: 3px 5px; border-radius: 10px; }
+  .live-root .tg-label { font-size: 10px; }
+  .live-root .tg-icon { width: 26px; height: 26px; }
+  .live-root .tg-icon.emoji { font-size: 20px; }
+  .live-root .card-inner { column-gap: 8px; }
+}

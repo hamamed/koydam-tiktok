@@ -65,12 +65,6 @@ const Card = memo(function Card({ team, data, rank, isLeader, barPct, share, gap
         <div className="flag-wrap">
           <div className="flag"><Flag team={team} /></div>
           <div className="crown emoji">👑</div>
-          {teamGifts?.length > 0 && (
-            <div className="team-gifts">
-              <span className="tg-label">أرسل</span>
-              {teamGifts.map(({ name, gift }) => <GiftIcon key={name} gift={gift} name={name} className="tg-icon" />)}
-            </div>
-          )}
         </div>
         <div className="main">
           <div className="row1">
@@ -91,6 +85,12 @@ const Card = memo(function Card({ team, data, rank, isLeader, barPct, share, gap
             </div>
           )}
         </div>
+        {teamGifts?.length > 0 && (
+          <div className="team-gifts">
+            <span className="tg-label">أرسل</span>
+            <span className="tg-icons">{teamGifts.map(({ name, gift }) => <GiftIcon key={name} gift={gift} name={name} className="tg-icon" />)}</span>
+          </div>
+        )}
         <div className="score">
           <span className="num"><AnimatedNumber value={score} /></span>
           <span className="pts">نقطة</span>
