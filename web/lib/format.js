@@ -1,13 +1,18 @@
 const nf = new Intl.NumberFormat('en-US', { maximumFractionDigits: 0 });
 
-/** 12,345 · 123.4K · 1.25M (Western digits read best on stream). */
+/**
+ * Short numbers for the stream: 950 · 1.2K · 28.4K · 184K · 1.03M · 12.5M · 1.2B.
+ * Truncated, never rounded up: 999,999 shows 999K (not a 1M that was not reached yet).
+ */
+const cut = (v, d) => { const f = 10 ** d; const t = (Math.floor(v * f) / f).toFixed(d); return d ? t.replace(/\.?0+$/, '') : t; };
 export function fmt(n) {
   n = Math.round(Number(n) || 0);
-  const a = Math.abs(n);
-  if (a >= 1e9) return (n / 1e9).toFixed(2).replace(/\.?0+$/, '') + 'B';
-  if (a >= 1e6) return (n / 1e6).toFixed(a >= 1e7 ? 1 : 2).replace(/\.?0+$/, '') + 'M';
-  if (a >= 1e5) return (n / 1e3).toFixed(1).replace(/\.0$/, '') + 'K';
-  return nf.format(n);
+  const a = Math.abs(n); const s = n < 0 ? '-' : '';
+  if (a >= 1e9) return s + cut(a / 1e9, a >= 1e10 ? 1 : 2) + 'B';
+  if (a >= 1e6) return s + cut(a / 1e6, a >= 1e7 ? 1 : 2) + 'M';
+  if (a >= 1e5) return s + cut(a / 1e3, 0) + 'K';
+  if (a >= 1e3) return s + cut(a / 1e3, 1) + 'K';
+  return String(n);
 }
 export const fmtFull = (n) => nf.format(Math.round(Number(n) || 0));
 /** Allowed image URLs: https:// or files uploaded in the panel (/uploads/<hash>.<ext>). */
