@@ -102,3 +102,8 @@
 .live-goal { display: flex; flex-direction: column; gap: 14px; }
 .live-timer { display: flex; justify-content: center; }
 .live-timer .round-timer { --fs: 1.4; }
+
+/* Logo size (theme.logoSize) and the live's own uploaded logo */
+.live-logo { width: calc(clamp(150px, 18vw, 240px) * var(--logo-s, 1)); }
+.live-logo.own-logo { max-height: calc(220px * var(--logo-s, 1)); object-fit: contain; filter: drop-shadow(0 10px 30px rgba(0,0,0,.35)); }
+@media (max-width: 720px) { .live-logo { width: calc(150px * var(--logo-s, 1)); } }

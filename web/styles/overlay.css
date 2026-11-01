@@ -137,3 +137,8 @@
 .ws-sup { display: flex; align-items: center; gap: 8px; padding: 6px 12px 6px 8px; border-radius: 999px; background: rgba(0,0,0,.35); font-size: calc(16px * var(--fs)); }
 .ws-sup .avatar { width: calc(30px * var(--fs)); height: calc(30px * var(--fs)); font-size: calc(13px * var(--fs)); }
 .ws-sup span.num-latin { color: var(--gold-2); font-weight: 900; }
+
+/* Logo size (theme.logoSize) and the live's own uploaded logo */
+.ov-logo { width: calc(96px * var(--fs) * var(--logo-s, 1)); }
+.overlay-root.portrait .ov-logo { width: calc(86px * var(--fs) * var(--logo-s, 1)); }
+.ov-logo.own-logo { max-height: calc(110px * var(--fs) * var(--logo-s, 1)); object-fit: contain; }

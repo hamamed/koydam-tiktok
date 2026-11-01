@@ -162,6 +162,10 @@ const DEFAULT_CONFIG = {
     showViewers: false,
     toastPosition: 'left',      // 'left' | 'right'
     showLogo: true,             // logo in the overlay header
+    logo: '',                   // this live's own logo (uploaded or https); '' = the default logo
+    logoSize: 1,                // 0.4..2.5
+    logoOnLive: true,           // show the logo on the public live page
+    custom: { primary: '#f5b301', secondary: '#c8102e', bg: '#0b0a0f', tone: 'dark' }, // colours of the "custom" look
     skin: 'classic',            // one of SKIN_IDS
     skinRotation: { mode: 'off', skins: [] }, // 'off' | 'daily' | 'weekly'; empty list = all skins
     nameScale: 1,               // team name size (all teams)
@@ -211,7 +215,9 @@ const DEFAULT_CONFIG = {
 };
 
 /** Visual skins ("looks") for the live page and OBS overlay. Must match web/lib/skins.js. */
-const SKIN_IDS = ['classic', 'neon', 'stadium', 'desert', 'ramadan', 'frost', 'inferno', 'emerald', 'royal', 'ocean', 'retro'];
+const SKIN_IDS = [
+  'classic', 'neon', 'stadium', 'desert', 'ramadan', 'frost', 'inferno', 'emerald', 'royal', 'ocean', 'retro', 'midnight', 'sunset', 'aurora', 'cyber', 'galaxy', 'matrix', 'carbon', 'glacier', 'storm', 'bloodmoon', 'rosegold', 'sapphire', 'copper', 'pharaoh', 'andalus', 'majlis', 'eid', 'national', 'wedding', 'champions', 'derby', 'arena', 'forest', 'sakura', 'mint', 'paper', 'clean', 'mono', 'vapor', 'gameboy', 'comic', 'candy', 'holo', 'custom',
+];
 
 /* ----------------------------------------------------------------------------
  * 2. Small utilities
@@ -412,6 +418,13 @@ function sanitizeConfig(input) {
     showTicker: bool(th.showTicker, DT.showTicker),
     showHeader: bool(th.showHeader, DT.showHeader),
     showLogo: bool(th.showLogo, DT.showLogo),
+    logo: imgUrl(th.logo),
+    logoSize: numIn(th.logoSize, 0.4, 2.5, DT.logoSize),
+    logoOnLive: bool(th.logoOnLive, DT.logoOnLive),
+    custom: (() => {
+      const c = isObj(th.custom) ? th.custom : {}; const DC = DT.custom;
+      return { primary: color(c.primary, DC.primary), secondary: color(c.secondary, DC.secondary), bg: color(c.bg, DC.bg), tone: oneOf(c.tone, ['dark', 'light'], DC.tone) };
+    })(),
     skin: oneOf(th.skin, SKIN_IDS, DT.skin),
     skinRotation: {
       mode: oneOf(isObj(th.skinRotation) ? th.skinRotation.mode : '', ['off', 'daily', 'weekly'], 'off'),

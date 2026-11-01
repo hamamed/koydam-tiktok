@@ -66,21 +66,25 @@
 /* ---------- 5. الأبيض الزجاجي (Frost, light) ---------- */
 [data-skin="frost"] {
   --gold: #2563eb; --gold-2: #3b82f6; --gold-3: #dbeafe; --red: #e11d48; --red-2: #9f1239;
-  --text: #121620; --glass-rgb: 255, 255, 255; --glass-border: rgba(255,255,255,.95); --contrib-bg: rgba(15,23,42,.07);
+  --glass-rgb: 255, 255, 255; --glass-border: rgba(255,255,255,.95);
   --page-bg: #eef2f7; --glow-1: rgba(59,130,246,.18); --glow-2: rgba(225,29,72,.12);
-  --ink: #121620; --ink-strong: #0b1020; --ink-soft: #334155; --ink-muted: #64748b;
-  --surface-bg: rgba(255,255,255,.75); --surface-border: rgba(15,23,42,.08); --row-bg: rgba(15,23,42,.04);
   --title-grad: linear-gradient(180deg, #1e3a8a, #2563eb 60%, #e11d48);
 }
-[data-skin="frost"] .glass { --glass-a: .82; box-shadow: 0 10px 30px rgba(15,23,42,.18); }
-[data-skin="frost"] .name, [data-skin="frost"] .num, [data-skin="frost"] .ov-title, [data-skin="frost"] .live-title { text-shadow: none; filter: none; }
-[data-skin="frost"] .rank { background: #e8ecf3; border-color: #d0d6e2; }
-[data-skin="frost"] .bar, [data-skin="frost"] .goal-bar { background: rgba(15,23,42,.08); }
-[data-skin="frost"] .card-inner::before { opacity: .45; }
-[data-skin="frost"] .chip { background: rgba(15,23,42,.06); border-color: rgba(15,23,42,.1); }
-[data-skin="frost"] .chip.accent { color: #fff; }
-[data-skin="frost"] .tick { background: rgba(15,23,42,.05); }
-[data-skin="frost"] .goal-pct { text-shadow: 0 1px 2px #fff; color: #0b1020; }
+/* Shared rules for every light look (data-tone="light" is set from web/lib/skins.js). */
+[data-tone="light"] {
+  --text: #121620; --contrib-bg: rgba(15,23,42,.07);
+  --ink: #121620; --ink-strong: #0b1020; --ink-soft: #334155; --ink-muted: #64748b;
+  --surface-bg: rgba(255,255,255,.75); --surface-border: rgba(15,23,42,.08); --row-bg: rgba(15,23,42,.04);
+}
+[data-tone="light"] .glass { --glass-a: .82; box-shadow: 0 10px 30px rgba(15,23,42,.18); }
+[data-tone="light"] .name, [data-tone="light"] .num, [data-tone="light"] .ov-title, [data-tone="light"] .live-title { text-shadow: none; filter: none; }
+[data-tone="light"] .rank { background: rgba(15,23,42,.07); border-color: rgba(15,23,42,.12); }
+[data-tone="light"] .bar, [data-tone="light"] .goal-bar { background: rgba(15,23,42,.08); }
+[data-tone="light"] .card-inner::before { opacity: .45; }
+[data-tone="light"] .chip { background: rgba(15,23,42,.06); border-color: rgba(15,23,42,.1); }
+[data-tone="light"] .chip.accent { color: #fff; }
+[data-tone="light"] .tick { background: rgba(15,23,42,.05); }
+[data-tone="light"] .goal-pct { text-shadow: 0 1px 2px #fff; color: #0b1020; }
 
 /* ---------- 6. اللهب (Inferno) ---------- */
 [data-skin="inferno"] {
@@ -142,6 +146,393 @@
   linear-gradient(transparent 60%, rgba(255,0,77,.15)),
   repeating-linear-gradient(90deg, rgba(0,228,255,.08) 0 1px, transparent 1px 60px),
   repeating-linear-gradient(0deg, rgba(0,228,255,.08) 0 1px, transparent 1px 60px), #0d0221; }
+
+
+/* ==========================================================================
+   v3.1 looks
+   ========================================================================== */
+
+/* ---------- منتصف الليل (Midnight) ---------- */
+[data-skin="midnight"] {
+  --gold: #d4af37; --gold-2: #f1d78a; --gold-3: #fbf0cf; --red: #3a3a3a; --red-2: #1a1a1a;
+  --glass-rgb: 6, 6, 8; --glass-border: rgba(212,175,55,.55);
+  --page-bg: #040405; --glow-1: rgba(212,175,55,.12); --glow-2: rgba(255,255,255,.04); --surface-border: rgba(212,175,55,.35);
+  --title-grad: linear-gradient(180deg, #fbf0cf, #d4af37 70%, #9c7a1c);
+}
+[data-skin="midnight"] .card-inner { border-width: 1px; box-shadow: inset 0 0 0 1px rgba(212,175,55,.12); }
+[data-skin="midnight"] .card.is-leader .card-inner { box-shadow: 0 0 0 1px #d4af37, 0 0 30px rgba(212,175,55,.3); }
+[data-skin="midnight"] .ticker-label { background: linear-gradient(135deg, #d4af37, #8a6a12); color: #000; }
+
+/* ---------- الغروب (Sunset) ---------- */
+[data-skin="sunset"] {
+  --gold: #ffb347; --gold-2: #ffd59a; --gold-3: #fff0dc; --red: #ff4f81; --red-2: #8a1a49;
+  --glass-rgb: 46, 12, 38; --glass-border: rgba(255,179,71,.38);
+  --page-bg: #2a0b25; --glow-1: rgba(255,120,80,.35); --glow-2: rgba(255,79,129,.32); --surface-border: rgba(255,179,71,.25);
+  --title-grad: linear-gradient(180deg, #fff0dc, #ffb347 50%, #ff4f81);
+}
+[data-skin="sunset"] .live-bg { background:
+  radial-gradient(70% 45% at 50% 110%, rgba(255,179,71,.5), transparent 65%),
+  linear-gradient(180deg, #1b0626 0%, #4a0f3a 55%, #8a2a3a 100%); }
+[data-skin="sunset"] .ticker-label { background: linear-gradient(135deg, #ff4f81, #ff8c42); }
+
+/* ---------- الشفق القطبي (Aurora) ---------- */
+[data-skin="aurora"] {
+  --gold: #5cffb0; --gold-2: #b5ffd9; --gold-3: #e6fff2; --red: #a855f7; --red-2: #4c1d95;
+  --glass-rgb: 4, 16, 24; --glass-border: rgba(92,255,176,.35);
+  --page-bg: #020a12; --glow-1: rgba(92,255,176,.25); --glow-2: rgba(168,85,247,.3); --surface-border: rgba(92,255,176,.22);
+  --title-grad: linear-gradient(100deg, #5cffb0, #7dd3fc 45%, #a855f7);
+}
+[data-skin="aurora"] .live-bg { background:
+  radial-gradient(60% 35% at 30% 10%, rgba(92,255,176,.3), transparent 70%),
+  radial-gradient(50% 30% at 75% 20%, rgba(168,85,247,.32), transparent 70%),
+  radial-gradient(40% 25% at 55% 0%, rgba(125,211,252,.25), transparent 70%), #020a12; background-size: 200% 200%; animation: skinDrift 18s ease-in-out infinite alternate; }
+[data-skin="aurora"] .fill { background: linear-gradient(90deg, #a855f7, #5cffb0) !important; }
+
+/* ---------- سايبربنك (Cyber) ---------- */
+[data-skin="cyber"] {
+  --gold: #fcee0a; --gold-2: #fff78a; --gold-3: #fffbd0; --red: #00f0ff; --red-2: #006b73;
+  --glass-rgb: 10, 10, 18; --glass-border: rgba(252,238,10,.7);
+  --page-bg: #07070d; --glow-1: rgba(252,238,10,.16); --glow-2: rgba(0,240,255,.2); --surface-border: rgba(252,238,10,.4);
+  --title-grad: linear-gradient(180deg, #fffbd0, #fcee0a 60%, #d4c400);
+}
+[data-skin="cyber"] .card-inner, [data-skin="cyber"] .surface, [data-skin="cyber"] .ov-header, [data-skin="cyber"] .toast {
+  border-radius: 0 !important; clip-path: polygon(0 0, calc(100% - 18px) 0, 100% 18px, 100% 100%, 18px 100%, 0 calc(100% - 18px)); }
+[data-skin="cyber"] .card-inner { border-inline-start: 4px solid #fcee0a; }
+[data-skin="cyber"] .card.is-leader .card-inner { background: linear-gradient(90deg, rgba(252,238,10,.18), rgba(10,10,18,.85)); }
+[data-skin="cyber"] .num { color: #00f0ff; text-shadow: 0 0 10px rgba(0,240,255,.6); }
+[data-skin="cyber"] .ticker-label { background: #fcee0a; color: #000; }
+
+/* ---------- المجرة (Galaxy) ---------- */
+[data-skin="galaxy"] {
+  --gold: #c4b5fd; --gold-2: #e9e3ff; --gold-3: #f5f2ff; --red: #ec4899; --red-2: #6b1a48;
+  --glass-rgb: 14, 8, 34; --glass-border: rgba(196,181,253,.35);
+  --page-bg: #070418; --glow-1: rgba(139,92,246,.35); --glow-2: rgba(236,72,153,.25); --surface-border: rgba(196,181,253,.22);
+  --title-grad: linear-gradient(180deg, #ffffff, #e9e3ff 40%, #c4b5fd 70%, #ec4899);
+}
+[data-skin="galaxy"] .live-bg { background:
+  radial-gradient(1.5px 1.5px at 12% 18%, #fff, transparent), radial-gradient(1px 1px at 28% 64%, #fffa, transparent),
+  radial-gradient(1.5px 1.5px at 52% 26%, #fffc, transparent), radial-gradient(1px 1px at 70% 76%, #fff9, transparent),
+  radial-gradient(2px 2px at 88% 40%, #fff, transparent), radial-gradient(1px 1px at 40% 90%, #fff8, transparent),
+  radial-gradient(45% 35% at 70% 30%, rgba(139,92,246,.4), transparent 70%),
+  radial-gradient(40% 30% at 25% 75%, rgba(236,72,153,.28), transparent 70%), #070418;
+  background-size: 300px 300px, 300px 300px, 300px 300px, 300px 300px, 300px 300px, 300px 300px, 100% 100%, 100% 100%, 100% 100%; }
+
+/* ---------- الماتريكس (Matrix) ---------- */
+[data-skin="matrix"] {
+  --gold: #39ff14; --gold-2: #a6ff8f; --gold-3: #e0ffd6; --red: #0f7a2c; --red-2: #053d14;
+  --glass-rgb: 0, 10, 2; --glass-border: rgba(57,255,20,.45);
+  --page-bg: #000600; --glow-1: rgba(57,255,20,.15); --glow-2: rgba(57,255,20,.08); --surface-border: rgba(57,255,20,.3);
+  --title-grad: linear-gradient(180deg, #e0ffd6, #39ff14);
+}
+[data-skin="matrix"] .num, [data-skin="matrix"] .goal-nums, [data-skin="matrix"] .stat-v.num-latin { font-family: ui-monospace, 'SF Mono', Consolas, monospace; text-shadow: 0 0 8px rgba(57,255,20,.8); color: #39ff14; }
+[data-skin="matrix"] .live-bg { background: repeating-linear-gradient(90deg, rgba(57,255,20,.05) 0 2px, transparent 2px 26px), linear-gradient(180deg, #000600, #001a05); }
+[data-skin="matrix"] .card-inner { border-radius: 4px !important; }
+[data-skin="matrix"] .ticker-label { background: #0f7a2c; }
+
+/* ---------- كربون (Carbon) ---------- */
+[data-skin="carbon"] {
+  --gold: #ff2e2e; --gold-2: #ff8080; --gold-3: #ffd6d6; --red: #9aa0a6; --red-2: #3c4043;
+  --glass-rgb: 22, 23, 26; --glass-border: rgba(255,255,255,.14);
+  --page-bg: #101114; --glow-1: rgba(255,46,46,.18); --glow-2: rgba(255,255,255,.05); --surface-border: rgba(255,255,255,.12);
+  --title-grad: linear-gradient(180deg, #ffffff, #d0d3d8 60%, #ff2e2e);
+}
+[data-skin="carbon"] .live-bg, [data-skin="carbon"] .card-inner { background-image:
+  linear-gradient(45deg, rgba(255,255,255,.03) 25%, transparent 25%, transparent 75%, rgba(255,255,255,.03) 75%),
+  linear-gradient(45deg, rgba(255,255,255,.03) 25%, transparent 25%, transparent 75%, rgba(255,255,255,.03) 75%);
+  background-size: 8px 8px; background-position: 0 0, 4px 4px; }
+[data-skin="carbon"] .live-bg { background-color: #101114; }
+[data-skin="carbon"] .card-inner { border-inline-start: 4px solid #ff2e2e; }
+[data-skin="carbon"] .num { font-style: italic; }
+
+/* ---------- الجليد (Glacier) ---------- */
+[data-skin="glacier"] {
+  --gold: #a5f3fc; --gold-2: #e0fbff; --gold-3: #f4feff; --red: #38bdf8; --red-2: #0c4a6e;
+  --glass-rgb: 10, 30, 48; --glass-border: rgba(224,251,255,.5);
+  --page-bg: #06182a; --glow-1: rgba(165,243,252,.25); --glow-2: rgba(56,189,248,.2); --surface-border: rgba(165,243,252,.3);
+  --title-grad: linear-gradient(180deg, #ffffff, #e0fbff 40%, #a5f3fc 70%, #38bdf8);
+}
+[data-skin="glacier"] .card-inner { box-shadow: inset 0 1px 0 rgba(255,255,255,.35), 0 8px 24px rgba(0,0,0,.3); }
+[data-skin="glacier"] .live-bg { background: radial-gradient(60% 50% at 50% -10%, rgba(224,251,255,.25), transparent 60%), linear-gradient(180deg, #0a2540, #06182a); }
+
+/* ---------- العاصفة (Storm) ---------- */
+[data-skin="storm"] {
+  --gold: #7df9ff; --gold-2: #c8fdff; --gold-3: #effeff; --red: #6366f1; --red-2: #312e81;
+  --glass-rgb: 20, 24, 32; --glass-border: rgba(125,249,255,.35);
+  --page-bg: #0f131a; --glow-1: rgba(125,249,255,.18); --glow-2: rgba(99,102,241,.25); --surface-border: rgba(125,249,255,.22);
+  --title-grad: linear-gradient(180deg, #ffffff, #7df9ff 60%, #6366f1);
+}
+[data-skin="storm"] .card.is-leader .card-inner { animation: skinFlash 4s infinite; }
+[data-skin="storm"] .live-bg { background: radial-gradient(50% 40% at 70% 0%, rgba(125,249,255,.15), transparent 60%), linear-gradient(180deg, #1a2030, #0f131a); }
+
+/* ---------- القمر الأحمر (Blood moon) ---------- */
+[data-skin="bloodmoon"] {
+  --gold: #ff3b3b; --gold-2: #ff8a8a; --gold-3: #ffd9d9; --red: #7f0000; --red-2: #3a0000;
+  --glass-rgb: 20, 2, 4; --glass-border: rgba(255,59,59,.38);
+  --page-bg: #0c0102; --glow-1: rgba(255,40,40,.3); --glow-2: rgba(120,0,0,.4); --surface-border: rgba(255,59,59,.25);
+  --title-grad: linear-gradient(180deg, #ffd9d9, #ff3b3b 60%, #7f0000);
+}
+[data-skin="bloodmoon"] .live-bg { background: radial-gradient(18% 18% at 82% 14%, rgba(255,59,59,.65), rgba(255,59,59,.15) 60%, transparent 62%), #0c0102; }
+
+/* ---------- الذهب الوردي (Rose gold) ---------- */
+[data-skin="rosegold"] {
+  --gold: #f4b8a0; --gold-2: #fbd9cb; --gold-3: #fff0ea; --red: #b76e79; --red-2: #5e2f36;
+  --glass-rgb: 40, 22, 26; --glass-border: rgba(244,184,160,.4);
+  --page-bg: #1e1013; --glow-1: rgba(244,184,160,.25); --glow-2: rgba(183,110,121,.3); --surface-border: rgba(244,184,160,.25);
+  --title-grad: linear-gradient(180deg, #fff0ea, #f4b8a0 55%, #b76e79);
+}
+
+/* ---------- الياقوت الأزرق (Sapphire) ---------- */
+[data-skin="sapphire"] {
+  --gold: #dfe6f0; --gold-2: #f5f8fc; --gold-3: #ffffff; --red: #1d4ed8; --red-2: #0b2163;
+  --glass-rgb: 6, 16, 48; --glass-border: rgba(223,230,240,.35);
+  --page-bg: #040b26; --glow-1: rgba(29,78,216,.4); --glow-2: rgba(223,230,240,.1); --surface-border: rgba(223,230,240,.22);
+  --title-grad: linear-gradient(180deg, #ffffff, #dfe6f0 50%, #8aa2c8);
+}
+[data-skin="sapphire"] .chip.accent { color: #0b2163; }
+
+/* ---------- النحاس (Copper) ---------- */
+[data-skin="copper"] {
+  --gold: #e08a4f; --gold-2: #f3b88c; --gold-3: #fde3cf; --red: #7c3f1d; --red-2: #3b1d0c;
+  --glass-rgb: 34, 18, 10; --glass-border: rgba(224,138,79,.4);
+  --page-bg: #170c06; --glow-1: rgba(224,138,79,.28); --glow-2: rgba(124,63,29,.3); --surface-border: rgba(224,138,79,.25);
+  --title-grad: linear-gradient(180deg, #fde3cf, #e08a4f 55%, #8a4520);
+}
+[data-skin="copper"] .card-inner { background-image: linear-gradient(115deg, rgba(255,255,255,.06), transparent 40%); }
+
+/* ---------- الفراعنة (Pharaoh) ---------- */
+[data-skin="pharaoh"] {
+  --gold: #e7b923; --gold-2: #f6dc7a; --gold-3: #fdf3c9; --red: #1e40af; --red-2: #0b1d5a;
+  --glass-rgb: 10, 18, 50; --glass-border: rgba(231,185,35,.5);
+  --page-bg: #081233; --glow-1: rgba(231,185,35,.25); --glow-2: rgba(30,64,175,.4); --surface-border: rgba(231,185,35,.3);
+}
+[data-skin="pharaoh"] .card-inner { border-top: 3px solid #e7b923; }
+[data-skin="pharaoh"] .live-bg { background:
+  linear-gradient(135deg, transparent 48%, rgba(231,185,35,.06) 48% 52%, transparent 52%) 0 0 / 60px 60px,
+  radial-gradient(60% 50% at 50% 110%, rgba(231,185,35,.25), transparent 60%), #081233; }
+[data-skin="pharaoh"] .ov-header::after, [data-skin="pharaoh"] .live-hero::after { content: '𓂀'; position: absolute; inset-inline-end: 14px; top: 6px; font-size: 26px; color: #e7b923; }
+[data-skin="pharaoh"] .live-hero { position: relative; }
+
+/* ---------- الأندلس (Andalus) ---------- */
+[data-skin="andalus"] {
+  --gold: #f0c75e; --gold-2: #f8e3a8; --red: #0e9aa7; --red-2: #075158;
+  --glass-rgb: 4, 32, 38; --glass-border: rgba(14,154,167,.5);
+  --page-bg: #03222a; --glow-1: rgba(14,154,167,.35); --glow-2: rgba(240,199,94,.2); --surface-border: rgba(14,154,167,.35);
+}
+[data-skin="andalus"] .live-bg { background:
+  repeating-conic-gradient(from 45deg, rgba(14,154,167,.12) 0 25%, transparent 0 50%) 0 0 / 48px 48px,
+  radial-gradient(circle at 50% 50%, rgba(240,199,94,.06) 0 30%, transparent 31%) 0 0 / 48px 48px, #03222a; }
+[data-skin="andalus"] .card-inner { border-inline-start: 4px double #f0c75e; }
+
+/* ---------- المجلس (Majlis, Sadu pattern) ---------- */
+[data-skin="majlis"] {
+  --gold: #e9b872; --gold-2: #f5d9ad; --red: #8c1c2b; --red-2: #4a0d16;
+  --glass-rgb: 36, 14, 12; --glass-border: rgba(233,184,114,.4);
+  --page-bg: #1e0b09; --glow-1: rgba(140,28,43,.4); --glow-2: rgba(233,184,114,.18); --surface-border: rgba(233,184,114,.25);
+}
+[data-skin="majlis"] .ov-header, [data-skin="majlis"] .live-hero { border-bottom: 6px solid transparent; border-image: repeating-linear-gradient(90deg, #8c1c2b 0 12px, #e9b872 12px 18px, #1e0b09 18px 24px, #e9b872 24px 30px) 6; }
+[data-skin="majlis"] .live-bg { background: repeating-linear-gradient(45deg, rgba(233,184,114,.05) 0 10px, transparent 10px 20px), #1e0b09; }
+
+/* ---------- العيد (Eid) ---------- */
+[data-skin="eid"] {
+  --gold: #ffd166; --gold-2: #ffe7a8; --red: #06a77d; --red-2: #034d3a;
+  --glass-rgb: 3, 36, 28; --glass-border: rgba(255,209,102,.4);
+  --page-bg: #022019; --glow-1: rgba(255,209,102,.25); --glow-2: rgba(6,167,125,.3); --surface-border: rgba(255,209,102,.25);
+}
+[data-skin="eid"] .ov-header::after, [data-skin="eid"] .live-hero::after { content: '🏮✨'; position: absolute; inset-inline-end: 14px; top: 8px; font-size: 22px; }
+[data-skin="eid"] .live-hero { position: relative; }
+[data-skin="eid"] .live-bg { background:
+  radial-gradient(2px 2px at 20% 30%, #ffd166, transparent), radial-gradient(2px 2px at 70% 20%, #ffd166, transparent),
+  radial-gradient(1.5px 1.5px at 50% 70%, #fff, transparent), radial-gradient(60% 50% at 50% -10%, rgba(255,209,102,.2), transparent 60%), #022019;
+  background-size: 260px 260px, 260px 260px, 260px 260px, 100% 100%, 100% 100%; }
+
+/* ---------- اليوم الوطني (National day) ---------- */
+[data-skin="national"] {
+  --gold: #ffffff; --gold-2: #ffffff; --gold-3: #ffffff; --red: #00843d; --red-2: #00451f;
+  --glass-rgb: 0, 50, 24; --glass-border: rgba(255,255,255,.4);
+  --page-bg: #003d1d; --glow-1: rgba(255,255,255,.12); --glow-2: rgba(0,132,61,.4); --surface-border: rgba(255,255,255,.25);
+  --title-grad: linear-gradient(180deg, #ffffff, #e6f4ea);
+}
+[data-skin="national"] .chip.accent, [data-skin="national"] .live-badge.on { color: #00451f; }
+[data-skin="national"] .card-inner { border-inline-start: 5px solid #fff; }
+
+/* ---------- الأفراح (Wedding, light) ---------- */
+[data-skin="wedding"] {
+  --gold: #b8892b; --gold-2: #d4a94f; --gold-3: #f3e3bd; --red: #c97b84; --red-2: #8a4a52;
+  --glass-rgb: 255, 252, 245; --glass-border: rgba(184,137,43,.4);
+  --page-bg: #fbf6ec; --glow-1: rgba(184,137,43,.18); --glow-2: rgba(201,123,132,.15); --surface-border: rgba(184,137,43,.25);
+  --title-grad: linear-gradient(180deg, #8a6416, #b8892b 60%, #c97b84);
+}
+[data-skin="wedding"] .card-inner { border: 1px solid rgba(184,137,43,.5); }
+
+/* ---------- الأبطال (Champions) ---------- */
+[data-skin="champions"] {
+  --gold: #e5e7eb; --gold-2: #f9fafb; --gold-3: #ffffff; --red: #1e3a8a; --red-2: #0a1a4a;
+  --glass-rgb: 6, 14, 44; --glass-border: rgba(229,231,235,.35);
+  --page-bg: #030a2b; --glow-1: rgba(96,165,250,.25); --glow-2: rgba(229,231,235,.1); --surface-border: rgba(229,231,235,.2);
+  --title-grad: linear-gradient(180deg, #ffffff, #e5e7eb 50%, #9ca3af);
+}
+[data-skin="champions"] .live-bg { background:
+  radial-gradient(circle, rgba(255,255,255,.18) 1px, transparent 1.5px) 0 0 / 40px 40px,
+  radial-gradient(60% 50% at 50% 0%, rgba(96,165,250,.3), transparent 60%), #030a2b; }
+[data-skin="champions"] .chip.accent, [data-skin="champions"] .live-badge.on { color: #0a1a4a; }
+
+/* ---------- الديربي (Derby) ---------- */
+[data-skin="derby"] {
+  --gold: #ffffff; --gold-2: #f1f5f9; --red: #dc2626; --red-2: #7f1d1d;
+  --glass-rgb: 14, 14, 28; --glass-border: rgba(255,255,255,.25);
+  --page-bg: #0b0b18; --glow-1: rgba(220,38,38,.35); --glow-2: rgba(37,99,235,.35); --surface-border: rgba(255,255,255,.18);
+  --title-grad: linear-gradient(90deg, #f87171, #ffffff 50%, #60a5fa);
+}
+[data-skin="derby"] .live-bg { background: linear-gradient(100deg, #3b0a0a 0 49.8%, #ffffff22 50%, #0a1a3b 50.2%); }
+[data-skin="derby"] .card:nth-child(odd) .card-inner { border-inline-start: 4px solid #dc2626; }
+[data-skin="derby"] .card:nth-child(even) .card-inner { border-inline-start: 4px solid #2563eb; }
+[data-skin="derby"] .chip.accent, [data-skin="derby"] .live-badge.on { color: #0b0b18; }
+
+/* ---------- الحلبة (Arena) ---------- */
+[data-skin="arena"] {
+  --gold: #ffcc00; --gold-2: #ffe680; --red: #e10600; --red-2: #6b0300;
+  --glass-rgb: 12, 8, 8; --glass-border: rgba(225,6,0,.5);
+  --page-bg: #070505; --glow-1: rgba(255,255,255,.12); --glow-2: rgba(225,6,0,.35); --surface-border: rgba(225,6,0,.35);
+}
+[data-skin="arena"] .live-bg { background:
+  conic-gradient(from 200deg at 20% -10%, transparent 0 20deg, rgba(255,255,255,.08) 20deg 30deg, transparent 30deg),
+  conic-gradient(from 130deg at 80% -10%, transparent 0 20deg, rgba(255,255,255,.08) 20deg 30deg, transparent 30deg), #070505; }
+[data-skin="arena"] .name { text-transform: uppercase; letter-spacing: .02em; }
+[data-skin="arena"] .card.is-leader .card-inner { box-shadow: 0 0 0 2px #ffcc00, 0 0 40px rgba(225,6,0,.5); }
+
+/* ---------- الغابة (Forest) ---------- */
+[data-skin="forest"] {
+  --gold: #c9a227; --gold-2: #e6cf7a; --red: #4a7c3a; --red-2: #22401a;
+  --glass-rgb: 14, 26, 14; --glass-border: rgba(201,162,39,.3);
+  --page-bg: #0b170c; --glow-1: rgba(74,124,58,.4); --glow-2: rgba(120,80,40,.3); --surface-border: rgba(201,162,39,.2);
+}
+[data-skin="forest"] .live-bg { background: radial-gradient(80% 60% at 50% 120%, rgba(74,124,58,.4), transparent 60%), linear-gradient(180deg, #13261a, #0b170c); }
+
+/* ---------- ساكورا (Sakura, light) ---------- */
+[data-skin="sakura"] {
+  --gold: #db2777; --gold-2: #ec4899; --gold-3: #fce7f3; --red: #9d174d; --red-2: #500724;
+  --glass-rgb: 255, 245, 250; --glass-border: rgba(236,72,153,.25);
+  --page-bg: #fdf0f6; --glow-1: rgba(236,72,153,.2); --glow-2: rgba(251,207,232,.6);
+  --title-grad: linear-gradient(180deg, #9d174d, #db2777 60%, #f472b6);
+}
+[data-skin="sakura"] .live-bg { background:
+  radial-gradient(6px 4px at 15% 20%, #f9a8d4aa, transparent), radial-gradient(5px 3px at 65% 35%, #f9a8d4aa, transparent),
+  radial-gradient(6px 4px at 40% 75%, #f9a8d4aa, transparent), radial-gradient(4px 3px at 85% 80%, #f9a8d4aa, transparent), #fdf0f6;
+  background-size: 320px 320px, 320px 320px, 320px 320px, 320px 320px, 100% 100%; }
+
+/* ---------- النعناع (Mint, light) ---------- */
+[data-skin="mint"] {
+  --gold: #059669; --gold-2: #10b981; --gold-3: #d1fae5; --red: #0d9488; --red-2: #134e4a;
+  --glass-rgb: 245, 255, 250; --glass-border: rgba(16,185,129,.25);
+  --page-bg: #ecfdf5; --glow-1: rgba(16,185,129,.2); --glow-2: rgba(45,212,191,.2);
+  --title-grad: linear-gradient(180deg, #064e3b, #059669 70%, #10b981);
+}
+
+/* ---------- الورق (Paper, light) ---------- */
+[data-skin="paper"] {
+  --gold: #b45309; --gold-2: #d97706; --gold-3: #fef3c7; --red: #7c2d12; --red-2: #431407;
+  --glass-rgb: 255, 250, 238; --glass-border: rgba(68,40,20,.25);
+  --page-bg: #f6efdf; --glow-1: rgba(180,83,9,.08); --glow-2: rgba(68,40,20,.06);
+  --title-grad: linear-gradient(180deg, #3b2612, #7c2d12);
+}
+[data-skin="paper"] .glass, [data-skin="paper"] .surface { box-shadow: 3px 3px 0 rgba(68,40,20,.25) !important; }
+[data-skin="paper"] .live-bg { background: repeating-linear-gradient(0deg, rgba(68,40,20,.05) 0 1px, transparent 1px 32px), #f6efdf; }
+
+/* ---------- أبيض بسيط (Clean, light) ---------- */
+[data-skin="clean"] {
+  --gold: #111827; --gold-2: #374151; --gold-3: #e5e7eb; --red: #ef4444; --red-2: #991b1b;
+  --glass-rgb: 255, 255, 255; --glass-border: rgba(17,24,39,.08);
+  --page-bg: #f9fafb; --glow-1: transparent; --glow-2: transparent;
+  --title-grad: linear-gradient(180deg, #111827, #111827);
+}
+[data-skin="clean"] .glass { --glass-a: .96; box-shadow: 0 1px 3px rgba(0,0,0,.08) !important; backdrop-filter: none !important; }
+[data-skin="clean"] .card-inner::before, [data-skin="clean"] .card-inner::after { display: none; }
+
+/* ---------- أسود بسيط (Mono) ---------- */
+[data-skin="mono"] {
+  --gold: #ffffff; --gold-2: #ffffff; --gold-3: #ffffff; --red: #737373; --red-2: #262626;
+  --glass-rgb: 10, 10, 10; --glass-border: rgba(255,255,255,.12);
+  --page-bg: #000000; --glow-1: transparent; --glow-2: transparent; --surface-border: rgba(255,255,255,.12);
+  --title-grad: linear-gradient(180deg, #fff, #fff);
+}
+[data-skin="mono"] .glass { box-shadow: none !important; }
+[data-skin="mono"] .card-inner::before, [data-skin="mono"] .card-inner::after { display: none; }
+[data-skin="mono"] .name, [data-skin="mono"] .num { text-shadow: none; }
+[data-skin="mono"] .chip.accent, [data-skin="mono"] .live-badge.on { color: #000; }
+[data-skin="mono"] .ticker-label { background: #fff; color: #000; }
+
+/* ---------- فيبرويف (Vapor) ---------- */
+[data-skin="vapor"] {
+  --gold: #ff71ce; --gold-2: #ffb3e6; --gold-3: #ffe3f6; --red: #01cdfe; --red-2: #05668d;
+  --glass-rgb: 28, 8, 48; --glass-border: rgba(255,113,206,.45);
+  --page-bg: #1a0633; --glow-1: rgba(255,113,206,.3); --glow-2: rgba(1,205,254,.25); --surface-border: rgba(255,113,206,.3);
+  --title-grad: linear-gradient(180deg, #fffb96, #ff71ce 55%, #b967ff);
+}
+[data-skin="vapor"] .live-bg { background:
+  linear-gradient(transparent 55%, rgba(255,113,206,.25) 55.2%, transparent 56%),
+  repeating-linear-gradient(90deg, rgba(1,205,254,.12) 0 1px, transparent 1px 70px),
+  linear-gradient(180deg, #1a0633 0, #3b0d5c 55%, #12042a 56%); }
+
+/* ---------- جيم بوي (Gameboy) ---------- */
+[data-skin="gameboy"] {
+  --gold: #9bbc0f; --gold-2: #c4dc5a; --gold-3: #e0f0a0; --red: #306230; --red-2: #0f380f;
+  --glass-rgb: 15, 56, 15; --glass-border: #8bac0f;
+  --page-bg: #0f380f; --glow-1: transparent; --glow-2: transparent; --surface-border: #8bac0f;
+  --title-grad: linear-gradient(180deg, #e0f0a0, #9bbc0f);
+}
+[data-skin="gameboy"] .glass, [data-skin="gameboy"] .surface, [data-skin="gameboy"] .chip, [data-skin="gameboy"] .bar,
+[data-skin="gameboy"] .fill, [data-skin="gameboy"] .goal-bar, [data-skin="gameboy"] .goal-fill, [data-skin="gameboy"] .rank, [data-skin="gameboy"] .flag { border-radius: 0 !important; }
+[data-skin="gameboy"] .card-inner { border-width: 3px; box-shadow: 4px 4px 0 #0f380f; }
+[data-skin="gameboy"] .fill { background: #9bbc0f !important; }
+[data-skin="gameboy"] .num { font-family: ui-monospace, 'SF Mono', Consolas, monospace; }
+[data-skin="gameboy"] .chip.accent, [data-skin="gameboy"] .live-badge.on { color: #0f380f; }
+
+/* ---------- كوميك (Comic) ---------- */
+[data-skin="comic"] {
+  --gold: #ffd600; --gold-2: #ffe766; --red: #ff1744; --red-2: #8a0020;
+  --glass-rgb: 30, 30, 60; --glass-border: #000;
+  --page-bg: #2b2bd1; --glow-1: rgba(255,214,0,.2); --glow-2: rgba(255,23,68,.2); --surface-border: #000;
+}
+[data-skin="comic"] .card-inner, [data-skin="comic"] .toast, [data-skin="comic"] .ov-header, [data-skin="comic"] .surface { border: 3px solid #000 !important; box-shadow: 6px 6px 0 #000 !important; }
+[data-skin="comic"] .name, [data-skin="comic"] .num, [data-skin="comic"] .ov-title, [data-skin="comic"] .live-title { text-shadow: 2px 2px 0 #000, -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000; }
+[data-skin="comic"] .live-bg { background: radial-gradient(circle, rgba(255,255,255,.18) 2px, transparent 2.5px) 0 0 / 14px 14px, #2b2bd1; }
+[data-skin="comic"] .chip.accent, [data-skin="comic"] .live-badge.on { color: #000; }
+
+/* ---------- الحلوى (Candy) ---------- */
+[data-skin="candy"] {
+  --gold: #ffd23f; --gold-2: #ffe680; --red: #ff5fa2; --red-2: #9b1c58;
+  --glass-rgb: 60, 20, 80; --glass-border: rgba(255,255,255,.4);
+  --page-bg: #4a1670; --glow-1: rgba(255,95,162,.4); --glow-2: rgba(63,224,208,.35); --surface-border: rgba(255,255,255,.3);
+  --title-grad: linear-gradient(90deg, #ff5fa2, #ffd23f 50%, #3fe0d0);
+}
+[data-skin="candy"] .live-bg { background: repeating-linear-gradient(135deg, rgba(255,255,255,.05) 0 24px, transparent 24px 48px), linear-gradient(160deg, #6a1b9a, #4a1670 50%, #b0306a); }
+[data-skin="candy"] .card-inner { border-radius: calc(var(--radius) + 10px); }
+
+/* ---------- هولوغرام (Holo) ---------- */
+[data-skin="holo"] {
+  --gold: #c0fdfb; --gold-2: #ffffff; --red: #f0abfc; --red-2: #7e22ce;
+  --glass-rgb: 18, 18, 30; --glass-border: rgba(255,255,255,.35);
+  --page-bg: #0d0d18; --glow-1: rgba(192,253,251,.25); --glow-2: rgba(240,171,252,.25); --surface-border: rgba(255,255,255,.2);
+  --title-grad: linear-gradient(90deg, #f0abfc, #c0fdfb, #fde68a, #f0abfc);
+}
+[data-skin="holo"] .card-inner { background-image: linear-gradient(120deg, rgba(240,171,252,.12), rgba(192,253,251,.12), rgba(253,230,138,.12)); background-size: 200% 200%; animation: skinDrift 8s ease-in-out infinite alternate; }
+[data-skin="holo"] .fill { background: linear-gradient(90deg, #f0abfc, #c0fdfb, #fde68a) !important; }
+[data-skin="holo"] .chip.accent, [data-skin="holo"] .live-badge.on { color: #0d0d18; }
+
+/* ---------- تصميمي الخاص (Custom: colours from the theme, see skinVars) ---------- */
+[data-skin="custom"] {
+  --gold: var(--c1); --gold-2: color-mix(in srgb, var(--c1) 60%, #fff); --gold-3: color-mix(in srgb, var(--c1) 25%, #fff);
+  --red: var(--c2); --red-2: color-mix(in srgb, var(--c2) 55%, #000);
+  --glass-rgb: var(--c3-rgb); --glass-border: color-mix(in srgb, var(--c1) 38%, transparent);
+  --page-bg: var(--c3); --glow-1: color-mix(in srgb, var(--c1) 25%, transparent); --glow-2: color-mix(in srgb, var(--c2) 28%, transparent);
+  --surface-border: color-mix(in srgb, var(--c1) 25%, transparent);
+  --title-grad: linear-gradient(180deg, var(--gold-3), var(--gold-2) 40%, var(--c1) 80%);
+}
+[data-skin="custom"][data-tone="light"] { --title-grad: linear-gradient(180deg, color-mix(in srgb, var(--c1) 60%, #000), var(--c1)); }
+
+@keyframes skinDrift { from { background-position: 0% 0%; } to { background-position: 100% 100%; } }
+@keyframes skinFlash { 0%, 92%, 100% { filter: brightness(1); } 94% { filter: brightness(1.8); } 96% { filter: brightness(1.1); } 98% { filter: brightness(1.6); } }
+@media (prefers-reduced-motion: reduce) { [data-skin] .live-bg, [data-skin] .card-inner { animation: none !important; } }
 
 /* ---------- Mini swatch used in the admin look gallery ---------- */
 .skin-swatch { position: relative; height: 92px; border-radius: 12px; overflow: hidden; padding: 10px; display: flex; flex-direction: column; gap: 6px; justify-content: flex-end;

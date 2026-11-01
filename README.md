@@ -12,7 +12,8 @@
 - **لوحة تحكم عربية** `/admin/`:
   - نظرة عامة، الاتصال بالبث، الفرق والهدف، الهدايا والنقاط، المظهر (مع معاينة حية)، الأدوات.
   - الخادم والحساب، محرر الملفات، السجلات، والتحديث من GitHub بضغطة.
-- **11 شكلاً جاهزاً** (الذهبي، نيون، الملعب، الصحراء، ليالي رمضان، الأبيض الزجاجي، اللهب، الزمرد، البنفسجي الملكي، المحيط، ريترو):
+- **44 شكلاً جاهزاً** مقسّمة إلى: داكن، فاتح، فاخر، رياضي، تراثي ومناسبات، ألعاب ومرح. ومعها **«تصميمي الخاص»** بثلاثة ألوان تختارها.
+- **شعار خاص لكل بث:** ارفع شعارك (PNG شفاف) ليظهر بدل الشعار الافتراضي في OBS والصفحة المباشرة، مع التحكم في حجمه.
   - اختر شكلاً ثابتاً أو بدّل تلقائياً **كل يوم أو كل أسبوع**.
 - **صور خاصة:**
   - ارفع صورة لكل دولة أو نادٍ أو قبيلة بدل الإيموجي (دائرة، مربع أو حواف دائرية).
@@ -109,7 +110,7 @@ sudo bash /opt/koydam-tiktok/deploy/update.sh
 
 ### Users & lives
 - The **owner** account adds users on the *Users* page and sets how many lives each user may create.
-- Each **live** has its own config, scores, rounds, reports, voice settings and TikTok account. Data is stored in `data/lives/<slug>/`.
+- Each **live** has its own look (44 skins + a custom 3-colour look), its own logo, config, scores, rounds, reports, voice settings and TikTok account. Data is stored in `data/lives/<slug>/`.
 - Users see only their own lives. Server, files, updates and logs are owner-only.
 - Per-live links: `/l/<slug>`, `/l/<slug>/overlay`, `/l/<slug>/overlay-vertical`. These redirect to `?live=<slug>`.
 - On upgrade from v2, the existing setup moves into the default live `main`, and old links keep working.

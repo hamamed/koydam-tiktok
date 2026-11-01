@@ -7,7 +7,7 @@ import Speaker from './Speaker';
 import { AnimatedNumber, GiftLegend, GoalBar, Logo } from './bits';
 import { useGiftMap } from '@/lib/gifts';
 import { ensureFont, fmt, safeUrl, themeVars } from '@/lib/format';
-import { useActiveSkin } from '@/lib/skins';
+import { skinTone, skinVars, useActiveSkin } from '@/lib/skins';
 
 /** Background picture layer (dimmed, optional blur). */
 export function ScenePhoto({ theme }) {
@@ -38,16 +38,16 @@ export default function Overlay({ config, state, byId, status, gifts, round, pre
   const showToasts = portrait ? v.showToasts !== false : true;
   const showTicker = portrait ? Boolean(v.showTicker) : th.showTicker;
   const fg = config.social?.followGoal;
-  const vars = { ...themeVars(th), background: th.background || 'transparent' };
+  const vars = { ...themeVars(th), ...skinVars(th), background: th.background || 'transparent' };
   if (portrait) Object.assign(vars, { '--fs': (th.fontScale ?? 1) * (v.scale ?? 1), '--v-top': `${v.top ?? 170}px`, '--v-side': `${v.side ?? 28}px`, '--v-toasts-top': `${v.toastsTop ?? 1080}px` });
 
   return (
-    <div className={`overlay-root${preview ? ' preview' : ''}${portrait ? ' portrait' : ''}`} data-skin={skin} style={vars}>
+    <div className={`overlay-root${preview ? ' preview' : ''}${portrait ? ' portrait' : ''}`} data-skin={skin} data-tone={skinTone(skin, th)} style={vars}>
       {th.bgOnOverlay && <ScenePhoto theme={th} />}
       <div className={`ov-panel ${portrait ? 'portrait' : `pos-${th.position} layout-${th.layout}`}`}>
         {showHeader && (
           <header className="ov-header glass">
-            {th.showLogo && <Logo small className="ov-logo" />}
+            {th.showLogo && <Logo small className="ov-logo" src={th.logo} alt={config.title} />}
             <div className="ov-head-main">
               <div className="ov-title">{config.title}</div>
               {config.subtitle && <div className="ov-sub">{config.subtitle}</div>}

@@ -8,7 +8,7 @@ import { findGift, useGiftMap } from '@/lib/gifts';
 import { FONTS } from '@/lib/fonts';
 import { api } from '@/lib/api';
 import { PRESETS } from '@/lib/presets';
-import { SKINS, activeSkin, skinName } from '@/lib/skins';
+import { SKINS, SKIN_CATS, activeSkin, skinName, skinTone, skinVars } from '@/lib/skins';
 import { pickFile, uploadImage } from '@/lib/upload';
 import { safeUrl } from '@/lib/format';
 import { cmd } from '@/lib/store';
@@ -273,12 +273,12 @@ function ScaledStage({ w, h, children }) {
   );
 }
 
-function SkinCard({ skin, selected, today, inRotation, rotating, onPick, onToggle }) {
+function SkinCard({ skin, theme, title, selected, today, inRotation, rotating, onPick, onToggle }) {
   return (
     <div className={`a-skin${selected ? ' selected' : ''}`}>
       <button className="a-skin-pick" onClick={onPick} title="اختيار هذا الشكل">
-        <div className="skin-swatch" data-skin={skin.id}>
-          <span className="sw-title">تحدي المليون</span>
+        <div className="skin-swatch" data-skin={skin.id} data-tone={skinTone(skin.id, theme)} style={skin.id === 'custom' ? skinVars(theme) : undefined}>
+          <span className="sw-title">{title || 'تحدي المليون'}</span>
           <span className="sw-card" /><span className="sw-card b" />
         </div>
         <div className="a-skin-meta">
@@ -296,7 +296,7 @@ function SkinCard({ skin, selected, today, inRotation, rotating, onPick, onToggl
   );
 }
 
-function Library({ onUse, refreshKey }) {
+function Library({ onUse, onLogo, refreshKey }) {
   const notice = useNotice();
   const [files, setFiles] = useState(null);
   const load = useCallback(async () => { try { setFiles((await api('/api/uploads')).files); } catch (e) { notice(e.message, 'err'); } }, [notice]);
@@ -310,6 +310,7 @@ function Library({ onUse, refreshKey }) {
           <img src={f.url} alt="" loading="lazy" />
           <div className="a-lib-actions">
             <button className="a-icon-btn" title="استخدام كخلفية" onClick={() => onUse(f.url)}><Icon name="check" /></button>
+            {onLogo && <button className="a-icon-btn" title="استخدام كشعار" onClick={() => onLogo(f.url)}>🏷️</button>}
             <button className="a-icon-btn danger" title="حذف" onClick={async () => {
               if (!confirm('حذف هذه الصورة؟ إذا كانت مستخدمة ستختفي من الشاشات.')) return;
               try { await api(`/api/upload?name=${encodeURIComponent(f.name)}`, { method: 'DELETE' }); load(); } catch (e) { notice(e.message, 'err'); }
@@ -327,6 +328,10 @@ export function Theme({ live, draft, edit }) {
   const set = (k) => (v) => edit((c) => { c.theme[k] = v; });
   const [view, setView] = useState('overlay');
   const [libKey, setLibKey] = useState(0);
+  const [cat, setCat] = useState('all');
+  const shown = cat === 'all' ? SKINS : SKINS.filter((x) => x.cat === cat);
+  const cu = t.custom || { primary: '#f5b301', secondary: '#c8102e', bg: '#0b0a0f', tone: 'dark' };
+  const setCu = (k) => (v) => edit((c) => { c.theme.custom = { ...(c.theme.custom || cu), [k]: v }; });
   const rot = t.skinRotation || { mode: 'off', skins: [] };
   const rotating = rot.mode !== 'off';
   const nowSkin = activeSkin(t);
@@ -346,20 +351,51 @@ export function Theme({ live, draft, edit }) {
   return (
     <div className="a-grid">
       <Section title="🎨 الأشكال الجاهزة" className="span-2"
-        desc="11 شكلاً للصفحة المباشرة وواجهة OBS. اختر شكلاً ثابتاً، أو فعّل التبديل التلقائي ليتغير الشكل كل يوم أو كل أسبوع."
+        desc={`${SKINS.length} شكلاً للصفحة المباشرة وواجهة OBS، منها «تصميمي الخاص» بألوانك. كل بث له شكله وشعاره الخاص. اختر شكلاً ثابتاً، أو فعّل التبديل التلقائي ليتغير كل يوم أو كل أسبوع.`}
         actions={<div className="a-inline"><span className="a-label">التبديل التلقائي</span>
           <Select value={rot.mode} onChange={(v) => edit((c) => { c.theme.skinRotation = { ...(c.theme.skinRotation || { skins: [] }), mode: v }; })}
             options={[['off', 'إيقاف (شكل ثابت)'], ['daily', 'كل يوم'], ['weekly', 'كل أسبوع (الاثنين)']]} /></div>}>
         {rotating && (
           <div className="a-alert gold"><Icon name="update" />اليوم: <b>{skinName(nowSkin)}</b>{next && <> · {rot.mode === 'daily' ? 'غداً' : 'الأسبوع القادم'}: <b>{skinName(next)}</b></>} · الأشكال المشمولة: {rot.skins.length || SKINS.length}</div>
         )}
+        <div className="a-seg a-skin-cats">
+          {SKIN_CATS.map(([id, label]) => {
+            const n = id === 'all' ? SKINS.length : SKINS.filter((x) => x.cat === id).length;
+            return <button key={id} className={cat === id ? 'on' : ''} onClick={() => setCat(id)}>{label} <small className="num-latin">{n}</small></button>;
+          })}
+        </div>
         <div className="a-skins">
-          {SKINS.map((sk) => (
-            <SkinCard key={sk.id} skin={sk} selected={t.skin === sk.id} today={rotating ? nowSkin === sk.id : t.skin === sk.id}
+          {shown.map((sk) => (
+            <SkinCard key={sk.id} skin={sk} theme={t} title={draft.title} selected={t.skin === sk.id} today={rotating ? nowSkin === sk.id : t.skin === sk.id}
               rotating={rotating} inRotation={!rot.skins.length || rot.skins.includes(sk.id)}
               onPick={() => edit((c) => { c.theme.skin = sk.id; if (rotating) c.theme.skinRotation = { ...c.theme.skinRotation, mode: 'off' }; })}
               onToggle={(on) => toggleRot(sk.id, on)} />
           ))}
+        </div>
+      </Section>
+
+      <Section title="🎨 تصميمي الخاص" desc="اختر ألوانك ثم اختر شكل «تصميمي الخاص» في الأعلى. ينطبق على هذا البث فقط."
+        actions={t.skin !== 'custom' && <Btn size="sm" variant="gold" onClick={() => edit((c) => { c.theme.skin = 'custom'; if (c.theme.skinRotation) c.theme.skinRotation = { ...c.theme.skinRotation, mode: 'off' }; })}>استخدام تصميمي</Btn>}>
+        <div className="a-form">
+          <Field label="اللون الأساسي" hint="العناوين والأرقام والتمييز"><Color value={cu.primary} onChange={setCu('primary')} /></Field>
+          <Field label="اللون الثانوي" hint="الأشرطة والتوهج"><Color value={cu.secondary} onChange={setCu('secondary')} /></Field>
+          <Field label="لون الخلفية والبطاقات"><Color value={cu.bg} onChange={setCu('bg')} /></Field>
+          <Field label="نوع الخلفية"><Select value={cu.tone} onChange={setCu('tone')} options={[['dark', 'داكنة (نص أبيض)'], ['light', 'فاتحة (نص داكن)']]} /></Field>
+        </div>
+      </Section>
+
+      <Section title="🏷️ شعار البث" desc="ارفع شعارك ليظهر بدل شعار «تحدي المليون» في OBS والصفحة المباشرة. يفضّل PNG بخلفية شفافة.">
+        <div className="a-bg-pick">
+          <div className="a-logo-thumb">{safeUrl(t.logo) || /^\/uploads\//.test(t.logo || '') ? <img src={t.logo} alt="" /> : <img src="/logo-sm.png" alt="" className="def" />}</div>
+          <div className="a-bg-actions">
+            <UploadBtn max={800} variant="gold" size="" onDone={(url) => { edit((c) => { c.theme.logo = url; c.theme.showLogo = true; }); setLibKey((k) => k + 1); }}>{t.logo ? 'تغيير الشعار' : 'رفع شعاري'}</UploadBtn>
+            {t.logo && <Btn variant="ghost" icon="trash" onClick={() => edit((c) => { c.theme.logo = ''; })}>الشعار الافتراضي</Btn>}
+          </div>
+        </div>
+        <div className="a-form">
+          <Field label="حجم الشعار"><Range value={t.logoSize ?? 1} min={0.4} max={2.5} step={0.05} suffix="×" onChange={set('logoSize')} /></Field>
+          <Toggle label="إظهار الشعار في OBS" checked={t.showLogo} onChange={set('showLogo')} />
+          <Toggle label="إظهار الشعار في الصفحة المباشرة" checked={t.logoOnLive !== false} onChange={set('logoOnLive')} />
         </div>
       </Section>
 
@@ -463,7 +499,6 @@ export function Theme({ live, draft, edit }) {
           <Field label="عدد الداعمين لكل فريق"><Num value={t.contributorsCount} min={1} max={5} onChange={set('contributorsCount')} /></Field>
           <Toggle label="إظهار الداعمين" checked={t.showContributors} onChange={set('showContributors')} />
           <Toggle label="إظهار الرأس" checked={t.showHeader} onChange={set('showHeader')} />
-          <Toggle label="إظهار الشعار" checked={t.showLogo} onChange={set('showLogo')} />
           <Toggle label="إظهار الشريط الإخباري" checked={t.showTicker} onChange={set('showTicker')} />
           <Toggle label="إظهار عدد المشاهدين" checked={t.showViewers} onChange={set('showViewers')} />
           <Toggle label="صور هدايا كل فريق على بطاقته" checked={t.showTeamGifts !== false} onChange={set('showTeamGifts')} />
@@ -471,8 +506,8 @@ export function Theme({ live, draft, edit }) {
         </div>
       </Section>
 
-      <Section title="📁 مكتبة الصور" desc="كل الصور المرفوعة (صور الفرق والخلفيات). ✓ = استخدام كخلفية." className="span-2">
-        <Library refreshKey={libKey} onUse={(url) => edit((c) => { c.theme.bgImage = url; })} />
+      <Section title="📁 مكتبة الصور" desc="كل الصور المرفوعة (صور الفرق والخلفيات والشعارات). ✓ = استخدام كخلفية، 🏷️ = استخدام كشعار." className="span-2">
+        <Library refreshKey={libKey} onUse={(url) => edit((c) => { c.theme.bgImage = url; })} onLogo={(url) => edit((c) => { c.theme.logo = url; c.theme.showLogo = true; })} />
       </Section>
     </div>
   );

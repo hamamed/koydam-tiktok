@@ -12,7 +12,7 @@ import { AnimatedNumber, Avatar, Flag, GiftIcon, GoalBar, Logo } from './bits';
 import { findGift, useGiftMap } from '@/lib/gifts';
 import { ensureFont, fmt, fontVars, safeUrl } from '@/lib/format';
 import { useEffect } from 'react';
-import { useActiveSkin } from '@/lib/skins';
+import { skinTone, skinVars, useActiveSkin } from '@/lib/skins';
 
 function timeAgo(ts) {
   const s = Math.max(1, Math.round((Date.now() - ts) / 1000));
@@ -27,7 +27,7 @@ export default function LiveView({ config, state, byId, status, gifts, round, co
   const { feed, banner } = useAlerts(config, { toasts: false, confetti: !preview });
   const skin = useActiveSkin(config?.theme);
   const th = config?.theme || {};
-  const rootProps = { className: `live-root${preview ? ' preview' : ''}`, 'data-skin': skin, style: { '--name-g': th.nameScale ?? 1, '--flag-scale': th.flagScale ?? 1, ...fontVars(th) } };
+  const rootProps = { className: `live-root${preview ? ' preview' : ''}`, 'data-skin': skin, 'data-tone': skinTone(skin, th), style: { ...skinVars(th), '--name-g': th.nameScale ?? 1, '--flag-scale': th.flagScale ?? 1, ...fontVars(th) } };
   useEffect(() => { ensureFont(th.fontFamily); ensureFont(th.titleFont); }, [th.fontFamily, th.titleFont]);
 
   const supporters = useMemo(() => {
@@ -39,7 +39,7 @@ export default function LiveView({ config, state, byId, status, gifts, round, co
 
   if (!config || !state) {
     return (
-      <div {...rootProps}><div className="live-bg" /><div className="live-loading"><Logo className="live-logo pulse" /><p>جارٍ الاتصال بالبث…</p></div></div>
+      <div {...rootProps}><div className="live-bg" /><div className="live-loading"><Logo className="live-logo pulse" src={th.logo} /><p>جارٍ الاتصال بالبث…</p></div></div>
     );
   }
   const totalSupporters = state.teams.reduce((n, t) => n + (t.supporters || 0), 0);
@@ -51,7 +51,7 @@ export default function LiveView({ config, state, byId, status, gifts, round, co
       <div className="live-bg" />
       {th.bgOnLive && <ScenePhoto theme={th} />}
       <header className="live-hero">
-        <Logo className="live-logo" />
+        {th.logoOnLive !== false && <Logo className="live-logo" src={th.logo} alt={config.title} />}
         <div className="live-hero-text">
           <span className={`live-badge${isLive ? ' on' : ''}`}><span className="live-dot" />{isLive ? 'مباشر الآن' : 'البث متوقف'}{status?.username ? ` · @${status.username}` : ''}</span>
           <h1 className="live-title">{config.title}</h1>

@@ -68,9 +68,11 @@ export function GiftLegend({ teams, giftMap, className = 'gift-legend' }) {
   );
 }
 
-export function Logo({ className = 'logo', small }) {
+/** The default logo, or the live's own logo when `src` is set (theme.logo). */
+export function Logo({ className = 'logo', small, src, alt = 'تحدي المليون' }) {
+  const own = typeof src === 'string' && /^(\/uploads\/|https:\/\/)/.test(src);
   // eslint-disable-next-line @next/next/no-img-element
-  return <img className={className} src={small ? '/logo-sm.png' : '/logo.png'} alt="تحدي المليون" draggable={false} />;
+  return <img className={`${className}${own ? ' own-logo' : ''}`} src={own ? src : small ? '/logo-sm.png' : '/logo.png'} alt={alt} draggable={false} />;
 }
 
 /** Progress toward the 1M goal. */
