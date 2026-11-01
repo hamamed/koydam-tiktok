@@ -569,3 +569,8 @@ html[data-admin-theme="light"] .admin-root .goal-pct { color: #1c1a22; text-shad
 .a-video-poster { display: flex; align-items: center; justify-content: center; gap: 8px; border: 0; color: #fff; font: inherit; font-weight: 800; cursor: pointer;
   background: radial-gradient(60% 50% at 50% 30%, rgba(245,179,1,.35), transparent 70%), #0b0a0f; }
 .a-video-meta { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+
+/* Vertical settings */
+.a-vpresets { display: flex; flex-wrap: wrap; gap: 6px; }
+.a-seg-wrap { flex-wrap: wrap; }
+.a-tiktok-safe .right { top: 760px; bottom: 560px; left: auto !important; right: 0; width: 130px; font-size: calc(22px * var(--a-fs, 1)) !important; writing-mode: vertical-rl; }

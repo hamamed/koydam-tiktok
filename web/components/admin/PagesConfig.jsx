@@ -369,6 +369,51 @@ function Library({ onUse, onLogo, refreshKey }) {
   );
 }
 
+/** Vertical (TikTok) settings: presets, layout, header, alerts, safe areas. */
+const V_PRESETS = [
+  ['tiktok', '📱 تيك توك (موصى به)', { layout: 'grid', columns: 2, header: 'compact', top: 170, side: 24, scale: 1, maxVisible: 6, toastsTop: 1180, maxToasts: 3, toastsAlign: 'center', showToasts: true, showTicker: false }],
+  ['face', '🙂 الوجه ظاهر', { layout: 'side', sideWidth: 420, sideAlign: 'right', header: 'compact', top: 170, side: 20, scale: 0.9, maxVisible: 6, toastsTop: 1250, maxToasts: 2, toastsAlign: 'left', showToasts: true, showTicker: false }],
+  ['many', '🌍 دول كثيرة', { layout: 'grid', columns: 3, header: 'compact', top: 160, side: 18, scale: 0.85, maxVisible: 12, toastsTop: 1330, maxToasts: 2, toastsAlign: 'center', showToasts: true, showTicker: false }],
+  ['full', '🏆 لوحة كاملة', { layout: 'list', header: 'full', top: 150, side: 24, scale: 1, maxVisible: 6, toastsTop: 1350, maxToasts: 3, toastsAlign: 'center', showToasts: true, showTicker: false }],
+];
+function VerticalControls({ t, edit }) {
+  const v = { layout: 'grid', columns: 2, sideWidth: 440, sideAlign: 'right', header: 'compact', maxToasts: 3, toastsAlign: 'center', ...(t.vertical || {}) };
+  const setV = (k) => (val) => edit((c) => { c.theme.vertical = { ...c.theme.vertical, [k]: val }; });
+  const seg = (k, opts) => (
+    <div className="a-seg a-seg-wrap">{opts.map(([val, l]) => <button key={val} className={v[k] === val ? 'on' : ''} onClick={() => setV(k)(val)}>{l}</button>)}</div>
+  );
+  return (
+    <div className="a-form a-vprev-ctl">
+      <h4 className="a-sub">إعدادات البث العمودي</h4>
+      <Toggle label="بثي عمودي فقط (تيك توك)" checked={t.portraitOnly !== false} onChange={(val) => edit((c) => { c.theme.portraitOnly = val; })} />
+      <Field label="قوالب جاهزة">
+        <div className="a-vpresets">
+          {V_PRESETS.map(([id, label, val]) => <button key={id} type="button" className="a-btn ghost sm" onClick={() => edit((c) => { c.theme.vertical = { ...c.theme.vertical, ...val }; })}>{label}</button>)}
+        </div>
+      </Field>
+      <Field label="ترتيب الفرق">{seg('layout', [['grid', '▦ مربعات'], ['side', '▮ عمود جانبي'], ['list', '☰ قائمة كاملة']])}</Field>
+      {v.layout === 'grid' && <Field label="عدد الأعمدة">{seg('columns', [[1, '1'], [2, '2'], [3, '3']])}</Field>}
+      {v.layout === 'side' && <>
+        <Field label="جهة العمود">{seg('sideAlign', [['right', 'يمين'], ['left', 'يسار']])}</Field>
+        <Field label="عرض العمود"><Range value={v.sideWidth} min={300} max={800} step={10} suffix="px" onChange={setV('sideWidth')} /></Field>
+      </>}
+      <Field label="الرأس (العنوان والهدف)">{seg('header', [['compact', 'مختصر'], ['full', 'كامل'], ['off', 'مخفي']])}</Field>
+      <Field label="عدد الفرق الظاهرة"><Num value={v.maxVisible ?? 6} min={1} max={30} onChange={setV('maxVisible')} /></Field>
+      <Field label="الحجم"><Range value={v.scale ?? 1} min={0.5} max={1.6} step={0.05} suffix="×" onChange={setV('scale')} /></Field>
+      <Field label="المسافة من الأعلى" hint="اترك مكاناً لاسمك وأزرار تيك توك (حوالي 150–180)"><Range value={v.top ?? 170} min={0} max={900} step={10} suffix="px" onChange={setV('top')} /></Field>
+      <Field label="الهامش الجانبي"><Range value={v.side ?? 28} min={0} max={200} step={2} suffix="px" onChange={setV('side')} /></Field>
+      <h4 className="a-sub">تنبيهات الهدايا</h4>
+      <Toggle label="إظهار التنبيهات" checked={v.showToasts !== false} onChange={setV('showToasts')} />
+      {v.showToasts !== false && <>
+        <Field label="أقصى عدد تنبيهات معاً">{seg('maxToasts', [[1, '1'], [2, '2'], [3, '3'], [4, '4'], [5, '5']])}</Field>
+        <Field label="الجهة">{seg('toastsAlign', [['right', 'يمين'], ['center', 'وسط'], ['left', 'يسار']])}</Field>
+        <Field label="موضعها من الأعلى" hint="أسفل الترتيب وفوق تعليقات تيك توك"><Range value={v.toastsTop ?? 1080} min={0} max={1800} step={10} suffix="px" onChange={setV('toastsTop')} /></Field>
+      </>}
+      <Toggle label="الشريط الإخباري للهدايا" checked={Boolean(v.showTicker)} onChange={setV('showTicker')} />
+    </div>
+  );
+}
+
 /** The bar with every team's flag + gift: news ticker or fixed, top/bottom and where exactly. */
 function StripEditor({ draft, edit }) {
   const t = draft.theme;
@@ -450,7 +495,7 @@ function PartsEditor({ draft, edit }) {
 export function Theme({ live, draft, edit }) {
   const t = draft.theme;
   const set = (k) => (v) => edit((c) => { c.theme[k] = v; });
-  const [view, setView] = useState('overlay');
+  const [view, setView] = useState(t.portraitOnly !== false ? 'vertical' : 'overlay');
   const [libKey, setLibKey] = useState(0);
   const [cat, setCat] = useState('all');
   const shown = cat === 'all' ? SKINS : SKINS.filter((x) => x.cat === cat);
@@ -532,18 +577,8 @@ export function Theme({ live, draft, edit }) {
         {view === 'overlay' && <ScaledStage w={1920} h={1080}><Overlay config={draft} state={live.state} byId={live.byId} status={live.status} gifts={live.gifts} round={live.round} preview /></ScaledStage>}
         {view === 'vertical' && (
           <div className="a-vprev">
-            <ScaledStage w={1080} h={1920}><div className="a-tiktok-safe"><span className="top">واجهة تيك توك العلوية</span><span className="bottom">التعليقات وأزرار تيك توك</span></div><Overlay config={draft} state={live.state} byId={live.byId} status={live.status} gifts={live.gifts} round={live.round} orientation="portrait" preview /></ScaledStage>
-            <div className="a-form a-vprev-ctl">
-              <h4 className="a-sub">إعدادات الواجهة العمودية</h4>
-              <Field label="المسافة من الأعلى" hint="اترك مكاناً لاسمك وأزرار تيك توك"><Range value={t.vertical.top} min={0} max={900} step={10} suffix="px" onChange={(v) => edit((c) => { c.theme.vertical.top = v; })} /></Field>
-              <Field label="الهامش الجانبي"><Range value={t.vertical.side} min={0} max={200} step={2} suffix="px" onChange={(v) => edit((c) => { c.theme.vertical.side = v; })} /></Field>
-              <Field label="الحجم"><Range value={t.vertical.scale} min={0.5} max={2} step={0.05} suffix="×" onChange={(v) => edit((c) => { c.theme.vertical.scale = v; })} /></Field>
-              <Field label="عدد الفرق الظاهرة"><Num value={t.vertical.maxVisible} min={1} max={30} onChange={(v) => edit((c) => { c.theme.vertical.maxVisible = v; })} /></Field>
-              <Field label="موضع التنبيهات (من الأعلى)"><Range value={t.vertical.toastsTop} min={0} max={1800} step={10} suffix="px" onChange={(v) => edit((c) => { c.theme.vertical.toastsTop = v; })} /></Field>
-              <Toggle label="إظهار الرأس" checked={t.vertical.showHeader} onChange={(v) => edit((c) => { c.theme.vertical.showHeader = v; })} />
-              <Toggle label="إظهار التنبيهات" checked={t.vertical.showToasts} onChange={(v) => edit((c) => { c.theme.vertical.showToasts = v; })} />
-              <Toggle label="إظهار الشريط الإخباري" checked={t.vertical.showTicker} onChange={(v) => edit((c) => { c.theme.vertical.showTicker = v; })} />
-            </div>
+            <ScaledStage w={1080} h={1920}><div className="a-tiktok-safe"><span className="top">واجهة تيك توك العلوية</span><span className="bottom">التعليقات وأزرار تيك توك</span><span className="right">أزرار الإعجاب</span></div><Overlay config={draft} state={live.state} byId={live.byId} status={live.status} gifts={live.gifts} round={live.round} orientation="portrait" preview /></ScaledStage>
+            <VerticalControls t={t} edit={edit} />
           </div>
         )}
         {view === 'live' && <ScaledStage w={1440} h={1000}><LiveView config={draft} state={live.state} byId={live.byId} status={live.status} gifts={live.gifts} round={live.round} preview /></ScaledStage>}

@@ -1,6 +1,6 @@
 {
   "name": "koydam-tiktok",
-  "version": "3.8.1",
+  "version": "3.9.0",
   "description": "تحدي المليون: real-time TikTok LIVE gift battle (Next.js live page, OBS overlay, Arabic admin)",
   "private": true,
   "license": "UNLICENSED",

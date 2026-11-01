@@ -35,7 +35,11 @@ export default function Overlay({ config, state, byId, status, gifts, round, pre
   useEffect(() => { ensureFont(th.fontFamily); ensureFont(th.titleFont); }, [th.fontFamily, th.titleFont]);
   // Toasts go to the side opposite the board when they would overlap.
   const toastSide = portrait ? 'center' : th.layout === 'list' && th.position === th.toastPosition ? (th.position === 'left' ? 'right' : 'left') : th.toastPosition;
-  const showHeader = portrait ? v.showHeader !== false : th.showHeader;
+  // Vertical design: layout 'grid' (tiles in columns) | 'side' (narrow column, the middle stays free) | 'list';
+  // header 'compact' | 'full' | 'off'; alerts as small pills, at most v.maxToasts.
+  const vLayout = ['grid', 'side', 'list'].includes(v.layout) ? v.layout : 'grid';
+  const vHeader = v.showHeader === false ? 'off' : ['compact', 'full', 'off'].includes(v.header) ? v.header : 'compact';
+  const showHeader = portrait ? vHeader !== 'off' : th.showHeader;
   const showToasts = portrait ? v.showToasts !== false : true;
   const showTicker = portrait ? Boolean(v.showTicker) : th.showTicker;
   const fg = config.social?.followGoal;
@@ -87,16 +91,16 @@ export default function Overlay({ config, state, byId, status, gifts, round, pre
   const parts = partsProps(th);
   const on = (k) => th.parts?.[k] !== false;
   const vars = { ...themeVars(th), ...skinVars(th), ...parts.style, background: th.background || 'transparent' };
-  if (portrait) Object.assign(vars, { '--fs': (th.fontScale ?? 1) * (v.scale ?? 1), '--v-top': `${v.top ?? 170}px`, '--v-side': `${v.side ?? 28}px`, '--v-toasts-top': `${v.toastsTop ?? 1080}px` });
+  if (portrait) Object.assign(vars, { '--fs': (th.fontScale ?? 1) * (v.scale ?? 1), '--v-top': `${v.top ?? 170}px`, '--v-side': `${v.side ?? 28}px`, '--v-toasts-top': `${v.toastsTop ?? 1080}px`, '--v-side-w': `${v.sideWidth ?? 440}px` });
 
   return (
     <div className={`overlay-root${preview ? ' preview' : ''}${portrait ? ' portrait' : ''}`} data-skin={skin} data-tone={skinTone(skin, th)} data-hide={parts['data-hide']} style={{ ...vars, '--fit': fit, '--strip-h': `${Math.max(0, pushDown)}px` }} ref={rootRef}>
       {th.sceneOnOverlay && <div className="live-bg scene-bg" />}
       {th.bgOnOverlay && <ScenePhoto theme={th} />}
       {stripTeams.length > 0 && <GiftStrip ref={stripRef} teams={stripTeams} giftMap={giftMap} s={strip} style={stripStyle} />}
-      <div ref={panelRef} className={`ov-panel ${portrait ? 'portrait' : `pos-${th.position} layout-${th.layout}`}`}>
+      <div ref={panelRef} className={`ov-panel ${portrait ? `portrait v-${vLayout} v-align-${v.sideAlign === 'left' ? 'left' : 'right'}` : `pos-${th.position} layout-${th.layout}`}`}>
         {showHeader && (
-          <header className="ov-header glass">
+          <header className={`ov-header glass${portrait && vHeader === 'compact' ? ' hdr-compact' : ''}`}>
             {th.showLogo && <Logo small className="ov-logo" src={th.logo} alt={config.title} />}
             <div className="ov-head-main">
               {on('title') && <div className="ov-title">{config.title}</div>}
@@ -116,11 +120,12 @@ export default function Overlay({ config, state, byId, status, gifts, round, pre
         {!showHeader && <RoundTimer round={round} enabled={config.rounds?.showTimer !== false} className="solo" />}
         <Board
           config={config} state={state} byId={byId}
-          layout={portrait ? 'list' : th.layout} maxVisible={portrait ? v.maxVisible ?? 5 : th.maxVisible} flagShape={th.flagShape} gifts={gifts} showTeamGifts={th.showTeamGifts !== false}
-          showContributors={th.showContributors} contributorsCount={th.contributorsCount}
+          layout={portrait ? (vLayout === 'grid' ? 'grid' : 'list') : th.layout} maxVisible={portrait ? v.maxVisible ?? 6 : th.maxVisible} flagShape={th.flagShape} gifts={gifts} showTeamGifts={th.showTeamGifts !== false}
+          showContributors={portrait && vLayout !== 'list' ? false : th.showContributors} contributorsCount={th.contributorsCount}
+          columns={portrait ? (vLayout === 'grid' ? Math.min(3, Math.max(1, v.columns ?? 2)) : 1) : 0} tile={portrait && vLayout !== 'list'}
         />
       </div>
-      {showToasts && <Toasts list={toasts} side={toastSide} />}
+      {showToasts && <Toasts list={portrait ? toasts.slice(0, Math.max(1, v.maxToasts ?? 3)) : toasts} side={portrait ? `v-${v.toastsAlign || 'center'}` : toastSide} compact={portrait} />}
       {showTicker && <Ticker ticks={ticks} />}
       <Banner banner={banner} />
       <WinnerScreen win={win} teams={config.teams} />

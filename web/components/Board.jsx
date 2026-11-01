@@ -12,7 +12,7 @@ import { fmt } from '@/lib/format';
 const MEDALS = { 2: '🥈', 3: '🥉' };
 
 
-const Card = memo(function Card({ team, data, rank, isLeader, barPct, share, gapText, hidden, x, y, showContributors, contributorsCount, cardRef, teamGifts }) {
+const Card = memo(function Card({ team, data, rank, isLeader, barPct, share, gapText, hidden, x, y, showContributors, contributorsCount, cardRef, teamGifts, tile }) {
   const inner = useRef(null);
   const [pluses, setPluses] = useState([]);
   const prevScore = useRef(null);
@@ -51,6 +51,29 @@ const Card = memo(function Card({ team, data, rank, isLeader, barPct, share, gap
     prevRank.current = rank;
   }, [rank]);
 
+  const cardStyle = { '--team': team.color, '--name-scale': team.nameScale || 1, '--name-len': Math.max(3, [...String(team.name || '')].length), transform: `translate(${-x}px, ${y}px)`, zIndex: 100 - rank };
+  if (tile) {
+    // Compact tile for the vertical overlay: medal, flag, name + points, the team's gift, thin bar.
+    const g = teamGifts?.[0];
+    return (
+      <div ref={cardRef} className={`card tile${isLeader ? ' is-leader' : ''}${hidden ? ' is-hidden' : ''}`} data-rank={rank} data-team-card={team.id} style={cardStyle}>
+        <div ref={inner} className="card-inner glass">
+          <div className="rank">{rank}</div>
+          <div className="flag-wrap">
+            <div className="flag"><Flag team={team} /></div>
+            <div className="crown emoji">👑</div>
+          </div>
+          <div className="t-body">
+            <span className="name">{team.name}</span>
+            <span className="score"><span className="num"><AnimatedNumber value={score} /></span></span>
+          </div>
+          {g && <div className="team-gifts"><span className="tg-label">أرسل</span><GiftIcon gift={g.gift} name={g.name} className="tg-icon" /></div>}
+          <div className="bar"><div className="fill" style={{ width: `${barPct}%` }} /></div>
+        </div>
+        {pluses.map((p) => <span key={p.id} className="plus">+{fmt(p.v)}</span>)}
+      </div>
+    );
+  }
   const top = showContributors ? (data.top || []).slice(0, contributorsCount) : [];
   return (
     <div
@@ -102,7 +125,7 @@ const Card = memo(function Card({ team, data, rank, isLeader, barPct, share, gap
   );
 });
 
-export default function Board({ config, state, byId, layout = 'list', maxVisible = 16, showContributors = true, contributorsCount = 3, minColWidth = 440, flagShape = 'rounded', gifts, showTeamGifts = true }) {
+export default function Board({ config, state, byId, layout = 'list', maxVisible = 16, showContributors = true, contributorsCount = 3, minColWidth = 440, flagShape = 'rounded', gifts, showTeamGifts = true, columns = 0, tile = false }) {
   const giftMap = useGiftMap(gifts);
   const order = useRef([]);
   const wrap = useRef(null);
@@ -137,7 +160,7 @@ export default function Board({ config, state, byId, layout = 'list', maxVisible
   useEffect(() => { if (firstCard.current) setCardH(firstCard.current.offsetHeight || 96); });
 
   const visible = Math.min(ranked.length, maxVisible);
-  const cols = layout === 'grid' ? Math.max(1, Math.floor((width + gap) / (minColWidth + gap))) : 1;
+  const cols = columns > 0 ? columns : layout === 'grid' ? Math.max(1, Math.floor((width + gap) / (minColWidth + gap))) : 1;
   const colW = cols > 1 ? (width - gap * (cols - 1)) / cols : width;
   const rows = Math.ceil(visible / cols);
   const topScore = ranked[0]?.score || 0;
@@ -145,7 +168,7 @@ export default function Board({ config, state, byId, layout = 'list', maxVisible
   const total = state?.total || 0;
 
   return (
-    <div ref={wrap} className={`board layout-${layout}`} data-shape={flagShape} style={{ height: rows ? rows * (cardH + gap) - gap : 0, '--col-w': `${colW}px` }}>
+    <div ref={wrap} className={`board layout-${layout}${tile ? ' tiles' : ''}`} data-shape={flagShape} style={{ height: rows ? rows * (cardH + gap) - gap : 0, '--col-w': `${colW}px` }}>
       {ranked.map((r, idx) => {
         const data = byId?.get(r.t.id) || { score: 0, top: [] };
         const isLeader = r.t.id === leaderId && r.score > 0;
@@ -168,6 +191,7 @@ export default function Board({ config, state, byId, layout = 'list', maxVisible
             showContributors={showContributors}
             contributorsCount={contributorsCount}
             teamGifts={showTeamGifts ? r.t.gifts.slice(0, 2).map((n) => ({ name: n, gift: findGift(giftMap, n) })) : null}
+            tile={tile}
           />
         );
       })}

@@ -216,7 +216,7 @@ function Dashboard({ me, mustChange, onLogout, onMe }) {
           {navItem.live && <span className={`a-status ${connLabel[0]}`}><span className="a-status-dot" />{connLabel[1]}</span>}
           <span className="a-top-spacer" />
           <ThemeBtn />
-          {current && <a className="a-btn ghost sm hide-sm" href={`/overlay/${q}`} target="_blank" rel="noopener"><Icon name="external" size={15} /><span>واجهة OBS</span></a>}
+          {current && <a className="a-btn ghost sm hide-sm" href={`/${live.config?.theme?.portraitOnly !== false ? 'overlay-vertical' : 'overlay'}/${q}`} target="_blank" rel="noopener"><Icon name="external" size={15} /><span>واجهة OBS</span></a>}
           <div className="a-user">
             <button className="a-avatar" onClick={() => go('account')} title={me.email}>{(me.name || me.email || 'A')[0].toUpperCase()}</button>
             <span className="hide-sm"><b className="a-user-name">{me.name}</b><small className="a-muted num-latin">{me.email}</small></span>

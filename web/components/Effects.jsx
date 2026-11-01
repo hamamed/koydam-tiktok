@@ -122,9 +122,9 @@ export function useAlerts(config, { confetti = true, toasts = true } = {}) {
   return { toasts: toastList, ticks, banner, feed, showBanner: setBanner };
 }
 
-export function Toasts({ list, side = 'left' }) {
+export function Toasts({ list, side = 'left', compact = false }) {
   return (
-    <div className={`toasts side-${side}`}>
+    <div className={`toasts side-${side}${compact ? ' compact' : ''}`}>
       {list.map((t) => (t.kind === 'follow' || t.kind === 'share' ? (
         <div key={t.key} className={`toast glass social ${t.kind}${t.out ? ' out' : ''}`} style={{ '--team': t.team?.color }}>
           <Avatar src={t.user.avatar} name={t.user.nickname} color={t.team?.color} />

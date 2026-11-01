@@ -182,8 +182,12 @@ const DEFAULT_CONFIG = {
     bgOnLive: true,             // show the picture on the live page
     bgOnOverlay: false,         // show the picture in OBS (covers the stream behind!)
     sceneOnOverlay: false,      // the look's own background in OBS (full scene, covers the stream behind)
+    portraitOnly: true,         // this live streams vertically (TikTok): the panel shows the vertical overlay first
     // Vertical overlay (1080x1920, /overlay-vertical): TikTok's own buttons cover the top and the bottom.
-    vertical: { top: 170, side: 28, scale: 1, maxVisible: 5, showHeader: true, showToasts: true, toastsTop: 1080, showTicker: false },
+    // layout: 'grid' (tiles in columns) | 'side' (narrow column, the middle stays free) | 'list' (wide cards)
+    // header: 'compact' | 'full' | 'off'; alert pills: at most maxToasts, toastsAlign 'center' | 'right' | 'left'
+    vertical: { top: 170, side: 28, scale: 1, maxVisible: 6, showHeader: true, showToasts: true, toastsTop: 1080, showTicker: false,
+      layout: 'grid', columns: 2, sideWidth: 440, sideAlign: 'right', header: 'compact', maxToasts: 3, toastsAlign: 'center' },
     background: 'transparent',  // 'transparent' or a CSS color for previewing
   },
 
@@ -464,6 +468,7 @@ function sanitizeConfig(input) {
     bgOnLive: bool(th.bgOnLive, DT.bgOnLive),
     bgOnOverlay: bool(th.bgOnOverlay, DT.bgOnOverlay),
     sceneOnOverlay: bool(th.sceneOnOverlay, DT.sceneOnOverlay),
+    portraitOnly: bool(th.portraitOnly, DT.portraitOnly),
     vertical: (() => {
       const v = isObj(th.vertical) ? th.vertical : {}; const DV = DT.vertical;
       return {
@@ -471,6 +476,10 @@ function sanitizeConfig(input) {
         scale: numIn(v.scale, 0.5, 2, DV.scale), maxVisible: Math.round(numIn(v.maxVisible, 1, 30, DV.maxVisible)),
         showHeader: bool(v.showHeader, DV.showHeader), showToasts: bool(v.showToasts, DV.showToasts),
         toastsTop: Math.round(numIn(v.toastsTop, 0, 1800, DV.toastsTop)), showTicker: bool(v.showTicker, DV.showTicker),
+        layout: oneOf(v.layout, ['grid', 'side', 'list'], DV.layout), columns: Math.round(numIn(v.columns, 1, 3, DV.columns)),
+        sideWidth: Math.round(numIn(v.sideWidth, 300, 1000, DV.sideWidth)), sideAlign: oneOf(v.sideAlign, ['right', 'left'], DV.sideAlign),
+        header: oneOf(v.header, ['compact', 'full', 'off'], DV.header), maxToasts: Math.round(numIn(v.maxToasts, 1, 8, DV.maxToasts)),
+        toastsAlign: oneOf(v.toastsAlign, ['center', 'right', 'left'], DV.toastsAlign),
       };
     })(),
     showViewers: bool(th.showViewers, DT.showViewers),

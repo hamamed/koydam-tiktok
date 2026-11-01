@@ -108,6 +108,7 @@ export function Overview({ live, notice, go }) {
 }
 
 export function Connection({ live, notice }) {
+  const portraitOnly = live.config?.theme?.portraitOnly !== false;
   const st = live.status || {};
   const [user, setUser] = useState(st.username || '');
   useEffect(() => { if (!user && st.username) setUser(st.username); }, [st.username]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -136,15 +137,23 @@ export function Connection({ live, notice }) {
         </form>
       </Section>
 
-      <Section title="واجهة OBS" desc="أضف «Browser Source» بالمقاس 1920×1080 واترك Custom CSS فارغاً.">
-        <CopyField value={`${origin}/overlay/${q}`} />
-        <div className="a-row"><a className="a-btn ghost sm" href={`/overlay/${q}`} target="_blank" rel="noopener"><Icon name="external" size={15} /><span>فتح المعاينة</span></a></div>
-      </Section>
-
-      <Section title="واجهة OBS العمودية (تيك توك)" desc="للبث العمودي من TikTok LIVE Studio أو OBS: Browser Source بالمقاس 1080×1920. فعّل «Control audio via OBS» لسماع القراءة الصوتية.">
+      {portraitOnly ? <>
+      <Section title="📱 واجهة OBS العمودية (تيك توك)" className={portraitOnly ? 'span-2' : ''}
+        desc="Browser Source بالمقاس: العرض Width = 1080 والارتفاع Height = 1920. واجعل دقة OBS نفسها عمودية: Settings ← Video ← 1080x1920. فعّل «Control audio via OBS» لسماع القراءة الصوتية.">
         <CopyField value={`${origin}/overlay-vertical/${q}`} />
         <div className="a-row"><a className="a-btn ghost sm" href={`/overlay-vertical/${q}`} target="_blank" rel="noopener"><Icon name="external" size={15} /><span>فتح المعاينة</span></a></div>
       </Section>
+      </> : <>
+      <Section title="🖥️ واجهة OBS الأفقية" desc="Browser Source بالمقاس 1920×1080. إذا وضعت هذا الرابط في مصدر عمودي يتحول تلقائياً للتصميم العمودي.">
+        <CopyField value={`${origin}/overlay/${q}`} />
+        <div className="a-row"><a className="a-btn ghost sm" href={`/overlay/${q}`} target="_blank" rel="noopener"><Icon name="external" size={15} /><span>فتح المعاينة</span></a></div>
+      </Section>
+      <Section title="📱 واجهة OBS العمودية (تيك توك)" className={portraitOnly ? 'span-2' : ''}
+        desc="Browser Source بالمقاس: العرض Width = 1080 والارتفاع Height = 1920. واجعل دقة OBS نفسها عمودية: Settings ← Video ← 1080x1920. فعّل «Control audio via OBS» لسماع القراءة الصوتية.">
+        <CopyField value={`${origin}/overlay-vertical/${q}`} />
+        <div className="a-row"><a className="a-btn ghost sm" href={`/overlay-vertical/${q}`} target="_blank" rel="noopener"><Icon name="external" size={15} /><span>فتح المعاينة</span></a></div>
+      </Section>
+      </>}
 
       <Section title="الصفحة المباشرة للجمهور" desc="شارك هذا الرابط مع المتابعين لمشاهدة الترتيب على الهاتف.">
         <CopyField value={`${origin}/${q}`} />
