@@ -147,3 +147,10 @@
 .ov-panel.pos-right { transform: scale(var(--fit, 1)); transform-origin: top right; }
 .ov-panel.pos-left { transform: scale(var(--fit, 1)); transform-origin: top left; }
 .ov-panel.pos-center { transform: translateX(-50%) scale(var(--fit, 1)); transform-origin: top center; }
+
+/* ---- Header card sizes (theme.sizes -> --sz-*) ---- */
+.ov-title { zoom: var(--sz-title, 1); }
+.ov-sub { zoom: var(--sz-subtitle, 1); }
+.ov-header .chips { zoom: var(--sz-chips, 1); }
+.ov-header .goal { zoom: var(--sz-goal, 1); }
+.ov-header .gift-legend { zoom: var(--sz-legend, 1); }

@@ -166,6 +166,8 @@ const DEFAULT_CONFIG = {
     logoSize: 1,                // 0.4..2.5
     logoOnLive: true,           // show the logo on the public live page
     custom: { primary: '#f5b301', secondary: '#c8102e', bg: '#0b0a0f', tone: 'dark' }, // colours of the "custom" look
+    parts: {},                  // { title:false, … } hide parts of the header card / team cards (PART_KEYS)
+    sizes: {},                  // { title:1.3, … } size of each part, 0.5..2.5 (SIZE_KEYS)
     skin: 'classic',            // one of SKIN_IDS
     skinRotation: { mode: 'off', skins: [] }, // 'off' | 'daily' | 'weekly'; empty list = all skins
     nameScale: 1,               // team name size (all teams)
@@ -218,6 +220,10 @@ const DEFAULT_CONFIG = {
 const SKIN_IDS = [
   'classic', 'neon', 'stadium', 'desert', 'ramadan', 'frost', 'inferno', 'emerald', 'royal', 'ocean', 'retro', 'midnight', 'sunset', 'aurora', 'cyber', 'galaxy', 'matrix', 'carbon', 'glacier', 'storm', 'bloodmoon', 'rosegold', 'sapphire', 'copper', 'pharaoh', 'andalus', 'majlis', 'eid', 'national', 'wedding', 'champions', 'derby', 'arena', 'forest', 'sakura', 'mint', 'paper', 'clean', 'mono', 'vapor', 'gameboy', 'comic', 'candy', 'holo', 'custom',
 ];
+
+/** Parts of the header card / team cards that can be hidden or resized. Must match web/lib/format.js. */
+const PART_KEYS = ['title', 'subtitle', 'category', 'points', 'goal', 'followGoal', 'rank', 'flag', 'crown', 'medal', 'name', 'share', 'bar', 'score', 'pts', 'gap'];
+const SIZE_KEYS = ['title', 'subtitle', 'chips', 'goal', 'legend', 'score', 'share', 'contribs', 'rank', 'gifts', 'gap'];
 
 /* ----------------------------------------------------------------------------
  * 2. Small utilities
@@ -423,6 +429,8 @@ function sanitizeConfig(input) {
     logo: imgUrl(th.logo),
     logoSize: numIn(th.logoSize, 0.4, 2.5, DT.logoSize),
     logoOnLive: bool(th.logoOnLive, DT.logoOnLive),
+    parts: Object.fromEntries(PART_KEYS.map((k) => [k, !(isObj(th.parts) && th.parts[k] === false)])),
+    sizes: Object.fromEntries(SIZE_KEYS.map((k) => [k, Math.round(numIn(isObj(th.sizes) ? th.sizes[k] : 1, 0.5, 2.5, 1) * 100) / 100])),
     custom: (() => {
       const c = isObj(th.custom) ? th.custom : {}; const DC = DT.custom;
       return { primary: color(c.primary, DC.primary), secondary: color(c.secondary, DC.secondary), bg: color(c.bg, DC.bg), tone: oneOf(c.tone, ['dark', 'light'], DC.tone) };

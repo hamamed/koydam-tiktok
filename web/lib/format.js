@@ -54,3 +54,18 @@ export function ensureFont(family) {
   l.href = `https://fonts.googleapis.com/css2?family=${encodeURIComponent(family).replace(/%20/g, '+')}:wght@400;600;700;800;900&display=swap`;
   document.head.appendChild(l);
 }
+
+/**
+ * Parts of the OBS header card and the team cards that can be hidden (theme.parts)
+ * and resized (theme.sizes). Applied with data-hide + CSS variables (see board.css / overlay.css).
+ * Keep in sync with PART_KEYS / SIZE_KEYS in server/index.js.
+ */
+export const PART_KEYS = ['title', 'subtitle', 'category', 'points', 'goal', 'followGoal', 'rank', 'flag', 'crown', 'medal', 'name', 'share', 'bar', 'score', 'pts', 'gap'];
+export const SIZE_KEYS = ['title', 'subtitle', 'chips', 'goal', 'legend', 'score', 'share', 'contribs', 'rank', 'gifts', 'gap'];
+export function partsProps(th = {}) {
+  const p = th.parts || {};
+  const s = th.sizes || {};
+  const style = {};
+  for (const k of SIZE_KEYS) if (s[k] && s[k] !== 1) style[`--sz-${k}`] = s[k];
+  return { 'data-hide': PART_KEYS.filter((k) => p[k] === false).join(' ') || undefined, style };
+}

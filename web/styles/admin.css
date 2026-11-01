@@ -489,3 +489,12 @@ button.a-avatar { border: 0; cursor: pointer; }
 .a-country:hover { border-color: var(--line-2); }
 .a-country.on { border-color: var(--gold); background: rgba(245,179,1,.1); }
 .a-country.on svg { color: var(--gold); flex: none; }
+
+/* Card parts editor */
+.a-parts { display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 18px 28px; }
+.a-parts-col { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.a-part-row { display: grid; grid-template-columns: minmax(0, 1fr) minmax(140px, 200px); align-items: center; gap: 12px; padding: 6px 0; border-bottom: 1px solid var(--line); }
+.a-part-row:last-child { border-bottom: 0; }
+.a-part-row .a-range { min-width: 0; }
+.a-part-note { font-size: 12px; }
+@media (max-width: 520px) { .a-part-row { grid-template-columns: 1fr; } }

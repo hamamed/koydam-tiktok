@@ -115,3 +115,20 @@
 .team-gifts { gap: 3px; padding: 2px 8px 2px 4px; border: 1px solid color-mix(in srgb, var(--gold) 45%, transparent); background: rgba(0,0,0,.32); }
 .tg-label { font-size: calc(11px * var(--fs)); font-weight: 800; color: var(--gold-2); }
 .tg-icon { width: calc(30px * var(--fs)); height: calc(30px * var(--fs)); }
+
+/* ---- Card parts on/off (theme.parts -> data-hide) and sizes (theme.sizes -> --sz-*) ---- */
+.card-inner > .rank { grid-column: 1; }
+.card-inner > .flag-wrap { grid-column: 2; }
+.card-inner > .main { grid-column: 3; }
+.card-inner > .score { grid-column: 4; }
+[data-hide~="rank"] .card .rank, [data-hide~="flag"] .card .flag-wrap, [data-hide~="crown"] .card .crown,
+[data-hide~="medal"] .card .medal, [data-hide~="name"] .card .name, [data-hide~="share"] .card .share,
+[data-hide~="bar"] .card .bar, [data-hide~="score"] .card .score, [data-hide~="pts"] .card .pts,
+[data-hide~="gap"] .card .gap { display: none !important; }
+[data-hide~="flag"] .card .flag-wrap + .main, [data-hide~="rank"] .card .rank + .flag-wrap { margin-inline-start: calc(-14px * var(--fs)); }
+.card .score { zoom: var(--sz-score, 1); }
+.card .share { zoom: var(--sz-share, 1); }
+.card .contribs { zoom: var(--sz-contribs, 1); }
+.card .rank { zoom: var(--sz-rank, 1); }
+.card .team-gifts { zoom: var(--sz-gifts, 1); }
+.card .gap, .card .pts { zoom: var(--sz-gap, 1); }

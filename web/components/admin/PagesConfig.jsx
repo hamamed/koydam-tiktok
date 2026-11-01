@@ -369,6 +369,53 @@ function Library({ onUse, onLogo, refreshKey }) {
   );
 }
 
+/** Show / hide and resize every part of the OBS header card and the team cards. */
+function PartsEditor({ draft, edit }) {
+  const t = draft.theme;
+  const p = t.parts || {}; const z = t.sizes || {};
+  const part = (k) => ({ checked: p[k] !== false, onChange: (v) => edit((c) => { c.theme.parts = { ...(c.theme.parts || {}), [k]: v }; }) });
+  // showGiftLegend / showTeamGifts default to on when missing.
+  const theme = (k) => ({ checked: k === 'showGiftLegend' || k === 'showTeamGifts' ? t[k] !== false : Boolean(t[k]), onChange: (v) => edit((c) => { c.theme[k] = v; }) });
+  const size = (k) => ({ value: z[k] ?? 1, min: 0.5, max: 2.5, step: 0.05, suffix: '×', onChange: (v) => edit((c) => { c.theme.sizes = { ...(c.theme.sizes || {}), [k]: v }; }) });
+  const reset = () => edit((c) => { c.theme.parts = {}; c.theme.sizes = {}; c.theme.nameScale = 1; c.theme.flagScale = 1; c.theme.logoSize = 1; });
+  return (
+    <Section title="🧩 تخصيص البطاقات" className="span-2"
+      desc="اختر ما يظهر وما يختفي في بطاقة الرأس (العنوان والهدف) وبطاقات الفرق، وغيّر حجم كل جزء. المعاينة في الأعلى تتحدث فوراً."
+      actions={<Btn size="sm" variant="ghost" icon="update" onClick={reset}>إرجاع الافتراضي</Btn>}>
+      <div className="a-parts">
+        <div className="a-parts-col">
+          <h4 className="a-sub">بطاقة الرأس (OBS)</h4>
+          <div className="a-part-row"><Toggle label="الشعار" {...theme('showLogo')} /><Range value={t.logoSize ?? 1} min={0.4} max={2.5} step={0.05} suffix="×" onChange={(v) => edit((c) => { c.theme.logoSize = v; })} /></div>
+          <div className="a-part-row"><Toggle label="العنوان" {...part('title')} /><Range {...size('title')} /></div>
+          <div className="a-part-row"><Toggle label="العنوان الفرعي (اكتب اسم فريقك…)" {...part('subtitle')} /><Range {...size('subtitle')} /></div>
+          <div className="a-part-row"><Toggle label="شارة النوع (الدول)" {...part('category')} /><Range {...size('chips')} /></div>
+          <div className="a-part-row"><Toggle label="شارة مجموع النقاط" {...part('points')} /><span className="a-muted a-part-note">نفس حجم الشارات</span></div>
+          <div className="a-part-row"><Toggle label="عدد المشاهدين" {...theme('showViewers')} /><span className="a-muted a-part-note">نفس حجم الشارات</span></div>
+          <div className="a-part-row"><Toggle label="مؤقت الجولة" checked={draft.rounds?.showTimer !== false} onChange={(v) => edit((c) => { c.rounds = { ...(c.rounds || {}), showTimer: v }; })} /><span className="a-muted a-part-note">نفس حجم الشارات</span></div>
+          <div className="a-part-row"><Toggle label="هدف المليون" {...part('goal')} /><Range {...size('goal')} /></div>
+          <div className="a-part-row"><Toggle label="هدف المتابعين" {...part('followGoal')} /><span className="a-muted a-part-note">نفس حجم الهدف</span></div>
+          <div className="a-part-row"><Toggle label="دليل «العلم = الهدية»" {...theme('showGiftLegend')} /><Range {...size('legend')} /></div>
+        </div>
+        <div className="a-parts-col">
+          <h4 className="a-sub">بطاقات الفرق (OBS والصفحة المباشرة)</h4>
+          <div className="a-part-row"><Toggle label="اسم الدولة / الفريق" {...part('name')} /><Range value={t.nameScale ?? 1} min={0.5} max={2.5} step={0.05} suffix="×" onChange={(v) => edit((c) => { c.theme.nameScale = v; })} /></div>
+          <div className="a-part-row"><Toggle label="العلم / الصورة" {...part('flag')} /><Range value={t.flagScale ?? 1} min={0.5} max={2.5} step={0.05} suffix="×" onChange={(v) => edit((c) => { c.theme.flagScale = v; })} /></div>
+          <div className="a-part-row"><Toggle label="رقم الترتيب" {...part('rank')} /><Range {...size('rank')} /></div>
+          <div className="a-part-row"><Toggle label="التاج 👑 للمتصدر" {...part('crown')} /><span /></div>
+          <div className="a-part-row"><Toggle label="الميداليات 🥈🥉" {...part('medal')} /><span /></div>
+          <div className="a-part-row"><Toggle label="النسبة المئوية" {...part('share')} /><Range {...size('share')} /></div>
+          <div className="a-part-row"><Toggle label="شريط التقدم" {...part('bar')} /><span /></div>
+          <div className="a-part-row"><Toggle label="صور هدايا الفريق" {...theme('showTeamGifts')} /><Range {...size('gifts')} /></div>
+          <div className="a-part-row"><Toggle label="الداعمون" {...theme('showContributors')} /><Range {...size('contribs')} /></div>
+          <div className="a-part-row"><Toggle label="النقاط (الرقم)" {...part('score')} /><Range {...size('score')} /></div>
+          <div className="a-part-row"><Toggle label="كلمة «نقطة»" {...part('pts')} /><Range {...size('gap')} /></div>
+          <div className="a-part-row"><Toggle label="الفارق (تقدّم / ▼)" {...part('gap')} /><span className="a-muted a-part-note">نفس حجم «نقطة»</span></div>
+        </div>
+      </div>
+    </Section>
+  );
+}
+
 export function Theme({ live, draft, edit }) {
   const t = draft.theme;
   const set = (k) => (v) => edit((c) => { c.theme[k] = v; });
@@ -471,6 +518,8 @@ export function Theme({ live, draft, edit }) {
         {view === 'live' && <ScaledStage w={1440} h={1000}><LiveView config={draft} state={live.state} byId={live.byId} status={live.status} gifts={live.gifts} round={live.round} preview /></ScaledStage>}
       </Section>
 
+      <PartsEditor draft={draft} edit={edit} />
+
       <Section title="🔤 الخطوط" className="span-2"
         desc="17 خطاً عربياً مضمّناً (تعمل في OBS بدون إنترنت). الخط الأساسي للنصوص، وخط العناوين للعنوان وأسماء الفرق ولافتة المتصدر.">
         <div className="a-seg a-font-tabs">
@@ -543,12 +592,8 @@ export function Theme({ live, draft, edit }) {
           <Field label="عرض اللوحة"><Range value={t.width} min={360} max={1200} step={10} suffix="px" onChange={set('width')} /></Field>
           <Field label="أقصى عدد فرق ظاهرة"><Num value={t.maxVisible} min={1} max={30} onChange={set('maxVisible')} /></Field>
           <Field label="عدد الداعمين لكل فريق"><Num value={t.contributorsCount} min={1} max={5} onChange={set('contributorsCount')} /></Field>
-          <Toggle label="إظهار الداعمين" checked={t.showContributors} onChange={set('showContributors')} />
           <Toggle label="إظهار الرأس" checked={t.showHeader} onChange={set('showHeader')} />
           <Toggle label="إظهار الشريط الإخباري" checked={t.showTicker} onChange={set('showTicker')} />
-          <Toggle label="إظهار عدد المشاهدين" checked={t.showViewers} onChange={set('showViewers')} />
-          <Toggle label="صور هدايا كل فريق على بطاقته" checked={t.showTeamGifts !== false} onChange={set('showTeamGifts')} />
-          <Toggle label="دليل «العلم = الهدية» في رأس OBS" checked={t.showGiftLegend !== false} onChange={set('showGiftLegend')} />
         </div>
       </Section>
 

@@ -6,7 +6,7 @@ import { RoundTimer, WinnerScreen, useRoundWinner } from './Rounds';
 import Speaker from './Speaker';
 import { AnimatedNumber, GiftLegend, GoalBar, Logo } from './bits';
 import { useGiftMap } from '@/lib/gifts';
-import { ensureFont, fmt, safeUrl, themeVars } from '@/lib/format';
+import { ensureFont, fmt, partsProps, safeUrl, themeVars } from '@/lib/format';
 import { skinTone, skinVars, useActiveSkin } from '@/lib/skins';
 
 /** Background picture layer (dimmed, optional blur). */
@@ -63,27 +63,29 @@ export default function Overlay({ config, state, byId, status, gifts, round, pre
     const score = new Map((state?.teams || []).map((x) => [x.id, x.score || 0]));
     return [...config.teams].sort((a, b) => (score.get(b.id) || 0) - (score.get(a.id) || 0)).slice(0, max);
   })();
-  const vars = { ...themeVars(th), ...skinVars(th), background: th.background || 'transparent' };
+  const parts = partsProps(th);
+  const on = (k) => th.parts?.[k] !== false;
+  const vars = { ...themeVars(th), ...skinVars(th), ...parts.style, background: th.background || 'transparent' };
   if (portrait) Object.assign(vars, { '--fs': (th.fontScale ?? 1) * (v.scale ?? 1), '--v-top': `${v.top ?? 170}px`, '--v-side': `${v.side ?? 28}px`, '--v-toasts-top': `${v.toastsTop ?? 1080}px` });
 
   return (
-    <div className={`overlay-root${preview ? ' preview' : ''}${portrait ? ' portrait' : ''}`} data-skin={skin} data-tone={skinTone(skin, th)} style={{ ...vars, '--fit': fit }} ref={rootRef}>
+    <div className={`overlay-root${preview ? ' preview' : ''}${portrait ? ' portrait' : ''}`} data-skin={skin} data-tone={skinTone(skin, th)} data-hide={parts['data-hide']} style={{ ...vars, '--fit': fit }} ref={rootRef}>
       {th.bgOnOverlay && <ScenePhoto theme={th} />}
       <div ref={panelRef} className={`ov-panel ${portrait ? 'portrait' : `pos-${th.position} layout-${th.layout}`}`}>
         {showHeader && (
           <header className="ov-header glass">
             {th.showLogo && <Logo small className="ov-logo" src={th.logo} alt={config.title} />}
             <div className="ov-head-main">
-              <div className="ov-title">{config.title}</div>
-              {config.subtitle && <div className="ov-sub">{config.subtitle}</div>}
+              {on('title') && <div className="ov-title">{config.title}</div>}
+              {on('subtitle') && config.subtitle && <div className="ov-sub">{config.subtitle}</div>}
               <div className="chips">
-                <span className="chip"><span className="live-dot" />{config.category || 'مباشر'}</span>
-                <span className="chip accent"><AnimatedNumber value={state?.total || 0} /> نقطة</span>
+                {on('category') && <span className="chip"><span className="live-dot" />{config.category || 'مباشر'}</span>}
+                {on('points') && <span className="chip accent"><AnimatedNumber value={state?.total || 0} /> نقطة</span>}
                 {th.showViewers && <span className="chip">👁 {fmt(status?.viewers || 0)}</span>}
                 <RoundTimer round={round} enabled={config.rounds?.showTimer !== false} className="in-chips" />
               </div>
-              <GoalBar total={state?.total || 0} goal={config.goal} compact />
-              {fg?.enabled && <GoalBar total={state?.social?.follows || 0} goal={{ ...fg, label: `💛 ${fg.label}` }} compact variant="follow" />}
+              {on('goal') && <GoalBar total={state?.total || 0} goal={config.goal} compact />}
+              {on('followGoal') && fg?.enabled && <GoalBar total={state?.social?.follows || 0} goal={{ ...fg, label: `💛 ${fg.label}` }} compact variant="follow" />}
               {th.showGiftLegend !== false && <GiftLegend teams={legendTeams} giftMap={giftMap} />}
             </div>
           </header>

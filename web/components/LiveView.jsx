@@ -10,7 +10,7 @@ import { ScenePhoto } from './Overlay';
 import { RoundTimer, WinnerScreen, useRoundWinner } from './Rounds';
 import { AnimatedNumber, Avatar, Flag, GiftIcon, GoalBar, Logo, TeamName } from './bits';
 import { findGift, useGiftMap } from '@/lib/gifts';
-import { ensureFont, fmt, fontVars, safeUrl } from '@/lib/format';
+import { ensureFont, fmt, fontVars, partsProps, safeUrl } from '@/lib/format';
 import { useEffect } from 'react';
 import { skinTone, skinVars, useActiveSkin } from '@/lib/skins';
 
@@ -27,7 +27,8 @@ export default function LiveView({ config, state, byId, status, gifts, round, co
   const { feed, banner } = useAlerts(config, { toasts: false, confetti: !preview });
   const skin = useActiveSkin(config?.theme);
   const th = config?.theme || {};
-  const rootProps = { className: `live-root${preview ? ' preview' : ''}`, 'data-skin': skin, 'data-tone': skinTone(skin, th), style: { ...skinVars(th), '--name-g': th.nameScale ?? 1, '--flag-scale': th.flagScale ?? 1, ...fontVars(th) } };
+  const parts = partsProps(th);
+  const rootProps = { className: `live-root${preview ? ' preview' : ''}`, 'data-skin': skin, 'data-tone': skinTone(skin, th), 'data-hide': parts['data-hide'], style: { ...skinVars(th), ...parts.style, '--name-g': th.nameScale ?? 1, '--flag-scale': th.flagScale ?? 1, ...fontVars(th) } };
   useEffect(() => { ensureFont(th.fontFamily); ensureFont(th.titleFont); }, [th.fontFamily, th.titleFont]);
 
   const supporters = useMemo(() => {
