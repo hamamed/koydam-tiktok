@@ -3,6 +3,8 @@
 import { useCallback, useEffect, useState } from 'react';
 import { api } from '@/lib/api';
 import { liveQuery } from '@/lib/store';
+import { ADMIN_SIZES, useAdminPrefs } from '@/lib/adminPrefs';
+import { FONTS } from '@/lib/fonts';
 import { Btn, CopyField, Field, Icon, Num, Section, Select, Text, Toggle } from './ui';
 
 const dt = (t) => (t ? new Date(t).toLocaleString('ar-MA', { dateStyle: 'medium', timeStyle: 'short' }) : '—');
@@ -205,6 +207,36 @@ export function UsersPage({ me, notice, reloadLives }) {
 }
 
 /* ======================================================================== */
+/** Dashboard look for this browser: theme, font, text size (saved on this device). */
+function DisplayPrefs() {
+  const [p, update] = useAdminPrefs();
+  return (
+    <Section title="🎨 مظهر لوحة التحكم" className="span-2" desc="يُحفظ على هذا الجهاز فقط ولا يغيّر شكل البث. لتغيير خط وشكل البث نفسه استخدم صفحة «المظهر».">
+      <div className="a-form">
+        <Field label="الوضع">
+          <div className="a-seg">
+            {[['light', '☀️ فاتح'], ['dark', '🌙 داكن'], ['auto', '🖥️ حسب الجهاز']].map(([v, l]) => <button key={v} className={p.theme === v ? 'on' : ''} onClick={() => update({ theme: v })}>{l}</button>)}
+          </div>
+        </Field>
+        <Field label="حجم النص">
+          <div className="a-seg">
+            {ADMIN_SIZES.map(([v, l]) => <button key={v} className={p.size === v ? 'on' : ''} onClick={() => update({ size: v })}>{l}</button>)}
+          </div>
+        </Field>
+      </div>
+      <h4 className="a-sub">الخط</h4>
+      <div className="a-prefs-fonts">
+        {FONTS.map((f) => (
+          <button key={f.family} type="button" className={`a-prefs-font${p.font === f.family ? ' on' : ''}`} onClick={() => update({ font: f.family })}>
+            <b style={{ fontFamily: `'${f.family}', 'Cairo'` }}>{f.label}</b>
+            <small>{f.style}</small>
+          </button>
+        ))}
+      </div>
+    </Section>
+  );
+}
+
 export function AccountPage({ me, notice, onLogout, onUpdated, mustChange }) {
   const [f, setF] = useState({ name: me.name, email: me.email, cur: '', pw: '', pw2: '' });
   const [busy, setBusy] = useState(false);
@@ -219,6 +251,7 @@ export function AccountPage({ me, notice, onLogout, onUpdated, mustChange }) {
   return (
     <div className="a-grid">
       {(mustChange || me.mustChangePassword) && <div className="a-alert warn span-2"><Icon name="key" />أنت تستخدم كلمة مرور مؤقتة. عيّن كلمة مرور خاصة بك الآن.</div>}
+      <DisplayPrefs />
       <Section title="👤 حسابي" desc="لتغيير البريد أو كلمة المرور أدخل كلمة المرور الحالية">
         <div className="a-form">
           <Field label="الاسم"><Text value={f.name} onChange={(v) => setF({ ...f, name: v })} /></Field>

@@ -4,6 +4,8 @@ import { createContext, useCallback, useContext, useEffect, useRef, useState } f
 import { api } from '@/lib/api';
 
 const P = {
+  sun: 'M12 7a5 5 0 1 0 0 10 5 5 0 0 0 0-10zM11 1h2v3h-2V1zm0 19h2v3h-2v-3zM3.5 4.9l1.4-1.4 2.1 2.1-1.4 1.4-2.1-2.1zm13.5 13.5 1.4-1.4 2.1 2.1-1.4 1.4-2.1-2.1zM1 11h3v2H1v-2zm19 0h3v2h-3v-2zM4.9 20.5l-1.4-1.4 2.1-2.1 1.4 1.4-2.1 2.1zM18.4 7l-1.4-1.4 2.1-2.1 1.4 1.4L18.4 7z',
+  moon: 'M12.3 2a10 10 0 1 0 9.7 12.6A8 8 0 0 1 12.3 2z',
   overview: 'M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8V11h-8v10zm0-18v6h8V3h-8z',
   plug: 'M7 2v6H5v4a7 7 0 0 0 6 6.92V22h2v-3.08A7 7 0 0 0 19 12V8h-2V2h-2v6H9V2H7z',
   flag: 'M5 21V4h9l.4 2H20v10h-7l-.4-2H7v7H5z',

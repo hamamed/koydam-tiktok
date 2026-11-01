@@ -9,6 +9,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { api, setApiLive } from '@/lib/api';
 import { cmd, liveQuery, reconnectSocket, setStoreLive, useLive } from '@/lib/store';
 import { clone } from '@/lib/format';
+import { useAdminPrefs } from '@/lib/adminPrefs';
 import { Logo } from '../bits';
 import { Btn, Icon, NoticeProvider, useNotice } from './ui';
 import Login from './Login';
@@ -45,6 +46,7 @@ const LIVE_KEY = 'koydam.admin.live';
 
 export default function AdminApp() {
   const [auth, setAuth] = useState({ checked: false, user: null, mustChange: false });
+  useAdminPrefs(); // light/dark, font and text size for the dashboard (also on the login page)
   const check = useCallback(async () => {
     try { const r = await api('/api/me'); setAuth({ checked: true, user: r.authed ? r.user : null, mustChange: r.mustChangePassword }); }
     catch { setAuth({ checked: true, user: null, mustChange: false }); }
@@ -210,6 +212,7 @@ function Dashboard({ me, mustChange, onLogout, onMe }) {
           {navItem.live && currentName && <span className="a-chip hide-sm">{currentName}</span>}
           {navItem.live && <span className={`a-status ${connLabel[0]}`}><span className="a-status-dot" />{connLabel[1]}</span>}
           <span className="a-top-spacer" />
+          <ThemeBtn />
           {current && <a className="a-btn ghost sm hide-sm" href={`/overlay/${q}`} target="_blank" rel="noopener"><Icon name="external" size={15} /><span>واجهة OBS</span></a>}
           <div className="a-user">
             <button className="a-avatar" onClick={() => go('account')} title={me.email}>{(me.name || me.email || 'A')[0].toUpperCase()}</button>
@@ -230,5 +233,16 @@ function Dashboard({ me, mustChange, onLogout, onMe }) {
         )}
       </div>
     </div>
+  );
+}
+
+/** Sun / moon button: switches the dashboard between light and dark. */
+function ThemeBtn() {
+  const [prefs, update] = useAdminPrefs();
+  const light = typeof document !== 'undefined' && document.documentElement.dataset.adminTheme === 'light';
+  return (
+    <button className="a-icon-btn" onClick={() => update({ theme: light ? 'dark' : 'light' })} title={light ? 'الوضع الداكن' : 'الوضع الفاتح'} aria-label="تبديل الوضع" data-theme-mode={prefs.theme}>
+      <Icon name={light ? 'moon' : 'sun'} />
+    </button>
   );
 }
