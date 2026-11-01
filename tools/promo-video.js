@@ -208,6 +208,28 @@ function check() {
     progress(12, 'فتح الواجهة');
     const browser = await launch();
     const page = await browser.newPage({ viewport: { width: W, height: H } });
+    if (args.mode === 'teaser') {
+      // "Tonight" announcement: the /teaser page with the live's look, recorded once through.
+      const q = new URLSearchParams({ wait: '1', when: String(args.when || ''), headline: String(args.headline || ''), handle: String(args.handle || ''), cta: String(args.cta || '') });
+      await page.goto(`http://127.0.0.1:${port}/teaser/?${q}`);
+      await page.waitForFunction(() => typeof window.startTeaser === 'function', null, { timeout: 20000 });
+      await page.evaluate(() => document.fonts && document.fonts.ready);
+      await page.waitForFunction(() => [...document.images].every((i) => i.complete), null, { timeout: 15000 }).catch(() => {});
+      await sleep(600);
+      const secs = await page.evaluate(() => window.teaserSeconds || 14);
+      const rec = await startRecording(page, OUT);
+      await sleep(300);
+      await page.evaluate(() => window.startTeaser());
+      const t0 = Date.now();
+      while (Date.now() - t0 < secs * 1000) { await sleep(500); progress(15 + (75 * (Date.now() - t0)) / (secs * 1000), 'تسجيل الإعلان'); }
+      progress(92, 'ترميز الفيديو');
+      const frames = await rec.stop();
+      await browser.close(); ws.close();
+      if (frames < 30) throw new Error('لم يُسجَّل أي إطار');
+      progress(100, 'تم');
+      console.log(`DONE ${JSON.stringify({ file: OUT, width: W, height: H, total: 0, winner: '', winnerName: '', seconds: secs, kind: 'teaser' })}`);
+      return;
+    }
     await page.goto(`http://127.0.0.1:${port}/${LANDSCAPE ? 'overlay' : 'overlay-vertical'}/`);
     await page.waitForSelector('.card', { timeout: 20000 });
     await sleep(1200);

@@ -622,3 +622,11 @@ html[data-admin-theme="light"] .admin-root .goal-pct { color: #1c1a22; text-shad
 .a-zoom-val { min-width: 48px; padding: 3px 6px; border-radius: 8px; border: 1px solid var(--line-2); background: var(--panel-2); color: var(--gold-2); font-weight: 900; cursor: pointer; font-size: calc(12.5px * var(--a-fs, 1)); }
 .admin-root .lc-inline { width: 1.05em; height: 1.05em; vertical-align: -0.16em; }
 .admin-root .a-kpi-ico svg { width: 22px; height: 22px; color: var(--gold); }
+.a-vid-kind { margin-bottom: 14px; }
+.a-vid-kind button { padding: 8px 16px; font-size: calc(14px * var(--a-fs, 1)); }
+.a-tz-prev { display: grid; place-items: center; margin: 14px 0 6px; }
+.a-tz-stage { position: relative; overflow: hidden; border-radius: 14px; border: 1px solid var(--line); }
+.a-tz-prev.vertical .a-tz-stage { width: 270px; height: 480px; }
+.a-tz-prev.landscape .a-tz-stage { width: 560px; max-width: 100%; aspect-ratio: 16 / 9; }
+.a-tz-stage > .teaser-root { width: 1080px; height: 1920px; transform: scale(.25); transform-origin: top right; right: 0; left: auto; }
+.a-tz-prev.landscape .a-tz-stage > .teaser-root { width: 1920px; height: 1080px; transform: scale(calc(560 / 1920)); }

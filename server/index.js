@@ -1777,6 +1777,7 @@ function startPromo(l, opt, user) {
   const winner = teamIds.includes(opt.winner) ? opt.winner : teamIds[0];
   const rival = teamIds.includes(opt.rival) && opt.rival !== winner ? opt.rival : teamIds.find((t) => t !== winner);
   const landscape = opt.orientation === 'landscape';
+  const teaser = opt.kind === 'teaser';
   const id = `${new Date().toISOString().replace(/[-:T]/g, '').slice(0, 14)}-${crypto.randomBytes(3).toString('hex')}`;
   const dir = videoDir(l); fs.mkdirSync(dir, { recursive: true });
   const file = path.join(dir, `${id}.mp4`);
@@ -1784,6 +1785,7 @@ function startPromo(l, opt, user) {
   promo.current = job;
   const argsList = [PROMO_TOOL, `--config=${l.files.config}`, `--data=${SETTINGS.dataDir}`, `--winner=${winner}`, `--rival=${rival}`, `--out=${file}`];
   if (landscape) argsList.push('--landscape');
+  if (teaser) argsList.push('--mode=teaser', `--when=${opt.when || ''}`, `--headline=${opt.headline || ''}`, `--handle=${opt.handle || ''}`, `--cta=${opt.cta || ''}`);
   log.info(`[${l.slug}] Promo video ${id} started (${landscape ? 'landscape' : 'vertical'}, winner ${winner})`);
   (async () => {
     let done = null; let lastErr = '';
@@ -1807,7 +1809,7 @@ function startPromo(l, opt, user) {
     });
     if (r.code === 0 && done && fs.existsSync(file)) {
       const teams = new Map(l.config.teams.map((t) => [t.id, t.name]));
-      const meta = { id, createdAt: Date.now(), orientation: landscape ? 'landscape' : 'vertical', width: done.width, height: done.height,
+      const meta = { id, kind: teaser ? 'teaser' : 'race', when: teaser ? opt.when || '' : '', createdAt: Date.now(), orientation: landscape ? 'landscape' : 'vertical', width: done.width, height: done.height,
         seconds: done.seconds, total: done.total, winner, winnerName: teams.get(winner) || winner, rivalName: teams.get(rival) || rival, by: user.email };
       await writeJsonAtomic(path.join(dir, `${id}.json`), meta);
       job.ok = true; job.pct = 100; job.text = 'تم';
@@ -2488,7 +2490,9 @@ const httpServer = http.createServer(async (req, res) => {
       const l = reqLive(); const b = await readJsonBody(req, 4096);
       const tools = await promoTools(true);
       if (!tools.ready) throw httpErr(400, 'أدوات الفيديو غير مثبتة على الخادم. شغّل مرة واحدة: sudo bash /opt/koydam-tiktok/deploy/install-video.sh');
-      return json(202, { ok: true, job: startPromo(l, { winner: str(b.winner, 60), rival: str(b.rival, 60), orientation: str(b.orientation, 20) }, me) });
+      const clean = (v, n) => str(v, n).replace(/[\r\n]+/g, ' ').trim();
+      return json(202, { ok: true, job: startPromo(l, { kind: b.kind === 'teaser' ? 'teaser' : 'race', winner: str(b.winner, 60), rival: str(b.rival, 60), orientation: str(b.orientation, 20),
+        when: clean(b.when, 40), headline: clean(b.headline, 30), handle: clean(b.handle, 40).replace(/[^\w.]/g, ''), cta: clean(b.cta, 120) }, me) });
     }
     if (p === '/api/promo/file' && (req.method === 'GET' || req.method === 'HEAD')) {
       const l = reqLive(); const id = String(url.searchParams.get('id') || '');

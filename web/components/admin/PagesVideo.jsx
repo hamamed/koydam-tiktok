@@ -1,5 +1,5 @@
 'use client';
-import { Trophy } from 'lucide-react';
+import { CalendarClock, Trophy } from 'lucide-react';
 /**
  * «فيديو ترويجي»: the server records this live's own overlay (teams, look, logo, gift pictures)
  * during a scripted race to 1,000,000 and offers the MP4 for download.
@@ -8,6 +8,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { api } from '@/lib/api';
 import { getStoreLive } from '@/lib/store';
 import { Flag } from '../bits';
+import Teaser from '../Teaser';
 import { Btn, Field, Icon, Section, Select } from './ui';
 
 const fileUrl = (id, dl) => `/api/promo/file?id=${encodeURIComponent(id)}&live=${encodeURIComponent(getStoreLive())}${dl ? '&download=1' : ''}`;
@@ -16,7 +17,7 @@ const mb = (n) => `${(n / 1048576).toFixed(1)} MB`;
 export function VideoPage({ live, notice }) {
   const teams = live.config?.teams || [];
   const [info, setInfo] = useState(null);
-  const [opt, setOpt] = useState({ orientation: 'vertical', winner: '', rival: '' });
+  const [opt, setOpt] = useState({ kind: 'teaser', orientation: 'vertical', winner: '', rival: '', when: '9:00 مساءً', headline: 'الليلة', handle: live.status?.username || '', cta: '' });
   const [busy, setBusy] = useState(false);
   const [play, setPlay] = useState(null);
 
@@ -53,8 +54,8 @@ export function VideoPage({ live, notice }) {
 
   return (
     <div className="a-grid">
-      <Section title="🎬 فيديو ترويجي «تحدي المليون»" className="span-2"
-        desc="الخادم يسجّل واجهة هذا البث نفسها (الفرق، الشكل، الشعار، صور الهدايا) أثناء سباق تمثيلي حتى المليون، وينتهي بشاشة الفائز. جاهز للنشر على تيك توك وإنستغرام. السباق تمثيلي بأسماء وهمية.">
+      <Section title="🎬 فيديوهات ترويجية" className="span-2"
+        desc="فيديوهات جاهزة للنشر على تيك توك وإنستغرام بنفس تصميم بثك: إعلان «الليلة» يعرّف الجمهور بالدول وهداياها ووقت البث، أو سباق تمثيلي حتى المليون (بأسماء وهمية) ينتهي بشاشة الفائز.">
         {!tools.ready ? (
           <div className="a-alert warn">
             <Icon name="tools" />
@@ -69,6 +70,10 @@ export function VideoPage({ live, notice }) {
           <div className="a-alert warn"><Icon name="flag" />أضف فريقين على الأقل من صفحة «الفرق والهدف» واحفظ.</div>
         ) : (
           <>
+            <div className="a-seg a-vid-kind">
+              <button className={opt.kind === 'teaser' ? 'on' : ''} onClick={() => setOpt({ ...opt, kind: 'teaser' })}><CalendarClock className="lc-inline" /> إعلان «الليلة»</button>
+              <button className={opt.kind === 'race' ? 'on' : ''} onClick={() => setOpt({ ...opt, kind: 'race' })}><Trophy className="lc-inline" /> سباق حتى المليون</button>
+            </div>
             <div className="a-form">
               <Field label="الشكل">
                 <div className="a-seg">
@@ -76,15 +81,27 @@ export function VideoPage({ live, notice }) {
                   <button className={opt.orientation === 'landscape' ? 'on' : ''} onClick={() => setOpt({ ...opt, orientation: 'landscape' })}>🖥️ أفقي <bdi dir="ltr" className="num-latin">1920×1080</bdi></button>
                 </div>
               </Field>
-              <Field label="الفائز بالمليون"><Select value={winner} onChange={(v) => setOpt({ ...opt, winner: v })} options={teamOpts} /></Field>
-              <Field label="المنافس الأقوى" hint="يتصدّر مرتين قبل أن يحسم الفائز"><Select value={rival} onChange={(v) => setOpt({ ...opt, rival: v })} options={teamOpts.filter(([id]) => id !== winner)} /></Field>
+              {opt.kind === 'race' ? <>
+                <Field label="الفائز بالمليون"><Select value={winner} onChange={(v) => setOpt({ ...opt, winner: v })} options={teamOpts} /></Field>
+                <Field label="المنافس الأقوى" hint="يتصدّر مرتين قبل أن يحسم الفائز"><Select value={rival} onChange={(v) => setOpt({ ...opt, rival: v })} options={teamOpts.filter(([id]) => id !== winner)} /></Field>
+              </> : <>
+                <Field label="العنوان الكبير" hint="مثل: الليلة، غداً، الجمعة"><input className="a-input" value={opt.headline} maxLength={30} onChange={(e) => setOpt({ ...opt, headline: e.target.value })} /></Field>
+                <Field label="الوقت"><input className="a-input" value={opt.when} maxLength={40} onChange={(e) => setOpt({ ...opt, when: e.target.value })} placeholder="9:00 مساءً بتوقيت مكة" /></Field>
+                <Field label="حسابك في تيك توك (اختياري)"><input className="a-input num-latin" dir="ltr" value={opt.handle} maxLength={40} onChange={(e) => setOpt({ ...opt, handle: e.target.value.replace(/^@/, '') })} placeholder="username" /></Field>
+                <Field label="الجملة الأخيرة (اختياري)" hint="فارغ = «كن جاهزاً! اكتب اسم دولتك في الشات وأرسل هديته»"><input className="a-input" value={opt.cta} maxLength={120} onChange={(e) => setOpt({ ...opt, cta: e.target.value })} /></Field>
+              </>}
             </div>
-            <div className="a-vid-duel">
+            {opt.kind === 'teaser' && (
+              <div className={`a-tz-prev ${opt.orientation}`}>
+                <div className="a-tz-stage"><Teaser config={live.config} gifts={live.gifts} params={opt} preview portrait={opt.orientation !== 'landscape'} /></div>
+              </div>
+            )}
+            {opt.kind === 'race' && <div className="a-vid-duel">
               {[winner, rival].map((id, i) => { const t = teams.find((x) => x.id === id); return t && (
                 <span key={id} className="a-vid-team" style={{ '--team': t.color }}><span className="a-vid-flag"><Flag team={t} /></span><b>{t.name}</b>{i === 0 && <Trophy className="lc-inline a-gold" />}</span>
               ); })}
-            </div>
-            <p className="a-muted">يستخدم الإعدادات المحفوظة لهذا البث (احفظ تعديلاتك أولاً). مدة الفيديو حوالي 40 ثانية، وصنعه يستغرق دقيقة تقريباً.</p>
+            </div>}
+            <p className="a-muted">يستخدم الإعدادات المحفوظة لهذا البث: الفرق والشكل والخطوط والشعار وصور الهدايا (احفظ تعديلاتك أولاً). {opt.kind === 'teaser' ? 'مدة الإعلان حوالي 15 ثانية.' : 'مدة الفيديو حوالي 40 ثانية.'} الصنع يستغرق أقل من دقيقة.</p>
             <div className="a-row">
               <Btn variant="gold" icon="bolt" busy={busy || running} disabled={running || info.busy} onClick={make}>{running ? 'جارٍ الصنع…' : 'اصنع الفيديو'}</Btn>
               {info.busy && <span className="a-muted">الخادم يصنع فيديو لبث آخر الآن…</span>}
@@ -112,7 +129,9 @@ export function VideoPage({ live, notice }) {
                   ? <video src={fileUrl(v.id)} controls autoPlay playsInline />
                   : <button type="button" className="a-video-poster" onClick={() => setPlay(v.id)}><Icon name="eye" /> تشغيل</button>}
                 <div className="a-video-meta">
-                  <b><Trophy className="lc-inline a-gold" /> {v.winnerName}</b>
+                  {v.kind === 'teaser'
+                    ? <b><CalendarClock className="lc-inline a-gold" /> إعلان {v.when ? `· ${v.when}` : ''}</b>
+                    : <b><Trophy className="lc-inline a-gold" /> {v.winnerName}</b>}
                   <span className="a-muted">{v.orientation === 'landscape' ? 'أفقي' : 'عمودي'} · {v.seconds} ثانية · <bdi dir="ltr" className="num-latin">{mb(v.size)}</bdi> · <bdi>{new Date(v.createdAt).toLocaleString('ar', { dateStyle: 'short', timeStyle: 'short' })}</bdi></span>
                 </div>
                 <div className="a-row">

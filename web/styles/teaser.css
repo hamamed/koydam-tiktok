@@ -1,0 +1,109 @@
+/* ==========================================================================
+   "Tonight" announcement (components/Teaser.jsx). Uses the look's variables
+   (gold, red, glass, page background, fonts) so it matches the stream.
+   ========================================================================== */
+.teaser-root { position: fixed; inset: 0; overflow: hidden; color: var(--text, #fff); font-family: var(--font); background: var(--page-bg, #0b0a0f); direction: rtl; }
+.teaser-root.preview { position: absolute; }
+.teaser-root > .live-bg { position: absolute; inset: 0; z-index: 0; background:
+  radial-gradient(60% 50% at 85% -10%, var(--glow-1, rgba(245,179,1,.22)), transparent 60%),
+  radial-gradient(50% 45% at 0% 10%, var(--glow-2, rgba(200,16,46,.22)), transparent 65%), var(--page-bg, #0b0a0f); }
+.tz-rays { position: absolute; z-index: 1; left: 50%; top: 14%; width: 150vmax; height: 150vmax; will-change: opacity; transform: translate(-50%, -50%); pointer-events: none; opacity: 0;
+  background: repeating-conic-gradient(from 0deg, color-mix(in srgb, var(--gold) 16%, transparent) 0 5deg, transparent 5deg 15deg);
+  -webkit-mask: radial-gradient(circle, #000 0, transparent 45%); mask: radial-gradient(circle, #000 0, transparent 45%); }
+.go .tz-rays { animation: tzFade 1.2s .2s forwards; }
+
+.tz { position: relative; z-index: 2; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: safe center; text-align: center; gap: 26px; padding: 110px 60px 120px; }
+.tz > * { opacity: 0; }
+.tz-logo img { width: 300px; height: auto; filter: drop-shadow(0 18px 50px color-mix(in srgb, var(--gold) 45%, transparent)); }
+.tz-logo img.own-logo { max-height: 300px; object-fit: contain; }
+.tz-title { font-family: var(--title-font, var(--font)); font-weight: 900; font-size: 104px; line-height: 1.25; padding-bottom: .1em; margin: 0;
+  background: var(--title-grad, linear-gradient(180deg, #fff6cf, var(--gold-2) 45%, var(--gold) 75%, #c27c00)); -webkit-background-clip: text; background-clip: text; color: transparent;
+  filter: drop-shadow(0 4px 0 var(--red-2, #7a0e16)) drop-shadow(0 10px 30px rgba(0,0,0,.5)); }
+.tz-when { display: flex; flex-direction: column; align-items: center; gap: 14px; }
+.tz-tonight { display: inline-flex; align-items: center; gap: 18px; font-family: var(--title-font, var(--font)); font-weight: 900; font-size: 120px; line-height: 1.15;
+  color: #fff; text-shadow: 0 0 40px color-mix(in srgb, var(--red) 80%, transparent), 0 6px 0 var(--red-2, #7a0e16); }
+.tz-time { display: inline-flex; align-items: center; gap: 14px; padding: 10px 34px; border-radius: 999px; font-weight: 900; font-size: 58px;
+  background: linear-gradient(180deg, var(--gold-2), var(--gold)); color: #2b1900; box-shadow: 0 10px 40px color-mix(in srgb, var(--gold) 50%, transparent); }
+.tz-ico { width: .8em; height: .8em; flex: none; }
+.tz-sub { font-size: 40px; font-weight: 800; opacity: .9; color: var(--gold-2); }
+.tz-teams { width: 100%; display: grid; grid-template-columns: repeat(var(--cols), minmax(0, 1fr)); gap: 18px; opacity: 1; }
+.tz-team { --i: 0; display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 16px 10px 14px; border-radius: 24px; opacity: 0;
+  background: rgba(var(--glass-rgb, 18,12,10), .55); border: 2px solid color-mix(in srgb, var(--team) 70%, transparent);
+  box-shadow: 0 8px 20px rgba(0,0,0,.3), inset 0 1px 0 rgba(255,255,255,.08); min-width: 0; }
+.tz-flag { width: calc(40px + 240px / var(--cols)); height: calc(40px + 240px / var(--cols)); border-radius: 50%; overflow: hidden; display: grid; place-items: center;
+  box-shadow: 0 0 0 4px rgba(255,255,255,.18), 0 8px 24px rgba(0,0,0,.4); font-size: calc(24px + 120px / var(--cols)); background: rgba(0,0,0,.25); }
+.tz-flag img { width: 100%; height: 100%; object-fit: cover; }
+.tz-name { font-family: var(--title-font, var(--font)); font-weight: 900; font-size: calc(18px + 62px / var(--cols)); line-height: 1.3; max-width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tz-gift { display: inline-flex; align-items: center; gap: 6px; padding: 4px 12px 4px 6px; border-radius: 999px; font-weight: 900; font-size: calc(12px + 30px / var(--cols));
+  color: var(--gold-2); background: rgba(0,0,0,.4); border: 1.5px solid color-mix(in srgb, var(--gold) 70%, transparent); }
+.tz-gimg { width: calc(22px + 60px / var(--cols)); height: calc(22px + 60px / var(--cols)); object-fit: contain; }
+.tz-gimg.lc-fallback svg { width: 100%; height: 100%; }
+.tz-cta { max-width: 92%; padding: 22px 40px; border-radius: 28px; font-weight: 900; font-size: 50px; line-height: 1.5;
+  background: rgba(var(--glass-rgb, 18,12,10), .7); border: 2px solid color-mix(in srgb, var(--gold) 80%, transparent); box-shadow: 0 0 50px color-mix(in srgb, var(--gold) 30%, transparent); }
+.tz-handle { display: inline-flex; align-items: center; gap: 10px; font-weight: 900; font-size: 46px; color: #fff; padding: 8px 26px; border-radius: 999px; background: linear-gradient(135deg, var(--red), var(--red-2)); }
+
+/* Timeline */
+.go .tz-logo { animation: tzZoom 1s .2s cubic-bezier(.2,1.4,.4,1) forwards, tzFloat 4s 1.4s ease-in-out infinite; }
+.go .tz-title { animation: tzUp .8s .9s cubic-bezier(.2,1,.3,1) forwards; }
+.go .tz-when { animation: tzPop .7s 1.8s cubic-bezier(.2,1.6,.4,1) forwards; }
+.go .tz-time { animation: tzPulse 1.6s 3s ease-in-out infinite; }
+.go .tz-sub { animation: tzUp .7s 3.1s forwards; }
+.go .tz-team { animation: tzPop .55s calc(4s + var(--i) * .28s) cubic-bezier(.2,1.6,.4,1) forwards; }
+.go .tz-cta { animation: tzUp .8s calc(var(--t-end) + .4s) cubic-bezier(.2,1,.3,1) forwards, tzGlow 1.8s calc(var(--t-end) + 1.4s) ease-in-out infinite; }
+.go .tz-handle { animation: tzPop .6s calc(var(--t-end) + 1.1s) cubic-bezier(.2,1.6,.4,1) forwards; }
+@keyframes tzFade { to { opacity: .9; } }
+@keyframes tzSpin { to { transform: translate(-50%, -50%) rotate(360deg); } }
+@keyframes tzZoom { from { opacity: 0; transform: scale(.3) rotate(-10deg); } to { opacity: 1; transform: none; } }
+@keyframes tzFloat { 50% { transform: translateY(-10px); } }
+@keyframes tzUp { from { opacity: 0; transform: translateY(40px); } to { opacity: 1; transform: none; } }
+@keyframes tzPop { from { opacity: 0; transform: scale(.4); } to { opacity: 1; transform: none; } }
+@keyframes tzPulse { 50% { transform: scale(1.06); } }
+@keyframes tzGlow { 50% { box-shadow: 0 0 80px color-mix(in srgb, var(--gold) 55%, transparent); transform: scale(1.02); } }
+
+/* Many teams: smaller head so everything fits 1920 */
+.teaser-root.tall .tz:has(.tz-team:nth-child(13)) { gap: 18px; padding-top: 80px; }
+.teaser-root.tall .tz:has(.tz-team:nth-child(13)) .tz-logo img { width: 200px; }
+.teaser-root.tall .tz:has(.tz-team:nth-child(13)) .tz-title { font-size: 80px; }
+.teaser-root.tall .tz:has(.tz-team:nth-child(13)) .tz-tonight { font-size: 90px; }
+.teaser-root.tall .tz:has(.tz-team:nth-child(13)) .tz-time { font-size: 44px; }
+.teaser-root.tall .tz:has(.tz-team:nth-child(13)) .tz-cta { font-size: 40px; padding: 16px 30px; }
+
+/* Landscape 1920x1080 */
+.teaser-root.wide .tz { padding: 40px 70px 50px; gap: 16px; }
+.teaser-root.wide .tz-logo img { width: 170px; }
+.teaser-root.wide .tz-title { font-size: 72px; }
+.teaser-root.wide .tz-when { flex-direction: row; gap: 24px; }
+.teaser-root.wide .tz-tonight { font-size: 76px; }
+.teaser-root.wide .tz-time { font-size: 42px; }
+.teaser-root.wide .tz-sub { font-size: 28px; }
+.teaser-root.wide .tz-flag { width: calc(40px + 160px / var(--cols)); height: calc(40px + 160px / var(--cols)); }
+.teaser-root.wide .tz-name { font-size: calc(16px + 40px / var(--cols)); }
+.teaser-root.wide .tz-cta { font-size: 34px; padding: 12px 30px; }
+.teaser-root.wide .tz-handle { font-size: 32px; }
+@media (prefers-reduced-motion: reduce) { .go .tz-rays, .go .tz-logo, .go .tz-time, .go .tz-cta { animation-iteration-count: 1; } }
+/* vertical: keep everything inside 1920 */
+.teaser-root.tall .tz { gap: 20px; padding: 90px 50px 90px; }
+.teaser-root.tall .tz-logo img { width: 240px; }
+.teaser-root.tall .tz-title { font-size: 92px; }
+.teaser-root.tall .tz-tonight { font-size: 108px; }
+.teaser-root.tall .tz-team { padding: 12px 8px 10px; gap: 6px; }
+.teaser-root.tall .tz-cta { font-size: 44px; padding: 16px 30px; }
+
+/* many teams (13+): compact tiles (name + flag + gift in one row) so 22 fit in 1920 */
+.teaser-root .tz:has(.tz-team:nth-child(13)) .tz-teams { gap: 10px; }
+.teaser-root .tz:has(.tz-team:nth-child(13)) .tz-team { flex-direction: row; justify-content: flex-start; padding: 8px 10px; gap: 8px; border-radius: 16px; }
+.teaser-root .tz:has(.tz-team:nth-child(13)) .tz-flag { width: 56px; height: 56px; font-size: 34px; flex: none; }
+.teaser-root .tz:has(.tz-team:nth-child(13)) .tz-name { font-size: 28px; flex: 1; text-align: start; }
+.teaser-root .tz:has(.tz-team:nth-child(13)) .tz-gift { padding: 2px 4px; font-size: 0; gap: 0; }
+.teaser-root .tz:has(.tz-team:nth-child(13)) .tz-gimg { width: 40px; height: 40px; }
+.teaser-root.wide .tz:has(.tz-team:nth-child(13)) .tz-flag { width: 44px; height: 44px; }
+.teaser-root.wide .tz:has(.tz-team:nth-child(13)) .tz-name { font-size: 22px; }
+.teaser-root.wide .tz:has(.tz-team:nth-child(13)) .tz-gimg { width: 32px; height: 32px; }
+.teaser-root.wide .tz:has(.tz-team:nth-child(13)) { gap: 10px; padding-top: 24px; padding-bottom: 24px; }
+.teaser-root.wide .tz:has(.tz-team:nth-child(13)) .tz-logo img { width: 120px; }
+.teaser-root.wide .tz:has(.tz-team:nth-child(13)) .tz-title { font-size: 58px; }
+.teaser-root.wide .tz:has(.tz-team:nth-child(13)) .tz-tonight { font-size: 62px; }
+.teaser-root.wide .tz:has(.tz-team:nth-child(13)) .tz-time { font-size: 34px; padding: 6px 24px; }
+.teaser-root.wide .tz:has(.tz-team:nth-child(13)) .tz-team { padding: 5px 8px; }
+.teaser-root.wide .tz:has(.tz-team:nth-child(13)) .tz-cta { font-size: 28px; padding: 8px 24px; }
+.teaser-root.wide .tz:has(.tz-team:nth-child(13)) .tz-handle { font-size: 28px; padding: 4px 20px; }
