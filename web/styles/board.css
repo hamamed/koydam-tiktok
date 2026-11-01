@@ -38,9 +38,44 @@
   display: grid; place-items: center; font-weight: 900; font-size: calc(18px * var(--fs));
   background: rgba(255,255,255,.12); border: 1px solid rgba(255,255,255,.2);
 }
-.card[data-rank="1"] .rank { background: linear-gradient(145deg, #fff3b0, var(--gold) 50%, #c99a12); color: #3a2a00; border: 0; }
-.card[data-rank="2"] .rank { background: linear-gradient(145deg, #fff, var(--silver) 50%, #8e9aa8); color: #1d2733; border: 0; }
-.card[data-rank="3"] .rank { background: linear-gradient(145deg, #ffd9b8, var(--bronze) 50%, #8a4f22); color: #2c1606; border: 0; }
+/* ---- Rank badges: 4+ = clean ring in the team colour; 1-3 = metallic medals with ribbon tails ---- */
+.rank { font-family: var(--title-font, var(--font)); font-variant-numeric: tabular-nums; line-height: 1;
+  background: radial-gradient(circle at 50% 35%, rgba(255,255,255,.14), rgba(0,0,0,.25) 70%);
+  border: 2px solid color-mix(in srgb, var(--team) 70%, rgba(255,255,255,.35));
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.18), 0 2px 8px rgba(0,0,0,.35); text-shadow: 0 1px 2px rgba(0,0,0,.6); }
+.card[data-rank="1"] .rank, .card[data-rank="2"] .rank, .card[data-rank="3"] .rank {
+  --m-hi: #fff7d1; --m-1: #ffd75a; --m-2: #e3a812; --m-3: #a86e00; --m-ink: #4a3000; --m-rib-a: #c8102e; --m-rib-b: #8c0d1d;
+  isolation: isolate; background: none; border: 0; box-shadow: none;
+  width: calc(46px * var(--fs)); height: calc(46px * var(--fs)); margin-bottom: calc(6px * var(--fs));
+  font-size: calc(21px * var(--fs)); font-weight: 900; color: var(--m-ink);
+  text-shadow: 0 1px 0 rgba(255,255,255,.7), 0 -1px 0 rgba(0,0,0,.25);
+}
+/* medal disc: bevelled metallic ring + domed centre + moving shine */
+.card[data-rank="1"] .rank::after, .card[data-rank="2"] .rank::after, .card[data-rank="3"] .rank::after {
+  content: ''; position: absolute; inset: 0; border-radius: 50%; z-index: -1;
+  background:
+    linear-gradient(115deg, transparent 30%, rgba(255,255,255,.55) 45%, transparent 60%) 0 0 / 250% 100% no-repeat,
+    radial-gradient(closest-side at 40% 34%, rgba(255,255,255,.75), rgba(255,255,255,0) 45%),
+    radial-gradient(closest-side, transparent 0 73%, rgba(0,0,0,.28) 74%, rgba(255,255,255,.45) 77%, transparent 79%),
+    radial-gradient(closest-side, var(--m-1) 0, var(--m-2) 50%, var(--m-3) 73%, transparent 74%),
+    conic-gradient(from 210deg, var(--m-3), var(--m-hi), var(--m-2), var(--m-3), var(--m-1), var(--m-hi), var(--m-3));
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,.55), inset 0 -2px 3px rgba(0,0,0,.35), 0 3px 10px rgba(0,0,0,.45);
+  animation: medalShine 4.5s ease-in-out infinite;
+}
+/* ribbon tails under the medal */
+.card[data-rank="1"] .rank::before, .card[data-rank="2"] .rank::before, .card[data-rank="3"] .rank::before {
+  content: ''; position: absolute; z-index: -2; left: 50%; bottom: calc(-9px * var(--fs));
+  width: calc(30px * var(--fs)); height: calc(22px * var(--fs)); transform: translateX(-50%);
+  background: linear-gradient(90deg, var(--m-rib-a) 0 50%, var(--m-rib-b) 50% 100%);
+  clip-path: polygon(0 0, 100% 0, 100% 100%, 75% 72%, 50% 100%, 25% 72%, 0 100%);
+  filter: drop-shadow(0 2px 2px rgba(0,0,0,.4));
+}
+.card[data-rank="2"] .rank { --m-hi: #ffffff; --m-1: #e8edf3; --m-2: #b7c2cf; --m-3: #6e7b8b; --m-ink: #1f2a37; --m-rib-a: #2563eb; --m-rib-b: #1e3a8a; }
+.card[data-rank="3"] .rank { --m-hi: #ffe2c4; --m-1: #f0a868; --m-2: #c0703a; --m-3: #7a3f17; --m-ink: #3a1a06; --m-rib-a: #0f8b5f; --m-rib-b: #065f46; }
+.card[data-rank="1"] .rank { width: calc(50px * var(--fs)); height: calc(50px * var(--fs)); font-size: calc(23px * var(--fs)); }
+.card[data-rank="1"] .rank::after { box-shadow: inset 0 0 0 1px rgba(255,255,255,.6), inset 0 -2px 3px rgba(0,0,0,.35), 0 3px 10px rgba(0,0,0,.45), 0 0 18px rgba(255,200,40,.55); }
+@keyframes medalShine { 0%, 55% { background-position: 130% 0, center, center, center, center; } 85%, 100% { background-position: -40% 0, center, center, center, center; } }
+@media (prefers-reduced-motion: reduce) { .card .rank::after { animation: none !important; } }
 
 .flag-wrap { position: relative; z-index: 1; }
 .flag {
