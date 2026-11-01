@@ -269,5 +269,10 @@
 .overlay-root.portrait .banner .btext { font-size: calc(38px * var(--fs)); }
 
 /* Overall size (theme.zoom): texts, boxes and pictures together. Backgrounds stay full-screen. */
-.overlay-root > :not(.live-bg):not(.scene-photo):not(.winner-screen) { zoom: var(--zoom, 1); }
+/* Contents are zoomed, the boxes keep their place on screen (TikTok safe areas stay right). */
+.ov-panel > *, .toasts > .toast, .gift-strip > *, .ticker > *, .banner > * { zoom: var(--zoom, 1); }
+.ov-panel:not(.portrait) { width: calc(var(--panel-w) * var(--zoom, 1)); }
+.ov-panel.layout-grid:not(.portrait) { width: min(1500px, calc(100% - 80px)); }
+.toasts:not(.compact) { width: calc(460px * var(--zoom, 1)); }
+.ov-panel.portrait.v-side { width: calc(var(--v-side-w) * var(--zoom, 1)); }
 .overlay-root .winner-screen .ws-card { zoom: var(--zoom, 1); }

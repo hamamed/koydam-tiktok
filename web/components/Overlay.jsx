@@ -48,6 +48,7 @@ export default function Overlay({ config, state, byId, status, gifts, round, pre
   const rootRef = useRef(null); const panelRef = useRef(null); const stripRef = useRef(null);
   const [fit, setFit] = useState(1);
   const fitRef = useRef(1); fitRef.current = fit;
+  const [cap, setCap] = useState(0); // fewer visible teams when they cannot fit at this size
   // Top bar with EVERY team's flag + gift, so viewers know how to push a team that is not on the board.
   const stripTeams = th.giftStrip !== false ? config.teams.filter((t) => t.gifts?.length) : [];
   const [stripH, setStripH] = useState(0);
@@ -77,9 +78,30 @@ export default function Overlay({ config, state, byId, status, gifts, round, pre
       const px = rr.height / Math.max(1, root.clientHeight); // screen px per CSS px of the root
       const cur = fitRef.current || 1;
       const top = (pr.top - rr.top) / px;
-      const avail = root.clientHeight - top - Math.max(showTicker ? (portrait ? 130 : 110) : 30, reserveBottom + (showTicker ? 92 : 0));
+      let avail = root.clientHeight - top - Math.max(showTicker ? (portrait ? 130 : 110) : 30, reserveBottom + (showTicker ? 92 : 0));
+      // Vertical: the board ends above the gift alerts zone (when the alerts are below the board's top).
+      if (portrait && showToasts) { const tt = Number(v.toastsTop ?? 1080); if (tt > top + 200) avail = Math.min(avail, tt - top - 14); }
       const h = pr.height / px / cur; // natural height before the current fit
-      const k = h > avail && avail > 0 ? Math.max(0.4, Math.floor((avail / h) * 100) / 100) : 1;
+      let k = h > avail && avail > 0 ? Math.floor((avail / h) * 100) / 100 : 1;
+      // Never shrink below 85% (that would undo the overall size): show fewer teams instead.
+      if (k < 0.85) {
+        const board = panel.querySelector('.board');
+        const card = panel.querySelector('.card');
+        if (board && card) {
+          // Sizes from the board itself (card positions may still be animating).
+          const z = Number(th.zoom ?? 1);
+          const br = board.getBoundingClientRect(); const cr = card.getBoundingClientRect();
+          const gap = 10 * z * px * cur;
+          const cols = Math.max(1, Math.round((br.width + gap) / (cr.width + gap)));
+          const rowH = (cr.height + gap) / px / cur;
+          const hb = br.height / px / cur;
+          const shown = Math.max(1, panel.querySelectorAll('.card:not(.is-hidden)').length);
+          const rows = Math.ceil(shown / cols);
+          const allowedRows = Math.max(1, Math.floor((avail / 0.85 - (h - hb) + 10 * z) / rowH));
+          if (allowedRows < rows) { setCap(allowedRows * cols); return; }
+        }
+        k = Math.max(0.4, k);
+      }
       setFit((f) => (Math.abs(f - k) > 0.005 ? k : f));
     };
     measure();
@@ -87,7 +109,8 @@ export default function Overlay({ config, state, byId, status, gifts, round, pre
     if (panelRef.current) ro.observe(panelRef.current);
     if (rootRef.current) ro.observe(rootRef.current);
     return () => ro.disconnect();
-  }, [portrait, showTicker, stripH, reserveBottom, th.zoom]);
+  }, [portrait, showTicker, stripH, reserveBottom, th.zoom, cap, showToasts, v.toastsTop]);
+  useEffect(() => { setCap(0); }, [th.zoom, portrait, v.maxVisible, th.maxVisible, v.layout, v.columns, config.teams.length, stripH, v.scale, th.fontScale, v.toastsTop, showToasts]);
   // Gift legend: only the teams shown on the board (by score), so 20+ teams don't fill the header.
   const legendTeams = (() => {
     const max = portrait ? v.maxVisible ?? 5 : th.maxVisible ?? 8;
@@ -127,7 +150,7 @@ export default function Overlay({ config, state, byId, status, gifts, round, pre
         {!showHeader && <RoundTimer round={round} enabled={config.rounds?.showTimer !== false} className="solo" />}
         <Board
           config={config} state={state} byId={byId}
-          layout={portrait ? (vLayout === 'grid' ? 'grid' : 'list') : th.layout} maxVisible={portrait ? v.maxVisible ?? 6 : th.maxVisible} flagShape={th.flagShape} gifts={gifts} showTeamGifts={th.showTeamGifts !== false}
+          layout={portrait ? (vLayout === 'grid' ? 'grid' : 'list') : th.layout} maxVisible={cap ? Math.min(cap, portrait ? v.maxVisible ?? 6 : th.maxVisible) : portrait ? v.maxVisible ?? 6 : th.maxVisible} flagShape={th.flagShape} gifts={gifts} showTeamGifts={th.showTeamGifts !== false}
           showContributors={portrait && vLayout !== 'list' ? false : th.showContributors} contributorsCount={th.contributorsCount}
           columns={portrait ? (vLayout === 'grid' ? Math.min(3, Math.max(1, v.columns ?? 2)) : 1) : 0} tile={portrait && vLayout !== 'list'}
         />
