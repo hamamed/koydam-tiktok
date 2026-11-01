@@ -26,11 +26,26 @@ function set(patch) {
   for (const l of listeners) l();
 }
 
+let liveSlug = null; // admin: the selected live; public pages: ?live=<slug> (default "main")
+const currentLive = () => liveSlug || (typeof location !== 'undefined' && new URLSearchParams(location.search).get('live')) || 'main';
+
 function wsUrl() {
   const q = new URLSearchParams(location.search).get('ws');
   if (q) return q;
-  return `${location.protocol === 'https:' ? 'wss' : 'ws'}://${location.host}`;
+  return `${location.protocol === 'https:' ? 'wss' : 'ws'}://${location.host}/?live=${encodeURIComponent(currentLive())}`;
 }
+
+/** Admin: switch the live this tab is connected to (clears the old live's data first). */
+export function setStoreLive(slug) {
+  if (!slug || slug === liveSlug) return;
+  liveSlug = slug;
+  set({ config: null, state: null, byId: new Map(), status: {}, round: null, isAdmin: false });
+  reconnectSocket();
+}
+export const getStoreLive = currentLive;
+
+/** Query string for public links of a live ("" for the main live). */
+export const liveQuery = (slug) => (slug && slug !== 'main' ? `?live=${encodeURIComponent(slug)}` : '');
 
 function connect() {
   try { ws = new WebSocket(wsUrl()); } catch { return scheduleReconnect(); }

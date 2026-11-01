@@ -22,33 +22,25 @@ async function restartServer(notice, supervised) {
   notice(ok ? 'تمت إعادة التشغيل' : 'لم يعد الخادم خلال 90 ثانية. راجع السجلات على الخادم.', ok ? 'ok' : 'err');
 }
 
-export function ServerPage({ notice, mustChange, onLogout }) {
+export function ServerPage({ notice, onLogout, go }) {
   const [s, setS] = useState(null);
-  const [f, setF] = useState({ email: '', tiktokUsername: '', autoConnect: false, signApiKey: '', adminToken: '', cur: '', pw: '', pw2: '' });
+  const [f, setF] = useState({ signApiKey: '', adminToken: '' });
   const [busy, setBusy] = useState(false);
   const load = useCallback(async () => {
-    try {
-      const r = await api('/api/settings');
-      setS(r);
-      setF((x) => ({ ...x, email: r.adminEmail, tiktokUsername: r.tiktokUsername, autoConnect: r.autoConnect, signApiKey: '', adminToken: '', cur: '', pw: '', pw2: '' }));
-    } catch (e) { notice(e.message, 'err'); }
+    try { setS(await api('/api/settings')); setF({ signApiKey: '', adminToken: '' }); } catch (e) { notice(e.message, 'err'); }
   }, [notice]);
   useEffect(() => { load(); }, [load]);
-  const up = (k) => (e) => setF({ ...f, [k]: e.target.type === 'checkbox' ? e.target.checked : e.target.value });
+  const up = (k) => (e) => setF({ ...f, [k]: e.target.value });
 
   const saveAll = async () => {
-    const body = { tiktokUsername: f.tiktokUsername, autoConnect: f.autoConnect, adminEmail: f.email };
+    const body = {};
     if (f.signApiKey.trim()) body.signApiKey = f.signApiKey.trim();
     if (f.adminToken.trim()) body.adminToken = f.adminToken.trim();
-    if (f.cur) body.currentPassword = f.cur;
-    if (f.pw) {
-      if (f.pw !== f.pw2) return notice('كلمتا المرور غير متطابقتين', 'err');
-      body.newPassword = f.pw;
-    }
+    if (!Object.keys(body).length) return notice('لا يوجد شيء جديد للحفظ');
     setBusy(true);
     try {
       const r = await api('/api/settings', { method: 'POST', body });
-      notice(r.restartRequired ? 'تم الحفظ. أعد تشغيل الخادم لاستخدام المفتاح الجديد.' : 'تم حفظ إعدادات الخادم');
+      notice(r.restartRequired ? 'تم الحفظ. أعد تشغيل الخادم لاستخدام المفتاح الجديد.' : 'تم الحفظ');
       load();
     } catch (e) { notice(e.message, 'err'); } finally { setBusy(false); }
   };
@@ -59,33 +51,23 @@ export function ServerPage({ notice, mustChange, onLogout }) {
 
   return (
     <div className="a-grid">
-      {(mustChange || s.mustChangePassword) && <div className="a-alert warn span-2"><Icon name="key" />أنت تستخدم كلمة المرور المؤقتة. عيّن كلمة مرور خاصة بك أدناه.</div>}
-      <Section title="حساب المدير" desc="لتغيير البريد أو كلمة المرور أدخل كلمة المرور الحالية">
-        <div className="a-form">
-          <Field label="البريد الإلكتروني للدخول"><input className="a-input num-latin" dir="ltr" type="email" value={f.email} onChange={up('email')} /></Field>
-          <Field label="كلمة المرور الحالية"><input className="a-input num-latin" dir="ltr" type="password" autoComplete="current-password" value={f.cur} onChange={up('cur')} /></Field>
-          <Field label="كلمة مرور جديدة (10 أحرف على الأقل)"><input className="a-input num-latin" dir="ltr" type="password" autoComplete="new-password" value={f.pw} onChange={up('pw')} /></Field>
-          <Field label="تأكيد كلمة المرور"><input className="a-input num-latin" dir="ltr" type="password" autoComplete="new-password" value={f.pw2} onChange={up('pw2')} /></Field>
-        </div>
+      <Section title="🔑 مفتاح Euler Stream (Sign API)" desc="يُستخدم لاتصال كل البثوث بتيك توك. مجاني من eulerstream.com. يُستخدم المفتاح الجديد بعد إعادة التشغيل.">
+        <Field label={s.signApiKeySet ? `✓ مفتاح محفوظ (${s.signApiKeyHint}). الصق مفتاحاً جديداً لاستبداله.` : 'لا يوجد مفتاح'}>
+          <div className="a-inline"><input className="a-input num-latin" dir="ltr" type="password" autoComplete="off" value={f.signApiKey} onChange={up('signApiKey')} placeholder="euler_…" />
+            {s.signApiKeySet && <Btn size="sm" variant="ghost" icon="trash" onClick={() => confirm('حذف المفتاح؟') && clear('clearSignApiKey')} />}</div>
+        </Field>
       </Section>
-      <Section title="تيك توك">
-        <div className="a-form">
-          <Field label="اسم مستخدم البث"><input className="a-input num-latin" dir="ltr" value={f.tiktokUsername} onChange={up('tiktokUsername')} /></Field>
-          <label className="a-toggle"><input type="checkbox" checked={f.autoConnect} onChange={up('autoConnect')} /><span className="a-switch" /><span>اتصال تلقائي عند تشغيل الخادم</span></label>
-          <Field label="مفتاح Euler Stream (Sign API)" hint={s.signApiKeySet ? `✓ مفتاح محفوظ (${s.signApiKeyHint}). الصق مفتاحاً جديداً لاستبداله.` : 'يحسّن حدود الاتصال. مجاني من eulerstream.com. يُستخدم بعد إعادة التشغيل.'}>
-            <div className="a-inline"><input className="a-input num-latin" dir="ltr" type="password" autoComplete="off" value={f.signApiKey} onChange={up('signApiKey')} placeholder="euler_…" />
-              {s.signApiKeySet && <Btn size="sm" variant="ghost" icon="trash" onClick={() => confirm('حذف المفتاح؟') && clear('clearSignApiKey')} />}</div>
-          </Field>
-          <Field label="رمز API (اختياري)" hint={s.adminTokenSet ? '✓ رمز محفوظ' : 'لإرسال أوامر WebSocket من سكربتات أو Stream Deck'}>
-            <div className="a-inline"><input className="a-input num-latin" dir="ltr" type="text" autoComplete="off" value={f.adminToken} onChange={up('adminToken')} />
-              <Btn size="sm" variant="ghost" onClick={genToken}>توليد</Btn>
-              {s.adminTokenSet && <Btn size="sm" variant="ghost" icon="trash" onClick={() => confirm('حذف الرمز؟') && clear('clearAdminToken')} />}</div>
-          </Field>
-        </div>
+      <Section title="رمز API (اختياري)" desc="لإرسال أوامر WebSocket من سكربتات أو Stream Deck بدون تسجيل دخول (صلاحية مدير على كل البثوث).">
+        <Field label={s.adminTokenSet ? '✓ رمز محفوظ' : 'لا يوجد رمز'}>
+          <div className="a-inline"><input className="a-input num-latin" dir="ltr" type="text" autoComplete="off" value={f.adminToken} onChange={up('adminToken')} />
+            <Btn size="sm" variant="ghost" onClick={genToken}>توليد</Btn>
+            {s.adminTokenSet && <Btn size="sm" variant="ghost" icon="trash" onClick={() => confirm('حذف الرمز؟') && clear('clearAdminToken')} />}</div>
+        </Field>
       </Section>
       <div className="a-row span-2">
-        <Btn variant="gold" icon="save" busy={busy} onClick={saveAll}>حفظ إعدادات الخادم</Btn>
+        <Btn variant="gold" icon="save" busy={busy} onClick={saveAll}>حفظ</Btn>
         <Btn variant="ghost" icon="update" onClick={() => restartServer(notice, sv.supervised).then(load)}>إعادة تشغيل الخادم</Btn>
+        <Btn variant="ghost" icon="key" onClick={() => go('account')}>حسابي وكلمة المرور</Btn>
         <Btn variant="ghost" icon="logout" onClick={onLogout}>تسجيل الخروج</Btn>
       </div>
       <Section title="معلومات الخادم" className="span-2">
@@ -94,9 +76,11 @@ export function ServerPage({ notice, mustChange, onLogout }) {
           <div><span>Node</span><b>{sv.node}</b></div>
           <div><span>مدة التشغيل</span><b>{Math.floor(sv.uptime / 3600)}h {Math.floor(sv.uptime / 60) % 60}m</b></div>
           <div><span>الذاكرة</span><b>{sv.memoryMb} MB</b></div>
+          <div><span>البثوث</span><b>{sv.lives}</b></div>
+          <div><span>المستخدمون</span><b>{sv.users}</b></div>
           <div><span>الاتصالات</span><b>{sv.clients}</b></div>
           <div><span>المنفذ الداخلي</span><b>{sv.port}</b></div>
-          <div><span>الهدايا</span><b>{sv.stats.gifts}</b></div>
+          <div><span>الهدايا (كل البثوث)</span><b>{sv.stats.gifts}</b></div>
           <div><span>إعادة تشغيل تلقائي</span><b>{sv.supervised ? '✓ systemd' : '✗'}</b></div>
           <div className="wide"><span>مجلد التطبيق</span><b>{sv.appRoot}</b></div>
         </div>

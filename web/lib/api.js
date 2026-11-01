@@ -1,6 +1,12 @@
 'use client';
+let apiLive = null;
+/** The live the admin is working on: added as ?live=<slug> to API calls. */
+export const setApiLive = (slug) => { apiLive = slug; };
+const withLive = (url) => (apiLive && url.startsWith('/api/') && !/[?&]live=/.test(url) ? `${url}${url.includes('?') ? '&' : '?'}live=${encodeURIComponent(apiLive)}` : url);
+
 /** REST helper for the admin API (session cookie). Throws Error with .data and .status. */
 export async function api(url, { method = 'GET', body } = {}) {
+  url = withLive(url);
   const r = await fetch(url, {
     method,
     credentials: 'same-origin',

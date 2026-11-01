@@ -7,6 +7,7 @@
  */
 import { useEffect, useMemo, useState } from 'react';
 import { api } from '@/lib/api';
+import { getStoreLive, liveQuery } from '@/lib/store';
 import { Btn, CopyField, Icon, Section } from './ui';
 
 const MANUAL_KEY = 'koydam.setup.manual';
@@ -32,14 +33,21 @@ function Step({ n, state, title, children, actions, optional }) {
   );
 }
 
-export function GuidePage({ live, go }) {
+export function GuidePage({ live, go, me, myLives }) {
+  const owner = me?.role === 'owner';
+  const meta = (myLives || []).find((l) => l.slug === getStoreLive()) || {};
+  const q = liveQuery(getStoreLive());
   const [s, setS] = useState(null);
   const [upd, setUpd] = useState(null);
   const [manual, setManual] = useState({});
   useEffect(() => { setManual(loadManual()); }, []);
   useEffect(() => {
-    api('/api/settings').then(setS).catch(() => {});
-    api('/api/update/check').then(setUpd).catch(() => setUpd({ error: true }));
+    if (owner) {
+      api('/api/settings').then(setS).catch(() => {});
+      api('/api/update/check').then(setUpd).catch(() => setUpd({ error: true }));
+    } else {
+      api('/api/account').then((r) => setS({ mustChangePassword: r.user.mustChangePassword })).catch(() => {});
+    }
   }, [live.status?.state]);
   const tick = (k) => { const m = { ...manual, [k]: !manual[k] }; setManual(m); saveManual(m); };
 
@@ -59,14 +67,14 @@ export function GuidePage({ live, go }) {
   const steps = [
     { key: 'pw', auto: s && !s.mustChangePassword },
     { key: 'https', auto: https },
-    { key: 'key', auto: s?.signApiKeySet, optional: true },
-    { key: 'user', auto: Boolean(s?.tiktokUsername) && (connected || s?.autoConnect) },
+    ...(owner ? [{ key: 'key', auto: s?.signApiKeySet, optional: true }] : []),
+    { key: 'user', auto: Boolean(meta.tiktokUsername) && (connected || meta.autoConnect) },
     { key: 'gifts', auto: giftsWithImg > 0 },
     { key: 'teams', auto: teamCheck.ok },
     { key: 'obs', manual: true }, { key: 'audio', manual: true, optional: true },
     { key: 'voice', auto: cfg.tts?.enabled, optional: true },
     { key: 'test', manual: true },
-    { key: 'update', auto: upd && upd.git && !upd.error && upd.behind === 0, optional: true },
+    ...(owner ? [{ key: 'update', auto: upd && upd.git && !upd.error && upd.behind === 0, optional: true }] : []),
   ];
   const isDone = (x) => (x.manual ? Boolean(manual[x.key]) : Boolean(x.auto));
   const required = steps.filter((x) => !x.optional);
@@ -93,7 +101,7 @@ export function GuidePage({ live, go }) {
 
       <h3 className="a-gsec">1. الحساب والأمان</h3>
       <Step n={1} state={state('pw')} title="غيّر كلمة المرور المؤقتة"
-        actions={<Btn size="sm" variant="gold" icon="key" onClick={() => go('server')}>صفحة الخادم والحساب</Btn>}>
+        actions={<Btn size="sm" variant="gold" icon="key" onClick={() => go('account')}>حسابي</Btn>}>
         كلمة المرور التي طبعها المثبّت مؤقتة. ضع كلمة مرور طويلة خاصة بك (10 أحرف على الأقل). من يملك كلمة المرور يتحكم في كل شيء.
       </Step>
       <Step n={2} state={state('https')} title="الموقع يعمل عبر HTTPS (القفل 🔒)">
@@ -101,7 +109,7 @@ export function GuidePage({ live, go }) {
       </Step>
 
       <h3 className="a-gsec">2. الاتصال بتيك توك</h3>
-      <Step n={3} state={state('key')} optional title="مفتاح Euler Stream (Sign API key)"
+      {owner ? <Step n={3} state={state('key')} optional title="مفتاح Euler Stream (Sign API key)"
         actions={<>
           <a className="a-btn ghost sm" href="https://www.eulerstream.com" target="_blank" rel="noopener"><Icon name="external" size={15} /><span>eulerstream.com</span></a>
           <Btn size="sm" variant="gold" icon="key" onClick={() => go('server')}>إدخال المفتاح</Btn>
@@ -113,11 +121,11 @@ export function GuidePage({ live, go }) {
           <li>الصقه في «الخادم والحساب» ← «مفتاح Euler Stream»، احفظ، ثم «إعادة تشغيل الخادم».</li>
         </ol>
         {s?.signApiKeySet && <span className="a-gold">✓ المفتاح محفوظ ({s.signApiKeyHint}).</span>}
-      </Step>
+      </Step> : <div className="a-alert"><Icon name="key" />مفتاح الاتصال بتيك توك يديره المدير لكل البثوث، لا تحتاج لفعل شيء.</div>}
       <Step n={4} state={state('user')} title="اسم حسابك والاتصال"
         actions={<Btn size="sm" variant="gold" icon="plug" onClick={() => go('connection')}>صفحة الاتصال</Btn>}>
         اكتب اسم حساب تيك توك الذي ستبث منه (بدون @)، ثم اضغط «اتصال» <b>بعد أن تبدأ البث</b> على تيك توك. بعد أول اتصال ناجح يتذكر الخادم الحساب ويتصل تلقائياً كل مرة.
-        <div className="a-gstatus">الحالة الآن: <b>{connected ? `✅ متصل بـ @${st.username}` : st.state === 'offline' ? `⏳ @${st.username} ليس في بث مباشر (سيحاول تلقائياً)` : st.state === 'reconnecting' || st.state === 'connecting' ? '⏳ جارٍ الاتصال…' : s?.tiktokUsername ? `غير متصل (الحساب المحفوظ: @${s.tiktokUsername})` : 'لم يُحدد حساب بعد'}</b></div>
+        <div className="a-gstatus">الحالة الآن: <b>{connected ? `✅ متصل بـ @${st.username}` : st.state === 'offline' ? `⏳ @${st.username} ليس في بث مباشر (سيحاول تلقائياً)` : st.state === 'reconnecting' || st.state === 'connecting' ? '⏳ جارٍ الاتصال…' : meta.tiktokUsername ? `غير متصل (الحساب المحفوظ: @${meta.tiktokUsername})` : 'لم يُحدد حساب بعد'}</b></div>
       </Step>
 
       <h3 className="a-gsec">3. الهدايا والفرق</h3>
@@ -140,8 +148,8 @@ export function GuidePage({ live, go }) {
           <li>بث أفقي: الرابط أدناه بالمقاس <b className="num-latin">1920 × 1080</b>. بث عمودي (تيك توك): الرابط العمودي بالمقاس <b className="num-latin">1080 × 1920</b>.</li>
           <li>امسح «Custom CSS» ليبقى الخلفية شفافة، وفعّل «Refresh browser when scene becomes active».</li>
         </ol>
-        <div className="a-gcopy"><span className="a-label">أفقي</span><CopyField value={`${origin}/overlay/`} /></div>
-        <div className="a-gcopy"><span className="a-label">عمودي</span><CopyField value={`${origin}/overlay-vertical/`} /></div>
+        <div className="a-gcopy"><span className="a-label">أفقي</span><CopyField value={`${origin}/overlay/${q}`} /></div>
+        <div className="a-gcopy"><span className="a-label">عمودي</span><CopyField value={`${origin}/overlay-vertical/${q}`} /></div>
       </Step>
       <Step n={8} state={state('audio')} optional title="فعّل صوت الواجهة في OBS" actions={<ManualBtn k="audio" />}>
         في خصائص Browser Source فعّل <b>«Control audio via OBS»</b>، ثم تأكد أن مصدر الصوت يظهر في Audio Mixer وغير مكتوم. بدون هذا لن تُسمع القراءة الصوتية في البث.
@@ -160,10 +168,10 @@ export function GuidePage({ live, go }) {
         شغّل «الوضع التجريبي» وشاهد OBS: البطاقات تتحرك، التنبيهات، الشريط، الصوت. جرّب جولة قصيرة (دقيقة) من «الجولات» لترى شاشة الفائز.
         <b> بعد التجربة:</b> أوقف الوضع التجريبي واضغط «جولة جديدة / تصفير النتائج» حتى لا تبقى نقاط تجريبية.
       </Step>
-      <Step n={11} state={state('update')} optional title="أحدث نسخة من التطبيق"
+      {owner && <Step n={11} state={state('update')} optional title="أحدث نسخة من التطبيق"
         actions={<Btn size="sm" variant="ghost" icon="update" onClick={() => go('updates')}>التحديثات</Btn>}>
         {upd?.git ? (upd.behind ? `يوجد ${upd.behind} تحديث جديد. حدّث قبل البث (يستغرق دقيقة).` : 'أنت على أحدث نسخة.') : 'تحقق من صفحة التحديثات.'}
-      </Step>
+      </Step>}
 
       <h3 className="a-gsec">✅ يوم البث</h3>
       <Section>

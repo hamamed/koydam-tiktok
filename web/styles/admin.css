@@ -453,3 +453,22 @@ select.a-input { cursor: pointer; }
 .a-gcopy { display: grid; grid-template-columns: 48px 1fr; align-items: center; gap: 8px; margin-top: 8px; }
 .a-faq { list-style: none; display: flex; flex-direction: column; gap: 10px; line-height: 1.8; color: #d6cfe0; }
 .a-faq li { padding-inline-start: 14px; border-inline-start: 2px solid var(--line-2); }
+
+/* ---- Lives / users ---- */
+.a-live-switch { display: flex; flex-direction: column; gap: 5px; padding: 10px; margin-bottom: 6px; border-radius: 12px; background: var(--panel-2); border: 1px solid rgba(245,179,1,.3); }
+.a-live-switch .a-input { padding: 7px 10px; font-weight: 800; }
+.a-nav-item.off { opacity: .45; }
+.a-live-card.current { border-color: rgba(245,179,1,.55); }
+.a-live-meta { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 10px; }
+.a-live-links { display: flex; flex-direction: column; gap: 6px; }
+.a-live-links .a-gcopy { grid-template-columns: 56px 1fr; margin: 0; }
+.a-newpw { flex-wrap: wrap; }
+.a-newpw pre { background: #0b0a10; border: 1px solid var(--line-2); border-radius: 10px; padding: 10px 12px; margin-top: 8px; color: #fff; font: 600 14px/1.9 'Cairo', sans-serif; white-space: pre-wrap; direction: rtl; text-align: right; unicode-bidi: plaintext; }
+.a-copy { min-width: 0; }
+.a-gcopy > * { min-width: 0; }
+.a-row-off td { opacity: .5; }
+.a-user-name { display: block; font-size: 13px; line-height: 1.3; }
+.a-user small { display: block; font-size: 11.5px; }
+button.a-avatar { border: 0; cursor: pointer; }
+.a-nolive { max-width: 520px; margin: 60px auto; display: flex; flex-direction: column; align-items: center; gap: 12px; padding: 30px; }
+.a-nolive h3 { font-size: 20px; font-weight: 900; color: var(--text); }

@@ -1,6 +1,6 @@
 'use client';
 import { useEffect, useMemo, useState } from 'react';
-import { cmd } from '@/lib/store';
+import { cmd, getStoreLive, liveQuery } from '@/lib/store';
 import { fmt } from '@/lib/format';
 import { useAlerts } from '../Effects';
 import { AnimatedNumber, Avatar, Flag, GoalBar } from '../bits';
@@ -116,6 +116,7 @@ export function Connection({ live, notice }) {
   useEffect(() => { const t = setInterval(() => tick((x) => x + 1), 1000); return () => clearInterval(t); }, []);
   const [kind, title, sub] = statusText(st, live.connected);
   const origin = typeof location !== 'undefined' ? location.origin : '';
+  const q = liveQuery(getStoreLive());
 
   return (
     <div className="a-grid">
@@ -136,18 +137,18 @@ export function Connection({ live, notice }) {
       </Section>
 
       <Section title="واجهة OBS" desc="أضف «Browser Source» بالمقاس 1920×1080 واترك Custom CSS فارغاً.">
-        <CopyField value={`${origin}/overlay/`} />
-        <div className="a-row"><a className="a-btn ghost sm" href="/overlay/" target="_blank" rel="noopener"><Icon name="external" size={15} /><span>فتح المعاينة</span></a></div>
+        <CopyField value={`${origin}/overlay/${q}`} />
+        <div className="a-row"><a className="a-btn ghost sm" href={`/overlay/${q}`} target="_blank" rel="noopener"><Icon name="external" size={15} /><span>فتح المعاينة</span></a></div>
       </Section>
 
       <Section title="واجهة OBS العمودية (تيك توك)" desc="للبث العمودي من TikTok LIVE Studio أو OBS: Browser Source بالمقاس 1080×1920. فعّل «Control audio via OBS» لسماع القراءة الصوتية.">
-        <CopyField value={`${origin}/overlay-vertical/`} />
-        <div className="a-row"><a className="a-btn ghost sm" href="/overlay-vertical/" target="_blank" rel="noopener"><Icon name="external" size={15} /><span>فتح المعاينة</span></a></div>
+        <CopyField value={`${origin}/overlay-vertical/${q}`} />
+        <div className="a-row"><a className="a-btn ghost sm" href={`/overlay-vertical/${q}`} target="_blank" rel="noopener"><Icon name="external" size={15} /><span>فتح المعاينة</span></a></div>
       </Section>
 
       <Section title="الصفحة المباشرة للجمهور" desc="شارك هذا الرابط مع المتابعين لمشاهدة الترتيب على الهاتف.">
-        <CopyField value={`${origin}/`} />
-        <div className="a-row"><a className="a-btn ghost sm" href="/" target="_blank" rel="noopener"><Icon name="external" size={15} /><span>فتح الصفحة</span></a></div>
+        <CopyField value={`${origin}/${q}`} />
+        <div className="a-row"><a className="a-btn ghost sm" href={`/${q}`} target="_blank" rel="noopener"><Icon name="external" size={15} /><span>فتح الصفحة</span></a></div>
       </Section>
     </div>
   );

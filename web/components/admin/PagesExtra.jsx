@@ -2,7 +2,7 @@
 /** Admin pages: Rounds, Voice (Arabic TTS), Stream reports. */
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { api } from '@/lib/api';
-import { cmd } from '@/lib/store';
+import { cmd, getStoreLive } from '@/lib/store';
 import { fmt, safeUrl } from '@/lib/format';
 import { useRoundClock } from '../Rounds';
 import { Avatar, Flag, GiftIcon } from '../bits';
@@ -259,7 +259,7 @@ export function ReportsPage({ live, notice }) {
                 <span className="a-muted">{rep.username ? `@${rep.username} · ` : ''}المدة {dur((rep.endedAt || Date.now()) - rep.startedAt)}{rep.open ? ' · مستمر' : ''}{rep.demo ? ' · بيانات تجريبية' : ''}</span>
               </div>
               <div className="a-actions">
-                <a className="a-btn ghost sm" href={`/api/reports/${rep.id}.csv`}><Icon name="save" size={15} /><span>تنزيل CSV (Excel)</span></a>
+                <a className="a-btn ghost sm" href={`/api/reports/${rep.id}.csv?live=${encodeURIComponent(getStoreLive())}`}><Icon name="save" size={15} /><span>تنزيل CSV (Excel)</span></a>
                 <Btn size="sm" variant="ghost" icon="file" onClick={() => window.print()}>طباعة</Btn>
                 {!rep.open && <Btn size="sm" variant="ghost" icon="trash" onClick={async () => { if (!confirm('حذف هذا التقرير؟')) return; await api(`/api/reports/${rep.id}`, { method: 'DELETE' }); setSel(null); loadList(); }}>حذف</Btn>}
               </div>

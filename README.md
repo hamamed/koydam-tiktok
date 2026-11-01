@@ -68,6 +68,13 @@ sudo bash /opt/koydam-tiktok/deploy/update.sh
 
 الإعدادات والنتائج وكلمة المرور محفوظة في `data/` ولا يمسّها التحديث.
 
+## 👥 المستخدمون والبثوث
+- **المالك** (أول حساب، مثل `admin@koydam.com`) يضيف المستخدمين من صفحة **المستخدمون**، ويحدد عدد البثوث المسموح لكل واحد. تظهر كلمة مرور مؤقتة عند الإنشاء ليرسلها للمستخدم.
+- كل **بث** له إعدادات منفصلة تماماً: الفرق، الشكل، النتائج، الجولات، التقارير، الصوت، وحساب TikTok.
+- المستخدم يرى بثوثه فقط. صفحات الخادم والملفات والتحديثات والسجلات للمالك وحده.
+- روابط كل بث: `/l/<slug>` للصفحة العامة، و `/l/<slug>/overlay` لـ OBS، و `/l/<slug>/overlay-vertical` للشاشة العمودية.
+- عند التحديث من نسخة قديمة تنتقل إعداداتك تلقائياً إلى البث الرئيسي `main`، وتبقى روابطك القديمة تعمل.
+
 ## 🎥 OBS
 أضف **Browser Source** بالإعدادات التالية:
 - الرابط: `https://tiktok.koydam.com/overlay/`
@@ -79,7 +86,8 @@ sudo bash /opt/koydam-tiktok/deploy/update.sh
 |---|---|
 | السجلات المباشرة | `journalctl -u koydam-tiktok -f` |
 | إعادة التشغيل | `systemctl restart koydam-tiktok` |
-| نسيت كلمة المرور | `sudo bash /opt/koydam-tiktok/deploy/reset-password.sh` |
+| نسيت كلمة المرور (المالك) | `sudo bash /opt/koydam-tiktok/deploy/reset-password.sh` |
+| إعادة تعيين كلمة مرور مستخدم | `sudo bash /opt/koydam-tiktok/deploy/reset-password.sh 'NewPass123' user@example.com` |
 | المنفذ الداخلي | `grep PORT= /etc/systemd/system/koydam-tiktok.service` |
 
 ---
@@ -98,6 +106,14 @@ sudo bash /opt/koydam-tiktok/deploy/update.sh
 **Install:** run the one-liner above on the VPS. It is safe to re-run.
 - **Ports:** the app binds to `127.0.0.1` on a free port (3077–3199). The installer only *adds* a site for the domain, and existing sites are untouched.
 - **Update:** use the panel's *Updates* page, or `sudo bash /opt/koydam-tiktok/deploy/update.sh` (git pull, npm ci, build, restart). `data/` is never touched.
+
+### Users & lives
+- The **owner** account adds users on the *Users* page and sets how many lives each user may create.
+- Each **live** has its own config, scores, rounds, reports, voice settings and TikTok account. Data is stored in `data/lives/<slug>/`.
+- Users see only their own lives. Server, files, updates and logs are owner-only.
+- Per-live links: `/l/<slug>`, `/l/<slug>/overlay`, `/l/<slug>/overlay-vertical`. These redirect to `?live=<slug>`.
+- On upgrade from v2, the existing setup moves into the default live `main`, and old links keep working.
+- Reset a password: `reset-password.sh [password] [email]`. With no email, it resets the owner.
 
 ### Develop locally
 ```bash
@@ -124,5 +140,5 @@ web/components/          Board, Effects (toasts/ticker/banner), Overlay, admin/*
 web/lib/                 store (WebSocket), api, format, presets, confetti
 web/styles/              base, board, overlay, live, admin
 deploy/                  install.sh, update.sh, reset-password.sh
-data/                    runtime data: config, scores, login (git-ignored)
+data/                    runtime data: users.json, lives.json, lives/<slug>/ (git-ignored)
 ```

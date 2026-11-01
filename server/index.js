@@ -1362,19 +1362,16 @@ function safeEqual(a, b) {
   return x.length === y.length && crypto.timingSafeEqual(x, y);
 }
 
-const serverSettings = (() => {
-  const s = readJsonSafe(SETTINGS_FILE) || {};
-  return {
-    adminEmail: str(s.adminEmail, 200).trim().toLowerCase(),
-    password: isObj(s.password) ? s.password : null,
-    sessionSecret: typeof s.sessionSecret === 'string' && s.sessionSecret.length >= 32 ? s.sessionSecret : crypto.randomBytes(32).toString('hex'),
-    signApiKey: str(s.signApiKey, 300),
-    adminToken: str(s.adminToken, 200),
-    tiktokUsername: str(s.tiktokUsername, 40),
-    autoConnect: bool(s.autoConnect, false),
-    mustChangePassword: bool(s.mustChangePassword, false),
-  };
-})();
+// Server-wide settings (owner only): sign key, API token, session secret.
+// Older versions also kept the admin login + TikTok account here; those are migrated below.
+const legacySettings = readJsonSafe(SETTINGS_FILE) || {};
+const serverSettings = {
+  sessionSecret: typeof legacySettings.sessionSecret === 'string' && legacySettings.sessionSecret.length >= 32 ? legacySettings.sessionSecret : crypto.randomBytes(32).toString('hex'),
+  signApiKey: str(legacySettings.signApiKey, 300),
+  adminToken: str(legacySettings.adminToken, 200),
+};
+if (!serverSettings.signApiKey && SETTINGS.envSignApiKey) serverSettings.signApiKey = SETTINGS.envSignApiKey;
+if (!serverSettings.adminToken && SETTINGS.envAdminToken) serverSettings.adminToken = SETTINGS.envAdminToken;
 
 function writeServerSettingsSync() {
   fs.mkdirSync(SETTINGS.dataDir, { recursive: true });
@@ -1383,42 +1380,80 @@ function writeServerSettingsSync() {
   fs.renameSync(tmp, SETTINGS_FILE);
 }
 
-// Environment variables fill in (or override) the stored settings at boot.
-// Admin login email: from the stored settings, else ADMIN_EMAIL, else "admin".
-if (!serverSettings.adminEmail) serverSettings.adminEmail = SETTINGS.envAdminEmail || 'admin';
+/* ---- Users: the owner (you) + users you add. data/users.json (mode 600). ----
+ * role 'owner': everything (server, files, updates, users, all lives)
+ * role 'user' : only their own lives (up to maxLives)
+ */
+const USERS_FILE = path.join(SETTINGS.dataDir, 'users.json');
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const users = {
+  list: [],
+  load() { const a = readJsonSafe(USERS_FILE); this.list = Array.isArray(a) ? a.filter((u) => isObj(u) && u.id && u.email) : []; },
+  save() {
+    fs.mkdirSync(SETTINGS.dataDir, { recursive: true });
+    const tmp = `${USERS_FILE}.${process.pid}.tmp`;
+    fs.writeFileSync(tmp, JSON.stringify(this.list, null, 2), { mode: 0o600 });
+    fs.renameSync(tmp, USERS_FILE);
+  },
+  byId(id) { return this.list.find((u) => u.id === id) || null; },
+  byEmail(email) { const e = String(email || '').trim().toLowerCase(); return this.list.find((u) => u.email === e) || null; },
+  owners() { return this.list.filter((u) => u.role === 'owner' && !u.disabled); },
+  create({ email, name, password, role = 'user', maxLives = 1, mustChangePassword = true }) {
+    const em = String(email || '').trim().toLowerCase();
+    if (!EMAIL_RE.test(em) && em !== 'admin') throw httpErr(400, 'بريد إلكتروني غير صالح');
+    if (this.byEmail(em)) throw httpErr(409, 'يوجد مستخدم بهذا البريد');
+    const u = {
+      id: crypto.randomBytes(6).toString('hex'), email: em, name: str(name || em.split('@')[0], 60).trim(), role: role === 'owner' ? 'owner' : 'user',
+      password: hashPassword(password), mustChangePassword: Boolean(mustChangePassword),
+      maxLives: Math.round(numIn(maxLives, 0, 100, 1)), disabled: false, createdAt: Date.now(), lastLoginAt: 0,
+    };
+    this.list.push(u); this.save();
+    return u;
+  },
+};
+const publicUser = (u) => (u ? { id: u.id, email: u.email, name: u.name, role: u.role, maxLives: u.role === 'owner' ? null : u.maxLives, disabled: Boolean(u.disabled), mustChangePassword: Boolean(u.mustChangePassword), createdAt: u.createdAt, lastLoginAt: u.lastLoginAt || 0 } : null);
+const isOwner = (u) => Boolean(u && u.role === 'owner');
 
-// Re-hash only when the env password differs from the stored one. A fresh salt on every
-// boot would change the session fingerprint and log everyone out at each restart.
-if (SETTINGS.envAdminPassword && !verifyPassword(SETTINGS.envAdminPassword, serverSettings.password)) {
-  serverSettings.password = hashPassword(SETTINGS.envAdminPassword);
-  serverSettings.mustChangePassword = false;
-}
+users.load();
 let generatedPassword = null;
-if (!serverSettings.password) {
-  // First run: create a random password. It is printed to the log and saved to
-  // data/initial-admin-password.txt until you change it in the panel.
-  generatedPassword = crypto.randomBytes(12).toString('base64url');
-  serverSettings.password = hashPassword(generatedPassword);
-  serverSettings.mustChangePassword = true;
-  fs.mkdirSync(SETTINGS.dataDir, { recursive: true });
-  fs.writeFileSync(INITIAL_PW_FILE, `${generatedPassword}\n`, { mode: 0o600 });
+if (!users.list.length) {
+  // First start of v3 (or a fresh install): create the owner from the old single-admin login, or a new one.
+  let password = null; let mustChange = true;
+  const owner = {
+    id: crypto.randomBytes(6).toString('hex'),
+    email: str(legacySettings.adminEmail, 200).trim().toLowerCase() || SETTINGS.envAdminEmail || 'admin',
+    name: 'المدير', role: 'owner', maxLives: 100, disabled: false, createdAt: Date.now(), lastLoginAt: 0,
+  };
+  if (isObj(legacySettings.password)) { owner.password = legacySettings.password; mustChange = bool(legacySettings.mustChangePassword, false); }
+  else { password = generatedPassword = crypto.randomBytes(12).toString('base64url'); owner.password = hashPassword(password); }
+  owner.mustChangePassword = mustChange;
+  users.list.push(owner);
+  users.save();
+  if (generatedPassword) { fs.mkdirSync(SETTINGS.dataDir, { recursive: true }); fs.writeFileSync(INITIAL_PW_FILE, `${generatedPassword}\n`, { mode: 0o600 }); }
 }
-if (!serverSettings.signApiKey && SETTINGS.envSignApiKey) serverSettings.signApiKey = SETTINGS.envSignApiKey;
-if (!serverSettings.adminToken && SETTINGS.envAdminToken) serverSettings.adminToken = SETTINGS.envAdminToken;
-if (SETTINGS.envUsername) { serverSettings.tiktokUsername = SETTINGS.envUsername; serverSettings.autoConnect = true; }
+// ADMIN_PASSWORD (env) sets the first owner's password; re-hash only when it changed (keeps sessions valid).
+{
+  const owner = users.owners()[0];
+  if (owner && SETTINGS.envAdminPassword && !verifyPassword(SETTINGS.envAdminPassword, owner.password)) {
+    owner.password = hashPassword(SETTINGS.envAdminPassword); owner.mustChangePassword = false; users.save();
+  }
+  if (owner && SETTINGS.envAdminEmail && owner.email === 'admin') { owner.email = SETTINGS.envAdminEmail; users.save(); }
+}
 writeServerSettingsSync();
 
-// ---- Sessions: signed, stateless cookies that survive restarts. Changing the
-//      password invalidates every existing session.
+// ---- Sessions: signed, stateless cookies that survive restarts: "<userId>.<expiry>.<signature>".
+//      Changing a user's password invalidates that user's sessions.
 const SESSION_COOKIE = 'sb_session';
 const SESSION_TTL = 7 * 24 * 3600 * 1000;
-const sessionSig = (exp) => crypto.createHmac('sha256', serverSettings.sessionSecret)
-  .update(`${exp}.${serverSettings.password ? serverSettings.password.hash.slice(0, 24) : ''}`).digest('base64url');
-const makeSession = () => { const exp = Date.now() + SESSION_TTL; return `${exp}.${sessionSig(exp)}`; };
+const sessionSig = (u, exp) => crypto.createHmac('sha256', serverSettings.sessionSecret)
+  .update(`${u.id}.${exp}.${u.password ? u.password.hash.slice(0, 24) : ''}`).digest('base64url');
+const makeSession = (u) => { const exp = Date.now() + SESSION_TTL; return `${u.id}.${exp}.${sessionSig(u, exp)}`; };
 function checkSession(tok) {
-  const m = /^(\d{10,16})\.([\w-]{20,})$/.exec(String(tok || ''));
-  if (!m || Number(m[1]) < Date.now()) return false;
-  return safeEqual(m[2], sessionSig(Number(m[1])));
+  const m = /^([a-f0-9]{6,24})\.(\d{10,16})\.([\w-]{20,})$/.exec(String(tok || ''));
+  if (!m || Number(m[2]) < Date.now()) return null;
+  const u = users.byId(m[1]);
+  if (!u || u.disabled) return null;
+  return safeEqual(m[3], sessionSig(u, Number(m[2]))) ? u : null;
 }
 function parseCookies(header) {
   const out = {};
@@ -1428,6 +1463,7 @@ function parseCookies(header) {
   }
   return out;
 }
+/** The logged-in user for this request (or null). */
 const isAuthed = (req) => checkSession(parseCookies(req.headers.cookie)[SESSION_COOKIE]);
 const isLoopback = (a) => a === '127.0.0.1' || a === '::1' || a === '::ffff:127.0.0.1';
 /** Real client IP. X-Forwarded-For is trusted only when the request came from the local reverse proxy. */
@@ -1671,16 +1707,15 @@ async function gitInfo(fetchRemote) {
  *      saved to data/rounds.json; then optional auto-reset and auto-restart.
  *      The running round is saved, so a server restart continues the countdown.
  * ------------------------------------------------------------------------- */
-const ROUND_FILE = path.join(SETTINGS.dataDir, 'round.json');
-const ROUNDS_HISTORY_FILE = path.join(SETTINGS.dataDir, 'rounds.json');
 
 class RoundManager extends EventEmitter {
-  constructor(board, getConfig) {
+  constructor(board, getConfig, files) {
     super();
-    this.board = board; this.getConfig = getConfig;
-    const saved = readJsonSafe(ROUND_FILE) || {};
+    this.board = board; this.getConfig = getConfig; this.files = files; // { round, history }
+    const saved = readJsonSafe(files.round) || {};
     this.state = { status: 'idle', number: num(saved.number, 0), startedAt: 0, endsAt: 0, durationSec: 0, celebrateUntil: 0 };
-    this.history = Array.isArray(readJsonSafe(ROUNDS_HISTORY_FILE)) ? readJsonSafe(ROUNDS_HISTORY_FILE) : [];
+    const h = readJsonSafe(files.history);
+    this.history = Array.isArray(h) ? h : [];
     this.timers = new Set();
     this.tick = setInterval(() => this._check(), 500);
     this.tick.unref();
@@ -1694,10 +1729,11 @@ class RoundManager extends EventEmitter {
     }
   }
   public() { return { ...this.state, serverNow: Date.now() }; }
-  _save() { writeJsonAtomic(ROUND_FILE, this.state).catch(() => {}); }
+  _save() { writeJsonAtomic(this.files.round, this.state).catch(() => {}); }
   _changed() { this._save(); this.emit('change', this.public()); }
   _later(fn, ms) { const t = setTimeout(() => { this.timers.delete(t); fn(); }, ms); this.timers.add(t); }
   _clearTimers() { for (const t of this.timers) clearTimeout(t); this.timers.clear(); }
+  destroy() { this._clearTimers(); clearInterval(this.tick); }
 
   start(durationMin) {
     this._clearTimers();
@@ -1742,7 +1778,7 @@ class RoundManager extends EventEmitter {
     };
     this.history.unshift(result);
     if (this.history.length > 500) this.history.length = 500;
-    writeJsonAtomic(ROUNDS_HISTORY_FILE, this.history).catch(() => {});
+    writeJsonAtomic(this.files.history, this.history).catch(() => {});
     log.info(`Round ${result.number} ended (${reason}): winner ${w ? w.name : 'none'}`);
 
     const celebrate = quiet ? 0 : cfg.rounds.celebrateSec * 1000;
@@ -1761,38 +1797,296 @@ class RoundManager extends EventEmitter {
 }
 
 /* ----------------------------------------------------------------------------
- * 13. Bootstrap state + persistence
+ * 13. Lives: each live is a separate scoreboard with its own TikTok account,
+ *     config, scores, rounds, voice and reports (data/lives/<slug>/).
+ *     Shared by all lives: the gift catalog, gift images, uploads, voice cache.
  * ------------------------------------------------------------------------- */
-let config = sanitizeConfig(readJsonSafe(CONFIG_FILE) || DEFAULT_CONFIG);
-const board = new ScoreBoard(config);
-board.restore(readJsonSafe(STATE_FILE));
 const catalog = new GiftCatalog();
 catalog.load();
-const pipeline = new Pipeline(board, catalog);
-const tiktok = new TikTokManager(pipeline, () => config);
-const demo = new DemoSimulator(pipeline, board);
-const rounds = new RoundManager(board, () => config);
 const tts = createTTS({ dir: path.join(SETTINGS.dataDir, 'tts-cache'), log });
-const reports = new Reports({ dir: path.join(SETTINGS.dataDir, 'reports'), log, getConfig: () => config });
+const LIVES_DIR = path.join(SETTINGS.dataDir, 'lives');
+const LIVES_FILE = path.join(SETTINGS.dataDir, 'lives.json');
+const SLUG_RE = /^[a-z0-9][a-z0-9-]{1,30}$/;
+const MAX_BUFFERED = 1024 * 1024; // skip non-essential messages for clients that cannot keep up
 
-// Throttled (not debounced) save: a busy stream changes state constantly, and a debounce
-// would keep postponing the write. This saves at most every 2s, including during traffic.
-const writeState = () => writeJsonAtomic(STATE_FILE, board.serialize()).catch((e) => log.warn('State save failed:', e.message));
-const saveState = throttle(writeState, () => 2000);
-const saveConfig = () => writeJsonAtomic(CONFIG_FILE, config).catch((e) => log.warn('Config save failed:', e.message));
+class Live {
+  constructor(meta) {
+    this.meta = meta;                     // { slug, name, ownerId, createdAt, tiktokUsername, autoConnect }
+    this.slug = meta.slug;
+    this.dir = path.join(LIVES_DIR, meta.slug);
+    this.files = {
+      config: path.join(this.dir, 'config.json'), state: path.join(this.dir, 'state.json'),
+      round: path.join(this.dir, 'round.json'), history: path.join(this.dir, 'rounds.json'), reports: path.join(this.dir, 'reports'),
+    };
+    fs.mkdirSync(this.dir, { recursive: true });
+    const saved = readJsonSafe(this.files.config);
+    this.config = sanitizeConfig(saved || { ...DEFAULT_CONFIG, title: meta.slug === 'main' ? DEFAULT_CONFIG.title : (meta.name || DEFAULT_CONFIG.title) });
+    if (!saved) writeJsonAtomic(this.files.config, this.config).catch(() => {});
+    this.board = new ScoreBoard(this.config);
+    this.board.restore(readJsonSafe(this.files.state));
+    this.pipeline = new Pipeline(this.board, catalog);
+    this.tiktok = new TikTokManager(this.pipeline, () => this.config);
+    this.demo = new DemoSimulator(this.pipeline, this.board);
+    this.rounds = new RoundManager(this.board, () => this.config, { round: this.files.round, history: this.files.history });
+    this.reports = new Reports({ dir: this.files.reports, log, getConfig: () => this.config });
+    this.clients = new Set();
+    this.streakPoints = new Map(); this.lastTakeoverSpeech = 0; this.ttsWarnedAt = 0; this.lastConnState = 'idle';
+    this._wire();
+  }
 
-/** Validates, applies and sends a new config to every overlay (used by the panel and the file editor). */
-async function applyNewConfig(raw, persist = true) {
-  config = sanitizeConfig(raw);
-  board.applyConfig(config);
-  if (persist) await saveConfig();
-  broadcast({ type: 'config', config });
-  log.info(`Config applied (${config.teams.length} teams)`);
-  return config;
+  /* ---- persistence ---- */
+  writeState() { return writeJsonAtomic(this.files.state, this.board.serialize()).catch((e) => log.warn(`[${this.slug}] State save failed:`, e.message)); }
+  async applyNewConfig(raw, persist = true) {
+    this.config = sanitizeConfig(raw);
+    this.board.applyConfig(this.config);
+    if (persist) await writeJsonAtomic(this.files.config, this.config).catch((e) => log.warn('Config save failed:', e.message));
+    this.broadcast({ type: 'config', config: this.config });
+    log.info(`[${this.slug}] Config applied (${this.config.teams.length} teams)`);
+    return this.config;
+  }
+
+  /* ---- clients ---- */
+  broadcast(msg, { essential = true } = {}) {
+    const data = JSON.stringify(msg);
+    for (const ws of this.clients) {
+      if (ws.readyState !== WebSocket.OPEN) continue;
+      if (!essential && ws.bufferedAmount > MAX_BUFFERED) continue;
+      ws.send(data);
+    }
+  }
+  publicStatus() { return { ...this.tiktok.status, demo: this.demo.running }; }
+  hello(ws) {
+    return {
+      type: 'hello', version: VERSION, config: this.config, state: this.board.snapshot(), status: this.publicStatus(),
+      gifts: catalog.list(), isAdmin: ws.isAdmin, round: this.rounds.public(), live: { slug: this.slug, name: this.meta.name },
+    };
+  }
+
+  /* ---- events -> screens, reports, voice ---- */
+  _wire() {
+    const { board, pipeline, tiktok, rounds, reports, demo } = this;
+    this.saveState = throttle(() => this.writeState(), () => 2000);
+    this.broadcastState = throttle(() => this.broadcast({ type: 'state', state: board.snapshot() }), () => this.config.advanced.broadcastIntervalMs);
+    board.on('change', () => { this.broadcastState(); this.saveState(); });
+    const ctx = () => ({ username: tiktok.status.username || '', demo: demo.running });
+    pipeline.on('event', (ev) => {
+      this.broadcastState.flush();
+      this.broadcast({ type: 'event', event: { ...ev, ts: Date.now() } }, { essential: false });
+      if (ev.kind === 'gift') reports.onGift(ev, ctx());
+      else if (ev.kind === 'follow' || ev.kind === 'share' || (ev.kind === 'join' && ev.points)) reports.onPoints(ev, ctx());
+      this.speakFor(ev);
+    });
+    tiktok.on('status', (st) => {
+      this.broadcast({ type: 'status', status: this.publicStatus() });
+      if (st.state === this.lastConnState) return;
+      const prev = this.lastConnState; this.lastConnState = st.state;
+      if (st.state === 'connected') {
+        if (reports.current && reports.current.username && reports.current.username !== st.username) reports.end('new stream');
+        if (!reports.current) reports.begin({ username: st.username, reason: 'connected' });
+        else if (!reports.current.username) reports.current.username = st.username;
+      } else if (prev === 'connected' && st.state === 'offline') reports.end('stream ended');
+      else if (st.state === 'idle' && /host/i.test(st.message || '')) reports.end('disconnected');
+    });
+    tiktok.on('viewers', (v) => { reports.viewers = v; reports.onViewers(v); });
+    rounds.on('change', (r) => this.broadcast({ type: 'round', round: r }));
+    rounds.on('event', (ev) => { this.broadcast({ type: 'event', event: { ...ev, ts: Date.now() } }); this.speakFor(ev); });
+    rounds.on('ended', (res) => reports.onRound(res));
+    rounds.on('reset', () => {
+      board.reset(true); pipeline.streaks.clear(); this.writeState();
+      this.broadcast({ type: 'event', event: { kind: 'reset', ts: Date.now(), auto: true } });
+    });
+  }
+
+  sayText(text, { force = false } = {}) {
+    const t = this.config.tts;
+    if (!text || (!t.enabled && !force)) return Promise.resolve(null);
+    if (t.engine === 'browser') { this.broadcast({ type: 'speak', text, volume: t.volume }); return Promise.resolve(null); }
+    return tts.synth(text, { voice: t.voice, rate: t.rate })
+      .then((url) => { this.broadcast({ type: 'speak', url, text, volume: t.volume }); return url; })
+      .catch((e) => {
+        if (Date.now() - this.ttsWarnedAt > 60000) { this.ttsWarnedAt = Date.now(); log.warn(`[${this.slug}] Voice (Edge TTS) failed, using browser voice:`, e.message); }
+        this.broadcast({ type: 'speak', text, volume: t.volume });
+        throw e;
+      });
+  }
+  speakFor(ev) {
+    const t = this.config.tts;
+    if (!t.enabled) return;
+    const teamName = (id) => this.config.teams.find((x) => x.id === id)?.name || '';
+    let text = '';
+    if (ev.kind === 'gift' && t.readGifts) {
+      let pts = ev.points;
+      if (ev.streakKey) { // combo: speak once, at the end, with the full total
+        pts = (this.streakPoints.get(ev.streakKey) || 0) + ev.points;
+        if (!ev.final) { this.streakPoints.set(ev.streakKey, pts); if (this.streakPoints.size > 2000) this.streakPoints.clear(); return; }
+        this.streakPoints.delete(ev.streakKey);
+      }
+      if (pts < t.minPoints) return;
+      text = fillTemplate(t.giftTemplate, { name: ev.user.nickname, gift: ev.gift.name, count: ev.gift.count, team: teamName(ev.teamId), points: Math.round(pts) });
+    } else if (ev.kind === 'takeover' && t.readTakeover) {
+      if (Date.now() - this.lastTakeoverSpeech < 10000) return;
+      this.lastTakeoverSpeech = Date.now();
+      text = fillTemplate(t.takeoverTemplate, { team: teamName(ev.teamId) });
+    } else if (ev.kind === 'roundEnd' && t.readRoundWinner) {
+      text = ev.winner ? fillTemplate(t.roundTemplate, { team: ev.winner.name, points: Math.round(ev.winner.score) }) : 'انتهت الجولة بدون فائز';
+    } else if (ev.kind === 'follow' && t.readFollows) {
+      text = fillTemplate(t.followTemplate, { name: ev.user.nickname });
+    }
+    if (text) this.sayText(text).catch(() => {});
+  }
+
+  /* ---- panel commands for this live ---- */
+  async command(action, p, msg) {
+    const { board, pipeline, tiktok, demo, rounds } = this;
+    switch (action) {
+      case 'connect':
+        await tiktok.start(p.username);
+        // Remember the account so the server reconnects after a restart.
+        this.meta.tiktokUsername = tiktok.desired; this.meta.autoConnect = true; lives.save();
+        return null;
+      case 'disconnect':
+        await tiktok.stop();
+        this.meta.autoConnect = false; lives.save();
+        return null;
+      case 'saveConfig': return { config: await this.applyNewConfig(p.config) };
+      case 'reset':
+        board.reset(p.keepAllegiance !== false); pipeline.streaks.clear(); this.writeState();
+        this.broadcast({ type: 'event', event: { kind: 'reset', ts: Date.now() } });
+        log.info(`[${this.slug}] Scores reset`);
+        return null;
+      case 'adjust': {
+        const delta = num(p.delta, 0);
+        if (!board.teams.has(p.teamId) || !delta) throw new Error('فريق غير معروف أو قيمة صفر');
+        const r = board.adjust(p.teamId, delta);
+        if (r.takeover) pipeline.emit('event', { kind: 'takeover', teamId: board.leaderId, prevTeamId: r.prevLeader || null });
+        return null;
+      }
+      case 'simulateGift': {
+        const nick = str(p.nickname || 'TestViewer', 48);
+        const id = `sim_${slug(nick) || 'viewer'}`;
+        const known = catalog.find(p.giftId, p.giftName);
+        if (known && !p.giftId) p.giftId = known.id;
+        pipeline.handleGift({
+          user: { id, displayId: slug(nick) || 'test_viewer', nickname: nick },
+          giftId: num(p.giftId, 999999), repeatCount: Math.max(1, Math.min(10000, Math.floor(num(p.count, 1)))),
+          repeatEnd: false, groupId: String(Date.now()),
+          giftDetails: { giftName: str(p.giftName || 'Rose', 48), diamondCount: Math.max(0, num(p.diamonds, 1)), giftType: 2 },
+        }, { forceTeam: p.teamId || null });
+        return null;
+      }
+      case 'simulateChat': {
+        const nick = str(p.nickname || 'TestViewer', 48);
+        pipeline.handleChat({ user: { id: `sim_${slug(nick) || 'viewer'}`, displayId: slug(nick), nickname: nick }, comment: str(p.text, 300) });
+        return null;
+      }
+      case 'demo':
+        if (p.enabled) demo.start(); else demo.stop();
+        this.broadcast({ type: 'status', status: this.publicStatus() });
+        return null;
+      case 'roundStart': rounds.start(p.durationMin); return null;
+      case 'roundEnd': rounds.end('manual'); return null;
+      case 'roundCancel': rounds.cancel(); return null;
+      case 'roundExtend': rounds.extend(num(p.sec, 60)); return null;
+      case 'socialReset': board.resetSocial(); this.writeState(); return null;
+      case 'simulateFollow':
+      case 'simulateShare': {
+        const nick = str(p.nickname || 'متابع جديد', 48);
+        const id = action === 'simulateFollow' ? `sim_f_${Date.now()}` : `sim_${slug(nick) || 'viewer'}`;
+        if (p.teamId && board.teams.has(p.teamId)) board.allegiance.set(id, p.teamId);
+        const raw = { user: { id, displayId: slug(nick) || 'viewer', nickname: nick } };
+        if (action === 'simulateFollow') pipeline.handleFollow(raw); else pipeline.handleShare(raw);
+        return null;
+      }
+      case 'say': {
+        const text = str(p.text, 200).trim();
+        if (!text) throw new Error('اكتب النص');
+        return { url: await this.sayText(text, { force: true }) };
+      }
+      case 'getState': return { config: this.config, state: board.snapshot(), status: this.publicStatus(), gifts: catalog.list() };
+      default: throw new Error(`Unknown action "${action}"`);
+    }
+  }
+
+  start() {
+    if (this.meta.autoConnect && this.meta.tiktokUsername) this.tiktok.start(this.meta.tiktokUsername).catch((e) => log.error(`[${this.slug}]`, e.message));
+  }
+  async stop() {
+    this.demo.stop();
+    await this.tiktok.stop().catch(() => {});
+    await writeJsonAtomic(this.files.state, this.board.serialize()).catch(() => {});
+    this.reports.flush();
+  }
+  async destroy() {
+    await this.stop();
+    this.rounds.destroy();
+    for (const ws of this.clients) ws.close(4004, 'Live deleted');
+  }
 }
 
+/** Registry of lives (data/lives.json). */
+const lives = {
+  map: new Map(),
+  meta() { return [...this.map.values()].map((l) => l.meta); },
+  save() { writeJsonAtomic(LIVES_FILE, this.meta()).catch((e) => log.warn('lives.json save failed:', e.message)); },
+  get(slugName) { return this.map.get(String(slugName || '')) || null; },
+  ownedBy(userId) { return [...this.map.values()].filter((l) => l.meta.ownerId === userId); },
+  forUser(u) { return isOwner(u) ? [...this.map.values()] : this.ownedBy(u.id); },
+  canManage(u, live) { return Boolean(u && live && (isOwner(u) || live.meta.ownerId === u.id)); },
+  defaultFor(u) { const l = this.forUser(u); return (isOwner(u) && this.map.get('main')) || l[0] || null; },
+  create({ slug: sl, name, ownerId }) {
+    const s2 = String(sl || '').trim().toLowerCase();
+    if (!SLUG_RE.test(s2)) throw httpErr(400, 'اسم الرابط: حروف إنجليزية صغيرة وأرقام و- فقط (2-31 حرفاً)');
+    if (this.map.has(s2)) throw httpErr(409, 'هذا الرابط مستخدم، اختر اسماً آخر');
+    const meta = { slug: s2, name: str(name || s2, 60).trim(), ownerId, createdAt: Date.now(), tiktokUsername: '', autoConnect: false };
+    const live = new Live(meta);
+    this.map.set(s2, live); this.save();
+    log.info(`Live created: ${s2} (owner ${ownerId})`);
+    return live;
+  },
+  async remove(sl) {
+    const live = this.map.get(sl);
+    if (!live) return;
+    await live.destroy();
+    this.map.delete(sl); this.save();
+    // Keep the data folder (renamed) so nothing is lost by mistake.
+    try { fs.renameSync(live.dir, path.join(LIVES_DIR, `_deleted-${sl}-${Date.now()}`)); } catch { /* ignore */ }
+    log.info(`Live deleted: ${sl}`);
+  },
+};
+
+// Boot: load lives; the first start of v3 moves the single-live data into data/lives/main.
+{
+  const owner = users.owners()[0];
+  let metas = readJsonSafe(LIVES_FILE);
+  if (!Array.isArray(metas) || !metas.length) {
+    const mainDir = path.join(LIVES_DIR, 'main');
+    fs.mkdirSync(mainDir, { recursive: true });
+    for (const n of ['config.json', 'state.json', 'round.json', 'rounds.json', 'reports']) {
+      const from = path.join(SETTINGS.dataDir, n);
+      if (fs.existsSync(from) && !fs.existsSync(path.join(mainDir, n))) { try { fs.renameSync(from, path.join(mainDir, n)); } catch (e) { log.warn(`Migration of ${n} failed:`, e.message); } }
+    }
+    metas = [{ slug: 'main', name: 'البث الرئيسي', ownerId: owner ? owner.id : '', createdAt: Date.now(),
+      tiktokUsername: SETTINGS.envUsername || str(legacySettings.tiktokUsername, 40), autoConnect: Boolean(SETTINGS.envUsername) || bool(legacySettings.autoConnect, false) }];
+    writeJsonAtomic(LIVES_FILE, metas).catch(() => {});
+    log.info('Lives: created "main" (data migrated from the single-live layout)');
+  }
+  for (const m of metas) {
+    if (!isObj(m) || !SLUG_RE.test(String(m.slug || ''))) continue;
+    if (!users.byId(m.ownerId) && owner) m.ownerId = owner.id; // orphaned live -> owner
+    lives.map.set(m.slug, new Live(m));
+  }
+  if (SETTINGS.envUsername && lives.get('main')) { const mm = lives.get('main').meta; mm.tiktokUsername = SETTINGS.envUsername; mm.autoConnect = true; }
+}
+
+// Uploads belong to the user who uploaded them (the owner sees all). data/uploads/index.json: { name: [userIds] }
+const UPLOAD_INDEX = path.join(UPLOAD_DIR, 'index.json');
+const uploadIndex = (() => { const x = readJsonSafe(UPLOAD_INDEX); return isObj(x) ? x : {}; })();
+const saveUploadIndex = () => writeJsonAtomic(UPLOAD_INDEX, uploadIndex).catch(() => {});
+
+catalog.on('change', () => { const msg = { type: 'catalog', gifts: catalog.list() }; for (const l of lives.map.values()) l.broadcast(msg, { essential: false }); });
+
 /* ----------------------------------------------------------------------------
- * 14. HTTP server: overlay, admin page and REST API
+ * 14. HTTP server: pages, public data, admin REST API
  * ------------------------------------------------------------------------- */
 const supervised = () => Boolean(process.env.INVOCATION_ID || process.env.pm_id || process.env.SUPERVISED);
 
@@ -1812,6 +2106,21 @@ function readJsonBody(req, limit = MAX_EDIT_BYTES + 64 * 1024) {
   });
 }
 
+async function sendFile(res, req, file, type, cache, extra = {}) {
+  const st = await fsp.stat(file).catch(() => null);
+  if (!st || !st.isFile()) { res.writeHead(404, { 'Content-Type': 'text/plain' }); return res.end('Not found'); }
+  res.writeHead(200, { 'Content-Type': type, 'Content-Length': st.size, 'Cache-Control': cache, 'X-Content-Type-Options': 'nosniff', ...extra });
+  if (req.method === 'HEAD') return res.end();
+  return fs.createReadStream(file).on('error', () => res.destroy()).pipe(res);
+}
+
+const liveSummary = (l) => {
+  const owner = users.byId(l.meta.ownerId);
+  return { slug: l.slug, name: l.meta.name, ownerId: l.meta.ownerId, ownerEmail: owner?.email || '', ownerName: owner?.name || '', createdAt: l.meta.createdAt,
+    tiktokUsername: l.meta.tiktokUsername, autoConnect: l.meta.autoConnect, status: l.tiktok.status.state, demo: l.demo.running,
+    clients: l.clients.size, total: l.board.snapshot().total, title: l.config.title };
+};
+
 const httpServer = http.createServer(async (req, res) => {
   const url = new URL(req.url, 'http://localhost');
   const p = url.pathname;
@@ -1822,40 +2131,23 @@ const httpServer = http.createServer(async (req, res) => {
   try {
     // ---------- Public routes ----------
     if (req.method === 'GET' || req.method === 'HEAD') {
-      // Old OBS URL (/?obs=1) keeps working: send it to the new overlay page.
       if (p === '/' && url.searchParams.get('obs') === '1') { res.writeHead(302, { Location: '/overlay/' }); return res.end(); }
-      if (p === '/health') return json(200, { ok: true, version: VERSION, uptime: Math.round(process.uptime()), clients: wss.clients.size, tiktok: tiktok.status.state });
-      if (p === '/api/state') return json(200, { config, state: board.snapshot(), status: publicStatus() });
-      if (p.startsWith('/tts/')) {
-        if (!TTS_RE.test(p)) return send(404, 'text/plain', 'Not found');
-        const file = path.join(tts.dir, path.basename(p));
-        const st = await fsp.stat(file).catch(() => null);
-        if (!st) return send(404, 'text/plain', 'Not found');
-        res.writeHead(200, { 'Content-Type': 'audio/mpeg', 'Content-Length': st.size, 'Cache-Control': 'public, max-age=86400', 'X-Content-Type-Options': 'nosniff' });
-        if (req.method === 'HEAD') return res.end();
-        return fs.createReadStream(file).on('error', () => res.destroy()).pipe(res);
+      // Short links: /l/<live>, /l/<live>/overlay, /l/<live>/overlay-vertical
+      const short = /^\/l\/([a-z0-9-]{2,31})(?:\/(overlay|overlay-vertical))?\/?$/.exec(p);
+      if (short) { res.writeHead(302, { Location: `/${short[2] ? `${short[2]}/` : ''}?live=${short[1]}` }); return res.end(); }
+      if (p === '/health') return json(200, { ok: true, version: VERSION, uptime: Math.round(process.uptime()), clients: wss.clients.size, lives: lives.map.size });
+      if (p === '/api/state') {
+        const l = lives.get(url.searchParams.get('live') || 'main');
+        if (!l) return json(404, { error: 'البث غير موجود' });
+        return json(200, { config: l.config, state: l.board.snapshot(), status: l.publicStatus() });
       }
-      if (p.startsWith('/gift-img/')) {
-        if (!GIFT_IMG_RE.test(p)) return send(404, 'text/plain', 'Not found');
-        const file = path.join(GIFT_IMG_DIR, path.basename(p));
-        const st = await fsp.stat(file).catch(() => null);
-        if (!st) return send(404, 'text/plain', 'Not found');
-        res.writeHead(200, { 'Content-Type': MIME[path.extname(file)] || 'application/octet-stream', 'Content-Length': st.size,
-          'Cache-Control': 'public, max-age=604800', 'X-Content-Type-Options': 'nosniff', 'Content-Security-Policy': "default-src 'none'" });
-        if (req.method === 'HEAD') return res.end();
-        return fs.createReadStream(file).on('error', () => res.destroy()).pipe(res);
+      if (p.startsWith('/tts/')) return TTS_RE.test(p) ? sendFile(res, req, path.join(tts.dir, path.basename(p)), 'audio/mpeg', 'public, max-age=86400') : send(404, 'text/plain', 'Not found');
+      if (p.startsWith('/gift-img/')) return GIFT_IMG_RE.test(p) ? sendFile(res, req, path.join(GIFT_IMG_DIR, path.basename(p)), MIME[path.extname(p)] || 'application/octet-stream', 'public, max-age=604800', { 'Content-Security-Policy': "default-src 'none'" }) : send(404, 'text/plain', 'Not found');
+      if (p.startsWith('/uploads/')) return UPLOAD_RE.test(p) ? sendFile(res, req, path.join(UPLOAD_DIR, path.basename(p)), MIME[path.extname(p)] || 'application/octet-stream', 'public, max-age=31536000, immutable', { 'Content-Security-Policy': "default-src 'none'" }) : send(404, 'text/plain', 'Not found');
+      if (p === '/api/me') {
+        const u = isAuthed(req);
+        return json(200, { authed: Boolean(u), user: publicUser(u), mustChangePassword: Boolean(u && u.mustChangePassword) });
       }
-      if (p.startsWith('/uploads/')) {
-        if (!UPLOAD_RE.test(p)) return send(404, 'text/plain', 'Not found');
-        const file = path.join(UPLOAD_DIR, path.basename(p));
-        const st = await fsp.stat(file).catch(() => null);
-        if (!st) return send(404, 'text/plain', 'Not found');
-        res.writeHead(200, { 'Content-Type': MIME[path.extname(file)] || 'application/octet-stream', 'Content-Length': st.size,
-          'Cache-Control': 'public, max-age=31536000, immutable', 'X-Content-Type-Options': 'nosniff', 'Content-Security-Policy': "default-src 'none'" });
-        if (req.method === 'HEAD') return res.end();
-        return fs.createReadStream(file).on('error', () => res.destroy()).pipe(res);
-      }
-      if (p === '/api/me') return json(200, { authed: isAuthed(req), mustChangePassword: isAuthed(req) && serverSettings.mustChangePassword });
     }
 
     if (!p.startsWith('/api/')) {
@@ -1881,124 +2173,198 @@ const httpServer = http.createServer(async (req, res) => {
       const ip = clientIp(req);
       if (loginBlocked(ip)) return json(429, { error: 'محاولات كثيرة. حاول بعد 15 دقيقة.' });
       const body = await readJsonBody(req, 4096);
-      const emailOk = safeEqual(String(body.email || '').trim().toLowerCase(), serverSettings.adminEmail);
-      const pwOk = verifyPassword(body.password || '', serverSettings.password); // always run (constant-ish timing)
-      if (!emailOk || !pwOk) {
+      const u = users.byEmail(body.email);
+      const pwOk = verifyPassword(body.password || '', u ? u.password : { salt: 'x', hash: '00' }); // always run (timing)
+      if (!u || !pwOk || u.disabled) {
         loginFailed(ip);
-        log.warn(`Failed admin login from ${ip}`);
+        log.warn(`Failed login (${String(body.email || '').slice(0, 60)}) from ${ip}`);
         await new Promise((r) => setTimeout(r, 500));
-        return json(401, { error: 'البريد أو كلمة المرور غير صحيحة' });
+        return json(401, { error: u && u.disabled && pwOk ? 'هذا الحساب موقوف. تواصل مع المدير.' : 'البريد أو كلمة المرور غير صحيحة' });
       }
       loginFails.delete(ip);
-      log.info(`Admin ${serverSettings.adminEmail} logged in from ${ip}`);
-      return json(200, { ok: true, mustChangePassword: serverSettings.mustChangePassword }, { 'Set-Cookie': sessionCookie(req, makeSession(), SESSION_TTL / 1000) });
+      u.lastLoginAt = Date.now(); users.save();
+      log.info(`Login: ${u.email} (${u.role}) from ${ip}`);
+      return json(200, { ok: true, user: publicUser(u), mustChangePassword: u.mustChangePassword }, { 'Set-Cookie': sessionCookie(req, makeSession(u), SESSION_TTL / 1000) });
     }
     if (p === '/api/logout' && req.method === 'POST') return json(200, { ok: true }, { 'Set-Cookie': sessionCookie(req, '', 0) });
 
-    // ---------- Everything below needs a logged-in admin ----------
-    if (!isAuthed(req)) return json(401, { error: 'يجب تسجيل الدخول' });
+    // ---------- Everything below needs a logged-in user ----------
+    const me = isAuthed(req);
+    if (!me) return json(401, { error: 'يجب تسجيل الدخول' });
+    const ownerOnly = () => { if (!isOwner(me)) throw httpErr(403, 'هذه الصفحة للمدير فقط'); };
+    /** The live this request is about (?live=slug), after checking this user may manage it. */
+    const reqLive = () => {
+      const sl = url.searchParams.get('live');
+      const l = sl ? lives.get(sl) : lives.defaultFor(me);
+      if (!l) throw httpErr(404, 'البث غير موجود. أنشئ بثاً من صفحة «البثوث».');
+      if (!lives.canManage(me, l)) throw httpErr(403, 'ليس لديك صلاحية على هذا البث');
+      return l;
+    };
 
-    if (p === '/api/settings' && req.method === 'GET') {
-      const k = serverSettings.signApiKey;
-      return json(200, {
-        adminEmail: serverSettings.adminEmail,
-        tiktokUsername: serverSettings.tiktokUsername,
-        autoConnect: serverSettings.autoConnect,
-        signApiKeySet: Boolean(k),
-        signApiKeyHint: k ? `${k.slice(0, 4)}…${k.slice(-4)}` : '',
-        adminTokenSet: Boolean(serverSettings.adminToken),
-        mustChangePassword: serverSettings.mustChangePassword,
-        server: {
-          version: VERSION, node: process.version, uptime: Math.round(process.uptime()), pid: process.pid,
-          supervised: supervised(), appRoot: APP_ROOT, dataDir: SETTINGS.dataDir, port: SETTINGS.port,
-          memoryMb: Math.round(process.memoryUsage().rss / 1048576), clients: wss.clients.size, stats: pipeline.stats,
-        },
-      });
-    }
-
-    if (p === '/api/settings' && req.method === 'POST') {
-      const b = await readJsonBody(req, 16384);
-      let restartRequired = false;
+    // ---- My account (every user) ----
+    if (p === '/api/account' && req.method === 'GET') return json(200, { user: publicUser(me), lives: lives.forUser(me).length });
+    if (p === '/api/account' && req.method === 'POST') {
+      const b = await readJsonBody(req, 8192);
       const headers = {};
-      if (typeof b.tiktokUsername === 'string') serverSettings.tiktokUsername = b.tiktokUsername.trim().replace(/^@/, '').slice(0, 40);
-      if (typeof b.autoConnect === 'boolean') serverSettings.autoConnect = b.autoConnect;
-      if (typeof b.signApiKey === 'string' && b.signApiKey.trim()) { serverSettings.signApiKey = b.signApiKey.trim().slice(0, 300); restartRequired = true; }
-      if (b.clearSignApiKey === true) { serverSettings.signApiKey = ''; restartRequired = true; }
-      if (typeof b.adminToken === 'string' && b.adminToken.trim()) serverSettings.adminToken = b.adminToken.trim().slice(0, 200);
-      if (b.clearAdminToken === true) serverSettings.adminToken = '';
-      if (typeof b.adminEmail === 'string' && b.adminEmail.trim().toLowerCase() !== serverSettings.adminEmail) {
-        if (!verifyPassword(b.currentPassword || '', serverSettings.password)) throw httpErr(400, 'أدخل كلمة المرور الحالية لتغيير البريد');
-        const em = b.adminEmail.trim().toLowerCase();
-        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(em) && em !== 'admin') throw httpErr(400, 'بريد إلكتروني غير صالح');
-        serverSettings.adminEmail = em.slice(0, 200);
-        log.info(`Admin login email changed to ${serverSettings.adminEmail}`);
+      const needPw = () => { if (!verifyPassword(b.currentPassword || '', me.password)) throw httpErr(400, 'كلمة المرور الحالية غير صحيحة'); };
+      if (typeof b.name === 'string' && b.name.trim()) me.name = str(b.name, 60).trim();
+      if (typeof b.email === 'string' && b.email.trim().toLowerCase() !== me.email) {
+        needPw();
+        const em = b.email.trim().toLowerCase();
+        if (!EMAIL_RE.test(em) && em !== 'admin') throw httpErr(400, 'بريد إلكتروني غير صالح');
+        if (users.byEmail(em)) throw httpErr(409, 'يوجد مستخدم بهذا البريد');
+        me.email = em;
       }
       if (b.newPassword !== undefined) {
-        if (!verifyPassword(b.currentPassword || '', serverSettings.password)) throw httpErr(400, 'كلمة المرور الحالية غير صحيحة');
+        needPw();
         if (String(b.newPassword).length < 10) throw httpErr(400, 'كلمة المرور الجديدة يجب أن تكون 10 أحرف على الأقل');
-        serverSettings.password = hashPassword(String(b.newPassword));
-        serverSettings.mustChangePassword = false;
-        fs.rmSync(INITIAL_PW_FILE, { force: true });
-        // Old sessions are now invalid: give this browser a fresh cookie, and close other admin sockets.
-        headers['Set-Cookie'] = sessionCookie(req, makeSession(), SESSION_TTL / 1000);
-        for (const ws of wss.clients) if (ws.isAdmin) ws.close(4001, 'Password changed');
-        log.info('Admin password changed');
+        me.password = hashPassword(String(b.newPassword));
+        me.mustChangePassword = false;
+        if (isOwner(me)) fs.rmSync(INITIAL_PW_FILE, { force: true });
+        headers['Set-Cookie'] = sessionCookie(req, makeSession(me), SESSION_TTL / 1000);
+        for (const ws of wss.clients) if (ws.user && ws.user.id === me.id) ws.close(4001, 'Password changed');
+        log.info(`Password changed: ${me.email}`);
       }
-      writeServerSettingsSync();
-      return json(200, { ok: true, restartRequired }, headers);
+      users.save();
+      return json(200, { ok: true, user: publicUser(me) }, headers);
     }
 
-    if (p === '/api/restart' && req.method === 'POST') {
-      const sup = supervised();
-      json(200, { ok: true, supervised: sup });
-      log.warn('Restart requested from admin panel');
-      setTimeout(() => shutdown('restart from panel'), 300);
-      return;
+    // ---- Lives ----
+    if (p === '/api/lives' && req.method === 'GET') {
+      return json(200, { lives: lives.forUser(me).map(liveSummary), canCreate: isOwner(me) || lives.ownedBy(me.id).length < (me.maxLives || 0), maxLives: isOwner(me) ? null : me.maxLives });
+    }
+    if (p === '/api/lives' && req.method === 'POST') {
+      const b = await readJsonBody(req, 4096);
+      let ownerId = me.id;
+      if (isOwner(me) && b.ownerId) { if (!users.byId(b.ownerId)) throw httpErr(400, 'المستخدم غير موجود'); ownerId = b.ownerId; }
+      const target = users.byId(ownerId);
+      if (!isOwner(me) && lives.ownedBy(me.id).length >= (me.maxLives || 0)) throw httpErr(403, `وصلت للحد الأقصى من البثوث (${me.maxLives || 0}). تواصل مع المدير.`);
+      if (isOwner(me) && !isOwner(target) && lives.ownedBy(ownerId).length >= (target.maxLives || 0) && !b.force) {
+        throw httpErr(409, `المستخدم وصل لحده (${target.maxLives || 0}). ارفع الحد من صفحة المستخدمين.`);
+      }
+      const l = lives.create({ slug: b.slug, name: b.name, ownerId });
+      return json(200, { ok: true, live: liveSummary(l) });
+    }
+    if (p === '/api/lives/update' && req.method === 'POST') {
+      const b = await readJsonBody(req, 4096);
+      const l = lives.get(b.slug);
+      if (!l || !lives.canManage(me, l)) throw httpErr(404, 'البث غير موجود');
+      if (typeof b.name === 'string' && b.name.trim()) l.meta.name = str(b.name, 60).trim();
+      if (b.ownerId !== undefined) { ownerOnly(); if (!users.byId(b.ownerId)) throw httpErr(400, 'المستخدم غير موجود'); l.meta.ownerId = b.ownerId; }
+      lives.save();
+      for (const ws of l.clients) ws.close(4003, 'Live updated'); // re-check permissions
+      return json(200, { ok: true, live: liveSummary(l) });
+    }
+    if (p === '/api/lives' && req.method === 'DELETE') {
+      const l = lives.get(url.searchParams.get('slug'));
+      if (!l || !lives.canManage(me, l)) throw httpErr(404, 'البث غير موجود');
+      if (l.slug === 'main') throw httpErr(400, 'لا يمكن حذف البث الرئيسي');
+      await lives.remove(l.slug);
+      return json(200, { ok: true });
     }
 
-    if (p === '/api/logs' && req.method === 'GET') {
-      const since = url.searchParams.get('boot') === BOOT_ID ? num(url.searchParams.get('since'), 0) : 0;
-      return json(200, { lines: LOG_BUFFER.filter((l) => l.i > since), next: logSeq, boot: BOOT_ID });
+    // ---- Users (owner) ----
+    if (p.startsWith('/api/users')) {
+      ownerOnly();
+      if (p === '/api/users' && req.method === 'GET') {
+        return json(200, { users: users.list.map((u) => ({ ...publicUser(u), lives: lives.ownedBy(u.id).map((l) => ({ slug: l.slug, name: l.meta.name, status: l.tiktok.status.state })) })) });
+      }
+      if (p === '/api/users' && req.method === 'POST') {
+        const b = await readJsonBody(req, 8192);
+        const password = b.password && String(b.password).length >= 10 ? String(b.password) : crypto.randomBytes(9).toString('base64url');
+        const u = users.create({ email: b.email, name: b.name, password, role: b.role === 'owner' ? 'owner' : 'user', maxLives: b.maxLives ?? 1, mustChangePassword: true });
+        let live = null;
+        if (b.createLive) {
+          const base = (String(b.liveSlug || '').trim().toLowerCase() || slug(u.email.split('@')[0]).replace(/[^a-z0-9-]/g, '') || 'live').slice(0, 24);
+          let sl = SLUG_RE.test(base) ? base : `live-${u.id.slice(0, 6)}`; let n = 2;
+          while (lives.get(sl)) sl = `${base}-${n++}`;
+          live = liveSummary(lives.create({ slug: sl, name: b.liveName || u.name, ownerId: u.id }));
+        }
+        log.info(`User created: ${u.email} (${u.role}) by ${me.email}`);
+        return json(200, { ok: true, user: publicUser(u), password, live });
+      }
+      if (p === '/api/users/update' && req.method === 'POST') {
+        const b = await readJsonBody(req, 8192);
+        const u = users.byId(b.id);
+        if (!u) throw httpErr(404, 'المستخدم غير موجود');
+        const lastOwner = isOwner(u) && users.owners().length <= 1;
+        if (typeof b.name === 'string' && b.name.trim()) u.name = str(b.name, 60).trim();
+        if (typeof b.email === 'string' && b.email.trim().toLowerCase() !== u.email) {
+          const em = b.email.trim().toLowerCase();
+          if (!EMAIL_RE.test(em)) throw httpErr(400, 'بريد إلكتروني غير صالح');
+          if (users.byEmail(em)) throw httpErr(409, 'يوجد مستخدم بهذا البريد');
+          u.email = em;
+        }
+        if (b.maxLives !== undefined) u.maxLives = Math.round(numIn(b.maxLives, 0, 100, u.maxLives));
+        if (b.role !== undefined) { if (lastOwner && b.role !== 'owner') throw httpErr(400, 'يجب أن يبقى مدير واحد على الأقل'); u.role = b.role === 'owner' ? 'owner' : 'user'; }
+        if (b.disabled !== undefined) {
+          if (u.id === me.id) throw httpErr(400, 'لا يمكنك إيقاف حسابك');
+          u.disabled = Boolean(b.disabled);
+          if (u.disabled) { for (const ws of wss.clients) if (ws.user && ws.user.id === u.id) ws.close(4001, 'Account disabled'); }
+        }
+        let password = null;
+        if (b.resetPassword) {
+          password = crypto.randomBytes(9).toString('base64url');
+          u.password = hashPassword(password); u.mustChangePassword = true;
+          for (const ws of wss.clients) if (ws.user && ws.user.id === u.id) ws.close(4001, 'Password reset');
+        }
+        users.save();
+        return json(200, { ok: true, user: publicUser(u), password });
+      }
+      if (p === '/api/users' && req.method === 'DELETE') {
+        const u = users.byId(url.searchParams.get('id'));
+        if (!u) throw httpErr(404, 'المستخدم غير موجود');
+        if (u.id === me.id) throw httpErr(400, 'لا يمكنك حذف حسابك');
+        if (isOwner(u) && users.owners().length <= 1) throw httpErr(400, 'يجب أن يبقى مدير واحد على الأقل');
+        const mode = url.searchParams.get('lives') === 'delete' ? 'delete' : 'transfer';
+        for (const l of lives.ownedBy(u.id)) {
+          if (mode === 'delete' && l.slug !== 'main') await lives.remove(l.slug);
+          else { l.meta.ownerId = me.id; }
+        }
+        lives.save();
+        users.list = users.list.filter((x) => x.id !== u.id); users.save();
+        for (const ws of wss.clients) if (ws.user && ws.user.id === u.id) ws.close(4001, 'Account deleted');
+        log.info(`User deleted: ${u.email} by ${me.email} (lives: ${mode})`);
+        return json(200, { ok: true });
+      }
+      throw httpErr(404, 'مسار غير معروف');
     }
 
-    if (p === '/api/jobs' && req.method === 'GET') return json(200, jobs);
-
-    // ---- Rounds history ----
-    if (p === '/api/rounds' && req.method === 'GET') return json(200, { round: rounds.public(), history: rounds.history });
-    if (p === '/api/rounds' && req.method === 'DELETE') { rounds.history = []; await writeJsonAtomic(ROUNDS_HISTORY_FILE, []); return json(200, { ok: true }); }
-
-    // ---- Stream reports ----
-    if (p === '/api/reports' && req.method === 'GET') return json(200, { reports: await reports.list(), currentId: reports.current?.id || null });
-    if (p === '/api/reports/new' && req.method === 'POST') { const r = reports.begin({ username: tiktok.status.username || '', demo: demo.running, reason: 'manual' }); return json(200, { ok: true, id: r.id }); }
-    if (p === '/api/reports/end' && req.method === 'POST') { const r = reports.end('manual'); return json(200, { ok: true, id: r?.id || null }); }
+    // ---- Live-scoped: rounds, reports, voice test ----
+    if (p === '/api/rounds' && req.method === 'GET') { const l = reqLive(); return json(200, { round: l.rounds.public(), history: l.rounds.history }); }
+    if (p === '/api/rounds' && req.method === 'DELETE') { const l = reqLive(); l.rounds.history = []; await writeJsonAtomic(l.files.history, []); return json(200, { ok: true }); }
+    if (p === '/api/reports' && req.method === 'GET') { const l = reqLive(); return json(200, { reports: await l.reports.list(), currentId: l.reports.current?.id || null }); }
+    if (p === '/api/reports/new' && req.method === 'POST') { const l = reqLive(); const r = l.reports.begin({ username: l.tiktok.status.username || '', demo: l.demo.running, reason: 'manual' }); return json(200, { ok: true, id: r.id }); }
+    if (p === '/api/reports/end' && req.method === 'POST') { const l = reqLive(); const r = l.reports.end('manual'); return json(200, { ok: true, id: r?.id || null }); }
     {
       const m = /^\/api\/reports\/([0-9a-z-]+?)(\.csv)?$/.exec(p);
       if (m) {
-        if (req.method === 'DELETE') { if (!(await reports.remove(m[1]))) throw httpErr(400, 'لا يمكن حذف هذا التقرير'); return json(200, { ok: true }); }
-        const r = await reports.get(m[1]);
+        const l = reqLive();
+        if (req.method === 'DELETE') { if (!(await l.reports.remove(m[1]))) throw httpErr(400, 'لا يمكن حذف هذا التقرير'); return json(200, { ok: true }); }
+        const r = await l.reports.get(m[1]);
         if (!r) throw httpErr(404, 'التقرير غير موجود');
-        if (m[2]) return send(200, 'text/csv; charset=utf-8', reports.csv(r), { 'Content-Disposition': `attachment; filename="report-${r.id}.csv"` });
+        if (m[2]) return send(200, 'text/csv; charset=utf-8', l.reports.csv(r), { 'Content-Disposition': `attachment; filename="report-${l.slug}-${r.id}.csv"` });
         return json(200, { report: r });
       }
     }
-
-    // ---- Voice ----
     if (p === '/api/tts/voices' && req.method === 'GET') return json(200, { voices: VOICES.map(([id, label]) => ({ id, label })) });
     if (p === '/api/tts/test' && req.method === 'POST') {
+      const l = reqLive();
       const b = await readJsonBody(req, 4096);
       const text = str(b.text || 'شكراً على الهدية، المغرب يتصدر الآن!', 200);
-      try { return json(200, { ok: true, url: await tts.synth(text, { voice: b.voice || config.tts.voice, rate: b.rate ?? config.tts.rate }) }); }
+      try { return json(200, { ok: true, url: await tts.synth(text, { voice: b.voice || l.config.tts.voice, rate: b.rate ?? l.config.tts.rate }) }); }
       catch (e) { throw httpErr(502, `تعذر توليد الصوت: ${e.message}`); }
     }
 
+    // ---- Gift catalog (shared) ----
     if (p === '/api/gifts' && req.method === 'GET') return json(200, { gifts: catalog.list() });
-
     if (p === '/api/gifts/refresh' && req.method === 'POST') {
+      const l = reqLive();
       const b = await readJsonBody(req, 4096);
       const username = String(b.username || '').trim().replace(/^@/, '');
-      let gifts = username ? null : await tiktok.fetchGifts().catch(() => null);
+      let gifts = username ? null : await l.tiktok.fetchGifts().catch(() => null);
       if (!gifts) {
-        const u = username || serverSettings.tiktokUsername;
+        const u = username || l.meta.tiktokUsername;
         if (!/^[\w.]{2,40}$/.test(u || '')) throw httpErr(400, 'أدخل اسم حساب تيك توك يبث مباشرة الآن');
         const lib = await loadConnector();
         const opts = lib.kind === 'v2'
@@ -2017,12 +2383,15 @@ const httpServer = http.createServer(async (req, res) => {
         } finally { try { c.removeAllListeners && c.removeAllListeners(); c.on && c.on('error', () => {}); await c.disconnect(); } catch { /* ignore */ } }
       }
       const n = catalog.ingest(gifts || []);
-      log.info(`Gift list fetched: ${n} gifts`);
+      log.info(`Gift list fetched: ${n} gifts (by ${me.email})`);
       return json(200, { ok: true, count: n, total: catalog.byId.size });
     }
 
-    if (p === '/api/uploads' && req.method === 'GET') return json(200, { files: await listUploads() });
-
+    // ---- Uploads (each user sees their own; the owner sees all) ----
+    if (p === '/api/uploads' && req.method === 'GET') {
+      const all = await listUploads();
+      return json(200, { files: isOwner(me) ? all : all.filter((f) => (uploadIndex[f.name] || []).includes(me.id)) });
+    }
     if (p === '/api/upload' && req.method === 'POST') {
       const b = await readJsonBody(req, Math.ceil(MAX_UPLOAD_BYTES * 1.4) + 4096);
       const buf = Buffer.from(String(b.data || '').replace(/^data:[^,]*,/, ''), 'base64');
@@ -2034,24 +2403,61 @@ const httpServer = http.createServer(async (req, res) => {
       await fsp.mkdir(UPLOAD_DIR, { recursive: true });
       const file = path.join(UPLOAD_DIR, name);
       if (!fs.existsSync(file)) await fsp.writeFile(file, buf);
-      log.info(`Image uploaded: ${name} (${Math.round(buf.length / 1024)} KB)`);
+      uploadIndex[name] = [...new Set([...(uploadIndex[name] || []), me.id])]; saveUploadIndex();
+      log.info(`Image uploaded: ${name} (${Math.round(buf.length / 1024)} KB) by ${me.email}`);
       return json(200, { ok: true, url: `/uploads/${name}`, size: buf.length });
     }
-
     if (p === '/api/upload' && req.method === 'DELETE') {
       const name = String(url.searchParams.get('name') || '');
       if (!UPLOAD_RE.test(`/uploads/${name}`)) throw httpErr(400, 'اسم غير صالح');
-      await fsp.rm(path.join(UPLOAD_DIR, name), { force: true });
+      const holders = (uploadIndex[name] || []).filter((id) => isOwner(me) || id !== me.id);
+      if (!isOwner(me) && !(uploadIndex[name] || []).includes(me.id)) throw httpErr(403, 'هذه الصورة ليست لك');
+      if (isOwner(me) || !holders.length) { await fsp.rm(path.join(UPLOAD_DIR, name), { force: true }); delete uploadIndex[name]; }
+      else uploadIndex[name] = holders;
+      saveUploadIndex();
       return json(200, { ok: true });
     }
 
-    if (p === '/api/build' && req.method === 'POST') {
-      const job = startJob('build', [{ label: 'بناء الواجهة', cmd: 'npm', args: ['run', 'build'] }]);
-      return json(202, { ok: true, job });
+    // ================= Owner only: server, files, logs, updates =================
+    ownerOnly();
+
+    if (p === '/api/settings' && req.method === 'GET') {
+      const k = serverSettings.signApiKey;
+      const stats = { gifts: 0, chats: 0, likes: 0, points: 0 };
+      for (const l of lives.map.values()) for (const key of Object.keys(stats)) stats[key] += l.pipeline.stats[key] || 0;
+      return json(200, {
+        adminEmail: me.email, signApiKeySet: Boolean(k), signApiKeyHint: k ? `${k.slice(0, 4)}…${k.slice(-4)}` : '',
+        adminTokenSet: Boolean(serverSettings.adminToken), mustChangePassword: me.mustChangePassword,
+        server: {
+          version: VERSION, node: process.version, uptime: Math.round(process.uptime()), pid: process.pid,
+          supervised: supervised(), appRoot: APP_ROOT, dataDir: SETTINGS.dataDir, port: SETTINGS.port,
+          memoryMb: Math.round(process.memoryUsage().rss / 1048576), clients: wss.clients.size, stats, lives: lives.map.size, users: users.list.length,
+        },
+      });
     }
-
+    if (p === '/api/settings' && req.method === 'POST') {
+      const b = await readJsonBody(req, 16384);
+      let restartRequired = false;
+      if (typeof b.signApiKey === 'string' && b.signApiKey.trim()) { serverSettings.signApiKey = b.signApiKey.trim().slice(0, 300); restartRequired = true; }
+      if (b.clearSignApiKey === true) { serverSettings.signApiKey = ''; restartRequired = true; }
+      if (typeof b.adminToken === 'string' && b.adminToken.trim()) serverSettings.adminToken = b.adminToken.trim().slice(0, 200);
+      if (b.clearAdminToken === true) serverSettings.adminToken = '';
+      writeServerSettingsSync();
+      return json(200, { ok: true, restartRequired });
+    }
+    if (p === '/api/restart' && req.method === 'POST') {
+      json(200, { ok: true, supervised: supervised() });
+      log.warn('Restart requested from admin panel');
+      setTimeout(() => shutdown('restart from panel'), 300);
+      return;
+    }
+    if (p === '/api/logs' && req.method === 'GET') {
+      const since = url.searchParams.get('boot') === BOOT_ID ? num(url.searchParams.get('since'), 0) : 0;
+      return json(200, { lines: LOG_BUFFER.filter((l) => l.i > since), next: logSeq, boot: BOOT_ID });
+    }
+    if (p === '/api/jobs' && req.method === 'GET') return json(200, jobs);
+    if (p === '/api/build' && req.method === 'POST') return json(202, { ok: true, job: startJob('build', [{ label: 'بناء الواجهة', cmd: 'npm', args: ['run', 'build'] }]) });
     if (p === '/api/update/check' && req.method === 'GET') return json(200, await gitInfo(true));
-
     if (p === '/api/update/run' && req.method === 'POST') {
       const b = await readJsonBody(req, 4096);
       const info = await gitInfo(true);
@@ -2063,12 +2469,9 @@ const httpServer = http.createServer(async (req, res) => {
       steps.push({ label: 'تنزيل التحديث', cmd: 'git', args: [...GIT, 'pull', '--ff-only', 'origin', info.branch] });
       steps.push({ label: 'تثبيت الحزم', cmd: 'npm', args: ['ci', '--no-audit', '--no-fund'] });
       steps.push({ label: 'بناء الواجهة', cmd: 'npm', args: ['run', 'build'] });
-      const job = startJob('update', steps, () => setTimeout(() => shutdown('restart after update'), 500));
-      return json(202, { ok: true, job });
+      return json(202, { ok: true, job: startJob('update', steps, () => setTimeout(() => shutdown('restart after update'), 500)) });
     }
-
     if (p === '/api/files' && req.method === 'GET') return json(200, { files: await listAppFiles(), root: APP_ROOT });
-
     if (p === '/api/file' && req.method === 'GET') {
       const { abs, rel } = resolveAppPath(url.searchParams.get('path'));
       const st = await fsp.stat(abs).catch(() => null);
@@ -2078,18 +2481,15 @@ const httpServer = http.createServer(async (req, res) => {
       if (buf.includes(0)) throw httpErr(415, 'ملف ثنائي ولا يمكن تحريره كنص');
       return json(200, { path: rel, content: buf.toString('utf8'), mtime: st.mtimeMs });
     }
-
     if (p === '/api/file' && (req.method === 'PUT' || req.method === 'POST')) {
       const b = await readJsonBody(req);
       const { abs, rel } = resolveAppPath(b.path);
       if (typeof b.content !== 'string') throw httpErr(400, 'المحتوى مفقود');
       if (Buffer.byteLength(b.content) > MAX_EDIT_BYTES) throw httpErr(413, 'الملف كبير جداً (الحد 2 ميغابايت)');
-      // Warn if someone else changed the file since it was opened
       if (b.expectMtime && fs.existsSync(abs) && Math.abs(fs.statSync(abs).mtimeMs - b.expectMtime) > 1 && !b.force) {
         throw httpErr(409, 'تغيّر الملف على الخادم بعد فتحه. أعد تحميله أو احفظ للكتابة فوقه.', { conflict: true });
       }
       const problem = checkSyntax(rel, b.content);
-      // server.js runs this panel, so it is never saved with a syntax error.
       if (problem && (rel === 'server/index.js' || !b.force)) throw httpErr(422, problem, { syntax: true, canForce: rel !== 'server/index.js' });
       await backupFile(abs, rel);
       await fsp.mkdir(path.dirname(abs), { recursive: true });
@@ -2097,17 +2497,15 @@ const httpServer = http.createServer(async (req, res) => {
       await fsp.writeFile(tmp, b.content);
       await fsp.rename(tmp, abs);
       log.info(`File saved from panel: ${rel}`);
-
-      let note = '';
-      let restartRequired = false;
-      let buildRequired = false;
-      if (abs === CONFIG_FILE) { await applyNewConfig(JSON.parse(b.content), false); note = 'تم تطبيق الإعدادات مباشرة.'; }
-      else if (abs === STATE_FILE) { note = 'الخادم يكتب state.json باستمرار. أعد التشغيل لتحميل تعديلك.'; restartRequired = true; }
+      let note = ''; let restartRequired = false; let buildRequired = false;
+      const liveOfConfig = [...lives.map.values()].find((l) => l.files.config === abs);
+      const liveOfState = [...lives.map.values()].find((l) => l.files.state === abs);
+      if (liveOfConfig) { await liveOfConfig.applyNewConfig(JSON.parse(b.content), false); note = 'تم تطبيق الإعدادات مباشرة.'; }
+      else if (liveOfState) { note = 'الخادم يكتب state.json باستمرار. أعد التشغيل لتحميل تعديلك.'; restartRequired = true; }
       else if (rel.startsWith('web/')) { buildRequired = true; note = 'اضغط «بناء الواجهة» لتطبيق التعديل على الموقع.'; }
       else if (/\.(c|m)?js$|package(-lock)?\.json$/.test(rel)) { restartRequired = true; note = 'أعد تشغيل الخادم لتطبيق هذا التعديل.'; }
       return json(200, { ok: true, path: rel, mtime: fs.statSync(abs).mtimeMs, note, restartRequired, buildRequired });
     }
-
     if (p === '/api/file' && req.method === 'DELETE') {
       const { abs, rel } = resolveAppPath(url.searchParams.get('path'));
       if (['server/index.js', 'package.json', 'package-lock.json'].includes(rel)) throw httpErr(403, 'لا يمكن حذف هذا الملف الأساسي');
@@ -2116,7 +2514,6 @@ const httpServer = http.createServer(async (req, res) => {
       log.info(`File deleted from panel: ${rel}`);
       return json(200, { ok: true });
     }
-
     if (p === '/api/backups' && req.method === 'GET') {
       const { rel } = resolveAppPath(url.searchParams.get('path'));
       const base = backupName(rel) + '.';
@@ -2138,116 +2535,25 @@ const httpServer = http.createServer(async (req, res) => {
 });
 
 /* ----------------------------------------------------------------------------
- * 15. WebSocket hub
+ * 15. WebSocket hub: each socket belongs to one live (?live=slug, default "main")
  * ------------------------------------------------------------------------- */
 const wss = new WebSocketServer({ server: httpServer, maxPayload: 512 * 1024, perMessageDeflate: false });
-const MAX_BUFFERED = 1024 * 1024; // skip non-essential messages for clients that cannot keep up
-
-/** Sends one message to every client. JSON is built once and reused. */
-function broadcast(msg, { essential = true } = {}) {
-  const data = JSON.stringify(msg);
-  for (const ws of wss.clients) {
-    if (ws.readyState !== WebSocket.OPEN) continue;
-    if (!essential && ws.bufferedAmount > MAX_BUFFERED) continue;
-    ws.send(data);
-  }
-}
-
-const publicStatus = () => ({ ...tiktok.status, demo: demo.running });
-const broadcastState = throttle(() => broadcast({ type: 'state', state: board.snapshot() }), () => config.advanced.broadcastIntervalMs);
-
-board.on('change', () => { broadcastState(); saveState(); });
-const reportCtx = () => ({ username: tiktok.status.username || '', demo: demo.running });
-pipeline.on('event', (ev) => {
-  // Events go out right away (lowest latency). The state update follows within broadcastIntervalMs.
-  broadcastState.flush();
-  broadcast({ type: 'event', event: { ...ev, ts: Date.now() } }, { essential: false });
-  if (ev.kind === 'gift') reports.onGift(ev, reportCtx());
-  else if (ev.kind === 'follow' || ev.kind === 'share' || (ev.kind === 'join' && ev.points)) reports.onPoints(ev, reportCtx());
-  speakFor(ev);
-});
-tiktok.on('status', () => broadcast({ type: 'status', status: publicStatus() }));
-
-// ---- Rounds -> screens, voice, reports, auto-reset ----
-rounds.on('change', (r) => broadcast({ type: 'round', round: r }));
-rounds.on('event', (ev) => { broadcast({ type: 'event', event: { ...ev, ts: Date.now() } }); speakFor(ev); });
-rounds.on('ended', (res) => reports.onRound(res));
-rounds.on('reset', () => {
-  board.reset(true);
-  pipeline.streaks.clear();
-  writeState();
-  broadcast({ type: 'event', event: { kind: 'reset', ts: Date.now(), auto: true } });
-});
-
-// ---- Stream sessions for reports follow the TikTok connection ----
-let lastConnState = 'idle';
-tiktok.on('status', (st) => {
-  if (st.state === lastConnState) return;
-  const prev = lastConnState; lastConnState = st.state;
-  if (st.state === 'connected') {
-    if (reports.current && reports.current.username && reports.current.username !== st.username) reports.end('new stream');
-    if (!reports.current) reports.begin({ username: st.username, reason: 'connected' });
-    else if (!reports.current.username) reports.current.username = st.username;
-  } else if (prev === 'connected' && st.state === 'offline') reports.end('stream ended');
-  else if (st.state === 'idle' && /host/i.test(st.message || '')) reports.end('disconnected');
-});
-tiktok.on('viewers', (v) => { reports.viewers = v; reports.onViewers(v); });
-
-// ---- Arabic voice reading ----
-const streakPoints = new Map();
-let lastTakeoverSpeech = 0;
-let ttsWarnedAt = 0;
-function sayText(text, { force = false } = {}) {
-  const t = config.tts;
-  if (!text || (!t.enabled && !force)) return Promise.resolve(null);
-  if (t.engine === 'browser') { broadcast({ type: 'speak', text, volume: t.volume }); return Promise.resolve(null); }
-  return tts.synth(text, { voice: t.voice, rate: t.rate })
-    .then((url) => { broadcast({ type: 'speak', url, text, volume: t.volume }); return url; })
-    .catch((e) => {
-      if (Date.now() - ttsWarnedAt > 60000) { ttsWarnedAt = Date.now(); log.warn('Voice (Edge TTS) failed, using browser voice:', e.message); }
-      broadcast({ type: 'speak', text, volume: t.volume }); // browser fallback (works outside OBS)
-      throw e;
-    });
-}
-function speakFor(ev) {
-  const t = config.tts;
-  if (!t.enabled) return;
-  const teamName = (id) => config.teams.find((x) => x.id === id)?.name || '';
-  let text = '';
-  if (ev.kind === 'gift' && t.readGifts) {
-    let pts = ev.points;
-    if (ev.streakKey) {                     // combo: speak once, at the end, with the full total
-      pts = (streakPoints.get(ev.streakKey) || 0) + ev.points;
-      if (!ev.final) { streakPoints.set(ev.streakKey, pts); if (streakPoints.size > 2000) streakPoints.clear(); return; }
-      streakPoints.delete(ev.streakKey);
-    }
-    if (pts < t.minPoints) return;
-    text = fillTemplate(t.giftTemplate, { name: ev.user.nickname, gift: ev.gift.name, count: ev.gift.count, team: teamName(ev.teamId), points: Math.round(pts) });
-  } else if (ev.kind === 'takeover' && t.readTakeover) {
-    if (Date.now() - lastTakeoverSpeech < 10000) return;
-    lastTakeoverSpeech = Date.now();
-    text = fillTemplate(t.takeoverTemplate, { team: teamName(ev.teamId) });
-  } else if (ev.kind === 'roundEnd' && t.readRoundWinner) {
-    text = ev.winner ? fillTemplate(t.roundTemplate, { team: ev.winner.name, points: Math.round(ev.winner.score) }) : 'انتهت الجولة بدون فائز';
-  } else if (ev.kind === 'follow' && t.readFollows) {
-    text = fillTemplate(t.followTemplate, { name: ev.user.nickname });
-  }
-  if (text) sayText(text).catch(() => {});
-}
-catalog.on('change', () => broadcast({ type: 'catalog', gifts: catalog.list() }, { essential: false }));
 
 wss.on('connection', (ws, req) => {
   ws.isAlive = true;
-  // Admin = logged-in session cookie AND same origin (blocks cross-site WebSocket hijacking).
-  ws.isAdmin = isAuthed(req) && sameOrigin(req);
   ws.msgBudget = { tokens: 30, ts: Date.now() };
   ws.on('pong', () => { ws.isAlive = true; });
   ws.on('error', (e) => log.warn('WS client error:', e.message));
-
-  ws.send(JSON.stringify({
-    type: 'hello', version: VERSION, config, state: board.snapshot(), status: publicStatus(),
-    gifts: catalog.list(), isAdmin: ws.isAdmin, round: rounds.public(),
-  }));
+  const q = new URL(req.url, 'http://localhost').searchParams;
+  const live = lives.get(q.get('live') || 'main');
+  if (!live) { ws.send(JSON.stringify({ type: 'error', error: 'البث غير موجود' })); ws.close(4004, 'Unknown live'); return; }
+  // Admin = logged-in user who may manage this live, from the same origin (blocks cross-site hijacking).
+  ws.user = sameOrigin(req) ? isAuthed(req) : null;
+  ws.isAdmin = lives.canManage(ws.user, live);
+  ws.live = live;
+  live.clients.add(ws);
+  ws.on('close', () => live.clients.delete(ws));
+  ws.send(JSON.stringify(live.hello(ws)));
 
   ws.on('message', (buf) => {
     // Simple token bucket: about 20 messages/second per client.
@@ -2266,98 +2572,19 @@ function reply(ws, reqId, ok, error, data) {
   if (ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify({ type: 'ack', reqId: reqId ?? null, ok, error: error || null, data: data ?? null }));
 }
 
-/** Handles control commands from the setup panel. */
+/** Panel commands, for the live this socket is connected to. */
 async function handleCommand(ws, msg) {
   if (msg.type === 'ping') return ws.send(JSON.stringify({ type: 'pong', t: msg.t }));
   if (msg.type !== 'cmd') return;
-
-  // Auth: logged-in admin socket, or the optional API token (for scripts / Stream Deck).
+  // Auth: a user who may manage this live, or the optional server API token (owner level).
   const tokenOk = Boolean(serverSettings.adminToken) && typeof msg.token === 'string' && safeEqual(msg.token, serverSettings.adminToken);
   if (!ws.isAdmin && !tokenOk) return reply(ws, msg.reqId, false, 'يجب تسجيل الدخول من /admin');
-  const p = isObj(msg.payload) ? msg.payload : {};
-
-  switch (msg.action) {
-    case 'connect': {
-      await tiktok.start(p.username);
-      // Remember the stream, so the server reconnects to it after a restart.
-      serverSettings.tiktokUsername = tiktok.desired; serverSettings.autoConnect = true; writeServerSettingsSync();
-      return reply(ws, msg.reqId, true);
-    }
-    case 'disconnect': {
-      await tiktok.stop();
-      serverSettings.autoConnect = false; writeServerSettingsSync();
-      return reply(ws, msg.reqId, true);
-    }
-    case 'saveConfig': {
-      const c = await applyNewConfig(p.config);
-      return reply(ws, msg.reqId, true, null, { config: c });
-    }
-    case 'reset': {
-      board.reset(p.keepAllegiance !== false);
-      pipeline.streaks.clear();
-      writeState();
-      broadcast({ type: 'event', event: { kind: 'reset', ts: Date.now() } });
-      log.info('Scores reset');
-      return reply(ws, msg.reqId, true);
-    }
-    case 'adjust': {
-      const delta = num(p.delta, 0);
-      if (!board.teams.has(p.teamId) || !delta) throw new Error('فريق غير معروف أو قيمة صفر');
-      const r = board.adjust(p.teamId, delta);
-      if (r.takeover) pipeline.emit('event', { kind: 'takeover', teamId: board.leaderId, prevTeamId: r.prevLeader || null });
-      return reply(ws, msg.reqId, true);
-    }
-    case 'simulateGift': {
-      const nick = str(p.nickname || 'TestViewer', 48);
-      const id = `sim_${slug(nick) || 'viewer'}`;
-      const known = catalog.find(p.giftId, p.giftName);
-      if (known && !p.giftId) p.giftId = known.id;
-      pipeline.handleGift({
-        user: { id, displayId: slug(nick) || 'test_viewer', nickname: nick },
-        giftId: num(p.giftId, 999999),
-        repeatCount: Math.max(1, Math.min(10000, Math.floor(num(p.count, 1)))),
-        repeatEnd: false,
-        groupId: String(Date.now()),
-        giftDetails: { giftName: str(p.giftName || 'Rose', 48), diamondCount: Math.max(0, num(p.diamonds, 1)), giftType: 2 },
-      }, { forceTeam: p.teamId || null });
-      return reply(ws, msg.reqId, true);
-    }
-    case 'simulateChat': {
-      const nick = str(p.nickname || 'TestViewer', 48);
-      pipeline.handleChat({ user: { id: `sim_${slug(nick) || 'viewer'}`, displayId: slug(nick), nickname: nick }, comment: str(p.text, 300) });
-      return reply(ws, msg.reqId, true);
-    }
-    case 'demo': {
-      if (p.enabled) demo.start(); else demo.stop();
-      broadcast({ type: 'status', status: publicStatus() });
-      return reply(ws, msg.reqId, true);
-    }
-    case 'roundStart': { rounds.start(p.durationMin); return reply(ws, msg.reqId, true); }
-    case 'roundEnd': { rounds.end('manual'); return reply(ws, msg.reqId, true); }
-    case 'roundCancel': { rounds.cancel(); return reply(ws, msg.reqId, true); }
-    case 'roundExtend': { rounds.extend(num(p.sec, 60)); return reply(ws, msg.reqId, true); }
-    case 'socialReset': { board.resetSocial(); writeState(); return reply(ws, msg.reqId, true); }
-    case 'simulateFollow':
-    case 'simulateShare': {
-      const nick = str(p.nickname || 'متابع جديد', 48);
-      const id = msg.action === 'simulateFollow' ? `sim_f_${Date.now()}` : `sim_${slug(nick) || 'viewer'}`;
-      if (p.teamId && board.teams.has(p.teamId)) board.allegiance.set(id, p.teamId);
-      const raw = { user: { id, displayId: slug(nick) || 'viewer', nickname: nick } };
-      if (msg.action === 'simulateFollow') pipeline.handleFollow(raw); else pipeline.handleShare(raw);
-      return reply(ws, msg.reqId, true);
-    }
-    case 'say': {
-      const text = str(p.text, 200).trim();
-      if (!text) throw new Error('اكتب النص');
-      const url = await sayText(text, { force: true });
-      return reply(ws, msg.reqId, true, null, { url });
-    }
-    case 'getState': {
-      return reply(ws, msg.reqId, true, null, { config, state: board.snapshot(), status: publicStatus(), gifts: catalog.list() });
-    }
-    default:
-      throw new Error(`Unknown action "${msg.action}"`);
+  // A user disabled or changed since the socket opened loses access.
+  if (!tokenOk && (!ws.user || !users.byId(ws.user.id) || users.byId(ws.user.id).disabled || !lives.canManage(users.byId(ws.user.id), ws.live))) {
+    return reply(ws, msg.reqId, false, 'ليس لديك صلاحية على هذا البث');
   }
+  const data = await ws.live.command(msg.action, isObj(msg.payload) ? msg.payload : {}, msg);
+  return reply(ws, msg.reqId, true, null, data);
 }
 
 // Heartbeat: terminate clients that stop answering pings (OBS scene switches, sleeping laptops).
@@ -2382,20 +2609,19 @@ wss.on('error', onServerError); // ws re-emits listen errors on the WebSocketSer
 
 httpServer.listen(SETTINGS.port, SETTINGS.host, () => {
   const base = SETTINGS.publicUrl || `http://${SETTINGS.host === '0.0.0.0' ? 'localhost' : SETTINGS.host}:${SETTINGS.port}`;
-  log.info(`Scoreboard v${VERSION} listening on ${SETTINGS.host}:${SETTINGS.port}`);
+  log.info(`Scoreboard v${VERSION} listening on ${SETTINGS.host}:${SETTINGS.port} (${lives.map.size} lives, ${users.list.length} users)`);
   log.info(`  Live page:       ${base}/`);
   log.info(`  Overlay (OBS):   ${base}/overlay`);
   log.info(`  Admin panel:     ${base}/admin`);
   if (generatedPassword) {
+    const owner = users.owners()[0];
     log.warn('==================================================================');
-    log.warn(`  FIRST RUN: admin login = ${serverSettings.adminEmail} / ${generatedPassword}`);
+    log.warn(`  FIRST RUN: admin login = ${owner ? owner.email : 'admin'} / ${generatedPassword}`);
     log.warn(`  (also saved in ${INITIAL_PW_FILE}). Change it in the panel.`);
     log.warn('==================================================================');
   }
-  if (serverSettings.autoConnect && serverSettings.tiktokUsername) {
-    tiktok.start(serverSettings.tiktokUsername).catch((e) => log.error(e.message));
-  }
-  if (SETTINGS.demo) demo.start();
+  for (const l of lives.map.values()) l.start();
+  if (SETTINGS.demo && lives.get('main')) lives.get('main').demo.start();
 });
 
 let shuttingDown = false;
@@ -2404,12 +2630,10 @@ async function shutdown(sig) {
   shuttingDown = true;
   log.info(`${sig}: shutting down...`);
   clearInterval(heartbeat);
-  demo.stop();
-  const force = setTimeout(() => process.exit(0), 4000);
+  const force = setTimeout(() => process.exit(0), 5000);
   try {
-    await tiktok.stop();
-    await writeJsonAtomic(STATE_FILE, board.serialize());
-    reports.flush();
+    await Promise.all([...lives.map.values()].map((l) => l.stop().catch(() => {})));
+    lives.save();
     for (const ws of wss.clients) ws.close(1012, 'Server restarting');
     wss.close();
     httpServer.close();
