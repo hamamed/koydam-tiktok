@@ -15,8 +15,10 @@ import { Teams, Scoring, Theme } from './PagesConfig';
 import { Tools } from './PagesTools';
 import { ServerPage, FilesPage, LogsPage, UpdatesPage } from './PagesSystem';
 import { RoundsPage, VoicePage, ReportsPage } from './PagesExtra';
+import { GuidePage } from './PagesGuide';
 
 export const NAV = [
+  { id: 'guide', label: 'ابدأ هنا', icon: 'check' },
   { id: 'overview', label: 'نظرة عامة', icon: 'overview' },
   { id: 'connection', label: 'الاتصال بالبث', icon: 'plug' },
   { id: 'teams', label: 'الفرق والهدف', icon: 'flag', draft: true },
@@ -111,6 +113,7 @@ function Dashboard({ mustChange, onLogout }) {
       case 'rounds': return <RoundsPage {...props} />;
       case 'voice': return <VoicePage {...props} />;
       case 'reports': return <ReportsPage {...props} />;
+      case 'guide': return <GuidePage {...props} />;
       case 'server': return <ServerPage {...props} mustChange={mustChange} onLogout={logout} />;
       case 'files': return <FilesPage {...props} />;
       case 'logs': return <LogsPage {...props} />;
