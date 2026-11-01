@@ -405,7 +405,7 @@ function PartsEditor({ draft, edit }) {
           <div className="a-part-row"><Toggle label="الميداليات 🥈🥉" {...part('medal')} /><span /></div>
           <div className="a-part-row"><Toggle label="النسبة المئوية" {...part('share')} /><Range {...size('share')} /></div>
           <div className="a-part-row"><Toggle label="شريط التقدم" {...part('bar')} /><span /></div>
-          <div className="a-part-row"><Toggle label="«أرسل 🌹 لـ …» تحت اسم الفريق" {...theme('showTeamGifts')} /><Range {...size('gifts')} /></div>
+          <div className="a-part-row"><Toggle label="«أرسل 🌹» تحت العلم" {...theme('showTeamGifts')} /><Range {...size('gifts')} /></div>
           <div className="a-part-row"><Toggle label="الداعمون" {...theme('showContributors')} /><Range {...size('contribs')} /></div>
           <div className="a-part-row"><Toggle label="النقاط (الرقم)" {...part('score')} /><Range {...size('score')} /></div>
           <div className="a-part-row"><Toggle label="كلمة «نقطة»" {...part('pts')} /><Range {...size('gap')} /></div>
