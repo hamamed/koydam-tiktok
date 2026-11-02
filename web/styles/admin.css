@@ -659,3 +659,9 @@ html[data-admin-theme="light"] .admin-root .goal-pct { color: #1c1a22; text-shad
 .a-gstudio .a-form, .a-gstudio .a-gtexts, .a-gstudio .a-acts { grid-template-columns: repeat(auto-fill, minmax(min(230px, 100%), 1fr)); }
 .a-gstudio .a-act .a-form { grid-template-columns: repeat(auto-fill, minmax(min(150px, 100%), 1fr)); }
 .a-gstudio .a-field { min-width: 0; }
+
+/* Studio pages (Appearance, Games): the box fills the screen down to the bottom, no empty strip */
+.a-content:has(> .a-studio), .a-content:has(> * > .a-studio) { padding-bottom: 16px; }
+.a-studio { height: calc(100vh - var(--a-top-h, 67px) - 40px); height: calc(100dvh - var(--a-top-h, 67px) - 40px); }
+@media (max-width: 1100px) { .a-studio { height: auto; } }
+.a-toggle { position: relative; } /* keeps the hidden checkbox inside its scroll box (no extra page height) */
