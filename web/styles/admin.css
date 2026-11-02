@@ -665,3 +665,8 @@ html[data-admin-theme="light"] .admin-root .goal-pct { color: #1c1a22; text-shad
 .a-studio { height: calc(100vh - var(--a-top-h, 67px) - 40px); height: calc(100dvh - var(--a-top-h, 67px) - 40px); }
 @media (max-width: 1100px) { .a-studio { height: auto; } }
 .a-toggle { position: relative; } /* keeps the hidden checkbox inside its scroll box (no extra page height) */
+
+/* The page behind the dashboard has the dashboard colour (never a white strip below it) */
+html:has(.admin-root), body:has(.admin-root) { background: #09080d; }
+html[data-admin-theme="light"]:has(.admin-root), html[data-admin-theme="light"]:has(.admin-root) body { background: #f4f2ee; }
+.admin-root { min-height: 100vh; min-height: 100dvh; }
