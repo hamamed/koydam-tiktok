@@ -6,13 +6,17 @@ import { api } from '@/lib/api';
 import { GiftIcon } from '../bits';
 import { Btn, Icon, useNotice } from './ui';
 
-export function GiftGrid({ gifts, selected = [], onPick, max = 400 }) {
+export function GiftGrid({ gifts, selected = [], onPick, max = 400, oneCoinDefault = false }) {
   const [q, setQ] = useState('');
+  const [one, setOne] = useState(oneCoinDefault);
   const sel = useMemo(() => new Set(selected.map((s) => String(s).toLowerCase())), [selected]);
-  const shown = gifts.filter((g) => !q || g.name.toLowerCase().includes(q.toLowerCase()) || String(g.id) === q.trim()).slice(0, max);
+  const shown = gifts.filter((g) => !one || Number(g.diamonds) === 1).filter((g) => !q || g.name.toLowerCase().includes(q.toLowerCase()) || String(g.id) === q.trim()).slice(0, max);
   return (
     <div className="a-giftgrid-wrap">
-      <input className="a-input" placeholder="ابحث عن هدية… (Rose, Lion…)" value={q} onChange={(e) => setQ(e.target.value)} />
+      <div className="a-gift-tools">
+        <input className="a-input" placeholder="ابحث عن هدية… (Rose, Lion…)" value={q} onChange={(e) => setQ(e.target.value)} />
+        <label className={`a-chip-check${one ? ' on' : ''}`}><input type="checkbox" checked={one} onChange={(e) => setOne(e.target.checked)} />عملة واحدة فقط</label>
+      </div>
       {gifts.length === 0 ? <p className="a-empty">قائمة الهدايا فارغة. اضغط «جلب قائمة الهدايا» في صفحة «الهدايا والنقاط».</p> : (
         <div className="a-giftgrid">
           {shown.map((g) => (
@@ -42,7 +46,7 @@ export function GiftPickerModal({ open, title, gifts, selected, onPick, onClose,
       <div className="a-modal">
         <div className="a-card-head"><div><h3>{title}</h3><p className="a-muted">{multi ? 'اضغط على الهدايا لإضافتها أو إزالتها' : 'اختر هدية'}</p></div>
           <Btn variant="gold" icon="check" onClick={onClose}>تم</Btn></div>
-        <GiftGrid gifts={gifts} selected={selected} onPick={(g) => { onPick(g); if (!multi) onClose(); }} />
+        <GiftGrid gifts={gifts} selected={selected} oneCoinDefault onPick={(g) => { onPick(g); if (!multi) onClose(); }} />
       </div>
     </div>
   );

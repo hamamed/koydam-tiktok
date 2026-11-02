@@ -6,7 +6,7 @@ import LiveView from '../LiveView';
 import { Flag, GiftIcon, teamImage } from '../bits';
 import { ARAB_COUNTRIES, countryTeam, flagCode, flagPath } from '@/lib/flags';
 import { GiftFetcher, GiftGrid, GiftPickerModal } from './GiftPicker';
-import { findGift, useGiftMap } from '@/lib/gifts';
+import { findGift, oneCoinGifts, useGiftMap } from '@/lib/gifts';
 import { FONTS } from '@/lib/fonts';
 import { api } from '@/lib/api';
 import { PRESETS } from '@/lib/presets';
@@ -33,10 +33,12 @@ function UploadBtn({ max = 512, onDone, children = 'رفع صورة', variant = 
 const teamCountry = (t) => (/^\/flags\/([a-z]{2})\.svg$/.exec(t.image || '') || [])[1] || flagCode(t.emoji);
 
 /** Click a flag to add / remove that Arab country as a team (picture flags, ready keywords, a free gift). */
-function ArabCountries({ d, edit, giftMap }) {
+function ArabCountries({ d, edit, giftMap, gifts }) {
+  const ONE = oneCoinGifts(gifts);
   const have = new Map(d.teams.map((t, i) => [teamCountry(t), i]));
   const used = new Set(d.teams.flatMap((t) => t.gifts.map((g) => g.toLowerCase())));
-  const freeGift = () => POPULAR_GIFTS.find((g) => !used.has(g.toLowerCase()) && (!giftMap?.size || findGift(giftMap, g)));
+  // only 1-coin gifts; when they run out the country has no gift (viewers join by typing its name)
+  const freeGift = () => ONE.find((g) => !used.has(g.toLowerCase()));
   const toggle = (code) => edit((c) => {
     const i = c.teams.findIndex((t) => teamCountry(t) === code);
     if (i >= 0) { if (c.teams.length > 1) c.teams.splice(i, 1); return; }
@@ -47,8 +49,8 @@ function ArabCountries({ d, edit, giftMap }) {
   const addAll = () => edit((c) => {
     const keep = c.teams.filter((t) => !ARAB_COUNTRIES.some((x) => x.code === teamCountry(t)) && /^فريق \d+$/.test(t.name) === false);
     const taken = new Set(keep.flatMap((t) => t.gifts.map((g) => g.toLowerCase())));
-    const gifts = POPULAR_GIFTS.filter((g) => !taken.has(g.toLowerCase()));
-    c.teams = [...keep, ...ARAB_COUNTRIES.map((x, i) => ({ id: '', nameScale: 1, ...countryTeam(x.code, gifts[i]) }))].slice(0, 30);
+    const free = ONE.filter((g) => !taken.has(g.toLowerCase()));
+    c.teams = [...keep, ...ARAB_COUNTRIES.map((x, i) => ({ id: '', nameScale: 1, ...countryTeam(x.code, free[i]) }))].slice(0, 30);
     c.category = 'الدول';
   });
   return (
@@ -72,8 +74,6 @@ function ArabCountries({ d, edit, giftMap }) {
   );
 }
 
-// Cheap, well-known gifts first when auto-assigning one distinct gift per team.
-const POPULAR_GIFTS = ['Rose', 'TikTok', 'Heart Me', 'GG', 'Ice Cream Cone', 'Finger Heart', 'Weights', 'Perfume', 'Doughnut', 'Hand Hearts', 'Cap', 'Sunglasses', 'Corgi', 'Money Gun', 'Galaxy', 'Lion', 'Friendship Necklace', 'Love you', 'Cake Slice', 'Hat and Mustache', 'Mic', 'Swan', 'Paper Crane', 'Rosa'];
 
 /** Overview: each team's gift(s), conflicts, and one-click distinct assignment. */
 function TeamGiftsOverview({ d, edit, live, onPick }) {
@@ -83,18 +83,19 @@ function TeamGiftsOverview({ d, edit, live, onPick }) {
   const dupNames = new Set();
   d.teams.forEach((t) => t.gifts.forEach((g) => { const k = g.toLowerCase(); if (owner.has(k)) { dup.add(k); dupNames.add(g); } else owner.set(k, t.id); }));
   const missing = d.teams.filter((t) => !t.gifts.length);
+  const one = oneCoinGifts(live.gifts);
+  const notOne = live.gifts.length ? d.teams.filter((t) => t.gifts.some((n) => { const g = findGift(giftMap, n); return g && Number(g.diamonds) !== 1; })) : [];
   const autoAssign = () => {
-    if (!confirm('توزيع هدية مختلفة لكل فريق؟ سيستبدل هذا هدايا الفرق الحالية.')) return;
-    const names = live.gifts.length
-      ? [...POPULAR_GIFTS.filter((n) => giftMap.has(n.toLowerCase())).map((n) => giftMap.get(n.toLowerCase()).name),
-         ...live.gifts.filter((g) => !POPULAR_GIFTS.some((n) => n.toLowerCase() === g.name.toLowerCase())).map((g) => g.name)]
-      : POPULAR_GIFTS;
+    if (!confirm('توزيع هدية مختلفة بعملة واحدة لكل فريق؟ سيستبدل هذا هدايا الفرق الحالية.')) return;
+    const names = oneCoinGifts(live.gifts);
     edit((c) => { c.teams.forEach((t, i) => { t.gifts = names[i] ? [names[i]] : []; }); });
   };
   return (
     <Section title="🎁 هدية كل دولة" className="span-2"
       desc="كل من يرسل هدية الدولة تُحسب نقاطه لتلك الدولة تلقائياً. اجعل لكل دولة هدية مختلفة."
-      actions={<Btn size="sm" variant="ghost" icon="dice" onClick={autoAssign}>توزيع تلقائي</Btn>}>
+      actions={<Btn size="sm" variant="ghost" icon="dice" onClick={autoAssign}>توزيع تلقائي (عملة واحدة)</Btn>}>
+      <p className="a-muted">الهدايا المتاحة بعملة واحدة: <b className="num-latin">{one.length}</b>{d.teams.length > one.length ? <> · الدول بعدها تبقى بدون هدية ويكتب جمهورها اسمها في الشات (حتى لا تُحسب هدية دولة لدولة أخرى).</> : null}{!live.gifts.length ? <> · اجلب قائمة الهدايا من «الهدايا والنقاط» لترى كل الهدايا بعملة واحدة.</> : null}</p>
+      {notOne.length > 0 && <div className="a-alert warn"><Icon name="gift" />هدايا بأكثر من عملة: {notOne.map((t) => t.name).join('، ')}. اضغط «توزيع تلقائي» لجعلها كلها بعملة واحدة.</div>}
       {dup.size > 0 && <div className="a-alert warn"><Icon name="close" />نفس الهدية عند أكثر من دولة: <b className="num-latin">{[...dupNames].join('، ')}</b>. تُحسب للدولة الأولى في القائمة فقط.</div>}
       {missing.length > 0 && <div className="a-alert warn"><Icon name="gift" />بدون هدية: {missing.map((t) => t.name).join('، ')}</div>}
       <div className="a-gift-map">
@@ -166,7 +167,7 @@ export function Teams({ live, draft, edit }) {
         </div>
       </Section>
 
-      <ArabCountries d={d} edit={edit} giftMap={giftMap} />
+      <ArabCountries d={d} edit={edit} giftMap={giftMap} gifts={live.gifts} />
 
       <Section title={`الفرق (${d.teams.length})`} className="span-2"
         desc="كلمات الشات تجعل المشاهد ينضم للفريق فتُحسب هداياه له. الهدايا المحددة للفريق تُحسب له دائماً. اسم الفريق وعلمه يعملان ككلمات تلقائياً."

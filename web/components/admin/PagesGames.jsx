@@ -6,6 +6,7 @@
 import { useEffect, useState } from 'react';
 import { Cable, Castle, CircleHelp, Crown, Flag as FlagIco, FlagTriangleRight, Play, Rocket, SkipForward, Square, Swords, Trophy, Zap } from 'lucide-react';
 import { cmd } from '@/lib/store';
+import { oneCoinGifts } from '@/lib/gifts';
 import { ARAB_COUNTRIES, countryTeam } from '@/lib/flags';
 import { Flag } from '../bits';
 import { Btn, Field, Num, Section, Select, Toggle } from './ui';
@@ -24,7 +25,6 @@ const GAMES = [
   ['rockets', Rocket, 'سباق الصواريخ', 'صواريخ الدول تصعد نحو القمر بالهدايا. أول صاروخ يصل يفوز. مثالي للشاشة العمودية.'],
   ['castle', Castle, 'حماية العاصمة', 'لكل دولة سور: هداياها تبنيه وتهدم أعلى سور عند الخصوم. عند انتهاء الوقت أعلى سور يفوز.'],
 ];
-const POP = ['Rose', 'TikTok', 'Heart Me', 'GG', 'Ice Cream Cone', 'Finger Heart', 'Weights', 'Perfume', 'Doughnut', 'Hand Hearts', 'Cap', 'Sunglasses', 'Corgi', 'Money Gun', 'Galaxy', 'Lion', 'Friendship Necklace', 'Love you', 'Cake Slice', 'Hat and Mustache', 'Mic', 'Swan'];
 
 export function GamesPage({ live, draft, edit, dirty, notice }) {
   const g = draft.game || { mode: 'race', cup: {}, arena: {} };
@@ -51,7 +51,8 @@ export function GamesPage({ live, draft, edit, dirty, notice }) {
   };
   const arabOnly = draft.teams.length && draft.teams.every((t) => /^\/flags\/[a-z]{2}\.svg$/.test(t.image || '') && ARAB_COUNTRIES.some((x) => t.image === `/flags/${x.code}.svg`));
   const loadArab = (n) => edit((c) => {
-    c.teams = ARAB_COUNTRIES.slice(0, n).map((x, i) => ({ id: '', nameScale: 1, ...countryTeam(x.code, POP[i % POP.length]) }));
+    const one = oneCoinGifts(live.gifts);
+    c.teams = ARAB_COUNTRIES.slice(0, n).map((x, i) => ({ id: '', nameScale: 1, ...countryTeam(x.code, one[i]) }));
     c.category = 'الدول';
   });
   const st = live.game && live.game.mode === g.mode ? live.game : null;

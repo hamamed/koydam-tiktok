@@ -1,10 +1,9 @@
 /** Ready-made team sets for the Teams page. Countries use picture flags (web/lib/flags.js). */
 import { countryTeam } from './flags';
 
-// 22 different, common gifts so each country gets its own gift.
-const GIFTS = ['Rose', 'TikTok', 'Finger Heart', 'Ice Cream Cone', 'GG', 'Heart Me', 'Hand Hearts', 'Perfume', 'Doughnut', 'Cap',
-  'Sunglasses', 'Corgi', 'Money Gun', 'Weights', 'Friendship Necklace', 'Love you', 'Cake Slice', 'Hat and Mustache', 'Mic', 'Swan', 'Galaxy', 'Lion'];
-const countries = (codes) => ({ category: 'الدول', teams: codes.map((c, i) => countryTeam(c, GIFTS[i % GIFTS.length])) });
+import { ONE_COIN_FALLBACK } from './gifts';
+// 1-coin gifts only, one per country; countries after them join by chat (the Teams page fills more from the real catalog).
+const countries = (codes) => ({ category: 'الدول', teams: codes.map((c, i) => countryTeam(c, ONE_COIN_FALLBACK[i])) });
 
 export const PRESETS = {
   'كل الدول العربية (22)': countries(['sa', 'eg', 'ma', 'dz', 'tn', 'ly', 'mr', 'sd', 'ae', 'kw', 'qa', 'bh', 'om', 'ye', 'iq', 'sy', 'jo', 'lb', 'ps', 'so', 'dj', 'km']),

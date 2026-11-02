@@ -695,3 +695,5 @@ html[data-admin-theme="light"]:has(.admin-root), html[data-admin-theme="light"]:
 .a-tour-x { position: absolute; top: 10px; left: 10px; border: 0; background: none; color: var(--muted); cursor: pointer; }
 .a-tour-skip { align-self: center; border: 0; background: none; color: var(--muted); font: inherit; font-size: calc(12.5px * var(--a-fs, 1)); cursor: pointer; text-decoration: underline; }
 html[data-admin-theme="light"] .a-tour-card b { color: #a86e00; }
+.a-gift-tools { display: flex; gap: 8px; align-items: center; margin-bottom: 10px; }
+.a-gift-tools .a-input { flex: 1; min-width: 0; }
