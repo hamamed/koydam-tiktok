@@ -4,7 +4,7 @@ import { Eye, KeyRound } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 import { api } from '@/lib/api';
 import { liveQuery } from '@/lib/store';
-import { ADMIN_SIZES, useAdminPrefs } from '@/lib/adminPrefs';
+import { ADMIN_ACCENTS, ADMIN_LAYOUTS, ADMIN_SIZES, useAdminPrefs } from '@/lib/adminPrefs';
 import { FONTS } from '@/lib/fonts';
 import { Btn, CopyField, Field, Icon, Num, Section, Select, Text, Toggle } from './ui';
 
@@ -217,6 +217,16 @@ function DisplayPrefs() {
         <Field label="الوضع">
           <div className="a-seg">
             {[['light', '☀️ فاتح'], ['dark', '🌙 داكن'], ['auto', '🖥️ حسب الجهاز']].map(([v, l]) => <button key={v} className={p.theme === v ? 'on' : ''} onClick={() => update({ theme: v })}>{l}</button>)}
+          </div>
+        </Field>
+        <Field label="التصميم" hint="يمكنك التبديل أيضاً من زر التصميم في الأعلى">
+          <div className="a-seg">
+            {ADMIN_LAYOUTS.map(([v, l]) => <button key={v} className={p.layout === v ? 'on' : ''} onClick={() => update({ layout: v })}>{l}</button>)}
+          </div>
+        </Field>
+        <Field label="لون التمييز">
+          <div className="a-accents">
+            {ADMIN_ACCENTS.map(([v, l, c]) => <button key={v} type="button" title={l} className={`a-accent${p.accent === v ? ' on' : ''}`} style={{ background: c }} onClick={() => update({ accent: v })} />)}
           </div>
         </Field>
         <Field label="حجم النص">

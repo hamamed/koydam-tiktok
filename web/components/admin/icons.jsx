@@ -10,7 +10,7 @@ import {
   KeyRound, LayoutDashboard, LayoutGrid, List, Lock, LogOut, Medal, MessageCircle, Mic, Monitor, Moon, Palette, PanelRight,
   Pencil, Play, Plug, Plus, Puzzle, RefreshCw, Repeat2, Rocket, Save, ScrollText, Server, Smartphone, Smile, Sparkles, Square,
   Sun, Tag, TrainFront, Trash2, TrendingUp, Trophy, Type, User, Users, Volume2, Wrench, X, Zap, ChevronUp, ChevronDown, Copy, Menu,
-  Flower2, Lightbulb, Rows3, Gamepad2,
+  Flower2, Lightbulb, Rows3, Gamepad2, Search, LayoutPanelLeft,
 } from 'lucide-react';
 
 /** Names used by <Icon name="…"> across the dashboard. */
@@ -20,7 +20,7 @@ export const NAMED = {
   play: Play, stop: Square, dice: Dices, trash: Trash2, save: Save, plus: Plus, up: ChevronUp, down: ChevronDown, check: Check,
   close: X, eye: Eye, build: Hammer, users: Users, trophy: Trophy, bolt: Zap, key: KeyRound, menu: Menu, video: Clapperboard,
   heart: Heart, crown: Crown, globe: Globe, image: ImageIcon, type: Type, tag: Tag, train: TrainFront, puzzle: Puzzle,
-  phone: Smartphone, monitor: Monitor, game: Gamepad2, chart: BarChart3, mic: Mic, volume: Volume2, rocket: Rocket, lock: Lock, user: User,
+  phone: Smartphone, monitor: Monitor, game: Gamepad2, search: Search, layout: LayoutPanelLeft, chart: BarChart3, mic: Mic, volume: Volume2, rocket: Rocket, lock: Lock, user: User,
 };
 
 const EMOJI = {

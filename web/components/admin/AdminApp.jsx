@@ -5,7 +5,7 @@
  *  - owner: all lives, users, server, files, logs, updates
  *  - user:  only their own lives
  */
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { api, setApiLive } from '@/lib/api';
 import { cmd, liveQuery, reconnectSocket, setStoreLive, useLive } from '@/lib/store';
 import { clone } from '@/lib/format';
@@ -23,6 +23,7 @@ import { LivesPage, UsersPage, AccountPage } from './PagesUsers';
 import { VideoPage } from './PagesVideo';
 import { GamesPage } from './PagesGames';
 import { Tour, useTour } from './Tour';
+import { CommandK, useCommandK } from './CommandK';
 
 export const NAV = [
   { id: 'guide', label: 'ابدأ هنا', icon: 'check' },
@@ -83,6 +84,17 @@ function Dashboard({ me, mustChange, onLogout, onMe }) {
   const [tab, setTab] = useState('overview');
   const [menuOpen, setMenuOpen] = useState(false);
   const tour = useTour(me.id);
+  const cmdk = useCommandK();
+  const [prefs, updatePrefs] = useAdminPrefs();
+  const goRef = useRef(() => {}); // `go` is defined further down
+  const cmdItems = useMemo(() => [
+    ...nav.filter((n) => !n.sep).map((n) => ({ id: `p-${n.id}`, label: n.label, icon: n.icon, hint: 'صفحة', run: () => goRef.current(n.id) })),
+    { id: 'l-classic', label: 'التصميم الكلاسيكي', keys: 'design layout تصميم', icon: 'palette', hint: 'تصميم', run: () => updatePrefs({ layout: 'classic' }) },
+    { id: 'l-rail', label: 'تصميم الشريط المضغوط', keys: 'design layout تصميم', icon: 'palette', hint: 'تصميم', run: () => updatePrefs({ layout: 'rail' }) },
+    { id: 't-light', label: 'الوضع الفاتح', keys: 'light theme', icon: 'sun', hint: 'مظهر', run: () => updatePrefs({ theme: 'light' }) },
+    { id: 't-dark', label: 'الوضع الداكن', keys: 'dark theme', icon: 'moon', hint: 'مظهر', run: () => updatePrefs({ theme: 'dark' }) },
+    { id: 'tour', label: 'الجولة التعريفية', keys: 'tour help', icon: 'eye', hint: 'مساعدة', run: tour.start },
+  ], [nav, updatePrefs, tour.start]);
   const [draft, setDraft] = useState(null);
   const [dirty, setDirty] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -129,6 +141,7 @@ function Dashboard({ me, mustChange, onLogout, onMe }) {
 
   const logout = async () => { try { await api('/api/logout', { method: 'POST' }); } catch { /* ignore */ } reconnectSocket(); onLogout(); };
   const go = (id) => { location.hash = id; setTab(id); setMenuOpen(false); };
+  goRef.current = go;
   const onSwitch = (slug) => { if (dirty && !confirm('لديك تغييرات غير محفوظة. تجاهلها والانتقال؟')) return; switchLive(slug); notice('تم الانتقال إلى البث'); };
 
   const st = live.status || {};
@@ -183,6 +196,7 @@ function Dashboard({ me, mustChange, onLogout, onMe }) {
   return (
     <div className={`admin-root${menuOpen ? ' menu-open' : ''}`}>
       <Tour open={tour.open} onClose={tour.close} go={go} />
+      <CommandK open={cmdk.open} onClose={cmdk.close} items={cmdItems} />
       <aside className="a-side">
         <div className="a-brand">
           <Logo small className="a-brand-logo" />
@@ -201,7 +215,7 @@ function Dashboard({ me, mustChange, onLogout, onMe }) {
           {nav.map((n, i) => n.sep
             ? <div key={i} className="a-nav-sep">{n.sep}</div>
             : (
-              <button key={n.id} data-tour={n.id} className={`a-nav-item${tab === n.id ? ' active' : ''}${n.live && noLives ? ' off' : ''}`} onClick={() => go(n.id)}>
+              <button key={n.id} data-tour={n.id} title={n.label} style={{ '--tile-h': (i * 37) % 360 }} className={`a-nav-item${tab === n.id ? ' active' : ''}${n.live && noLives ? ' off' : ''}`} onClick={() => go(n.id)}>
                 <Icon name={n.icon} /><span>{n.label}</span>
                 {n.draft && dirty && <i className="a-dot" title="تغييرات غير محفوظة" />}
               </button>
@@ -221,6 +235,16 @@ function Dashboard({ me, mustChange, onLogout, onMe }) {
           {navItem.live && currentName && <span className="a-chip hide-sm">{currentName}</span>}
           {navItem.live && <span className={`a-status ${connLabel[0]}`}><span className="a-status-dot" />{connLabel[1]}</span>}
           <span className="a-top-spacer" />
+          {myLives && myLives.length > 0 && (
+            <select className="a-input a-top-live" value={current || ''} onChange={(e) => (e.target.value === '__new' ? go('lives') : onSwitch(e.target.value))} aria-label="البث الحالي">
+              {myLives.map((l) => <option key={l.slug} value={l.slug}>{l.name}</option>)}
+              <option value="__new">＋ إدارة البثوث…</option>
+            </select>
+          )}
+          <button className="a-search-btn hide-sm" onClick={cmdk.show} title="بحث (Ctrl+K)"><Icon name="search" size={14} /><span>بحث…</span><kbd>Ctrl K</kbd></button>
+          <button className="a-btn ghost sm a-layout-btn" onClick={() => updatePrefs({ layout: prefs.layout === 'rail' ? 'classic' : 'rail' })} title="تبديل التصميم">
+            <Icon name="layout" size={15} /><span className="hide-sm">{prefs.layout === 'rail' ? 'الكلاسيكي' : 'المضغوط'}</span>
+          </button>
           <button className="a-btn ghost sm hide-sm" onClick={tour.start} title="جولة تعريفية"><Icon name="eye" size={15} /><span>جولة</span></button>
           <ThemeBtn />
           {current && <a className="a-btn ghost sm hide-sm" href={`/${live.config?.theme?.portraitOnly !== false ? 'overlay-vertical' : 'overlay'}/${q}`} target="_blank" rel="noopener"><Icon name="external" size={15} /><span>واجهة OBS</span></a>}

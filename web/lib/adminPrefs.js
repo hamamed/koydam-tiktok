@@ -8,7 +8,10 @@ import { BUNDLED_FONTS } from './fonts';
 
 const KEY = 'koydam.admin.prefs';
 export const ADMIN_SIZES = [[0.86, 'صغير'], [0.93, 'متوسط'], [1, 'عادي'], [1.08, 'كبير']];
-export const DEFAULT_PREFS = { theme: 'dark', font: 'Cairo', size: 0.93 };
+export const DEFAULT_PREFS = { theme: 'dark', font: 'Cairo', size: 0.93, layout: 'classic', accent: 'gold' };
+/** Second dashboard design: 'classic' (wide sidebar, gold) or 'rail' (icon rail + command search, graphite). */
+export const ADMIN_LAYOUTS = [['classic', 'الكلاسيكي'], ['rail', 'الشريط المضغوط']];
+export const ADMIN_ACCENTS = [['gold', 'ذهبي', '#f5b301'], ['rose', 'وردي', '#e64980'], ['emerald', 'أخضر', '#12b886'], ['sky', 'أزرق', '#3b8bd9'], ['violet', 'بنفسجي', '#845ef7']];
 
 export function loadPrefs() {
   try {
@@ -17,6 +20,8 @@ export function loadPrefs() {
       theme: ['dark', 'light', 'auto'].includes(p.theme) ? p.theme : DEFAULT_PREFS.theme,
       font: BUNDLED_FONTS.has(p.font) ? p.font : DEFAULT_PREFS.font,
       size: ADMIN_SIZES.some(([v]) => v === p.size) ? p.size : DEFAULT_PREFS.size,
+      layout: ADMIN_LAYOUTS.some(([v]) => v === p.layout) ? p.layout : DEFAULT_PREFS.layout,
+      accent: ADMIN_ACCENTS.some(([v]) => v === p.accent) ? p.accent : DEFAULT_PREFS.accent,
     };
   } catch { return { ...DEFAULT_PREFS }; }
 }
@@ -28,6 +33,8 @@ export function applyPrefs(p) {
   el.dataset.adminTheme = p.theme === 'auto' ? (systemLight() ? 'light' : 'dark') : p.theme;
   el.style.setProperty('--a-font', `'${p.font}', 'Cairo', system-ui, sans-serif`);
   el.style.setProperty('--a-fs', String(p.size));
+  el.dataset.adminLayout = p.layout || 'classic';
+  el.dataset.adminAccent = p.accent || 'gold';
 }
 
 /** [prefs, update(patch)] — applies and saves on every change; follows the OS in "auto". */
