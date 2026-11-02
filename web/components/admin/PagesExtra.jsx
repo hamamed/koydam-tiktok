@@ -6,6 +6,7 @@ import { api } from '@/lib/api';
 import { cmd, getStoreLive } from '@/lib/store';
 import { fmt, safeUrl } from '@/lib/format';
 import { useRoundClock } from '../Rounds';
+import { playSfx } from '@/lib/sfx';
 import { Avatar, Flag, GiftIcon } from '../bits';
 import { Btn, Field, Icon, Num, Range, Section, Select, Text, Toggle } from './ui';
 
@@ -135,6 +136,7 @@ export function VoicePage({ draft, edit, notice }) {
 
   return (
     <div className="a-grid">
+      <SoundsSection draft={draft} edit={edit} />
       <Section title="🔊 القراءة الصوتية بالعربية" className="span-2"
         desc="تقرأ واجهة OBS الهدايا الكبيرة وتغيّر المتصدر والفائز بصوت عربي طبيعي. فعّل «Control audio via OBS» في إعدادات Browser Source ليُسمع الصوت في البث.">
         <div className="a-form">
@@ -331,5 +333,28 @@ export function ReportsPage({ live, notice }) {
         )}
       </section>
     </div>
+  );
+}
+
+/** Sound effects for the OBS overlay (config.sounds). */
+function SoundsSection({ draft, edit }) {
+  const s = { enabled: false, volume: 0.6, gifts: true, bigGifts: true, lead: true, games: true, extras: true, ...(draft.sounds || {}) };
+  const set = (k) => (v) => edit((c) => { c.sounds = { ...s, ...(c.sounds || {}), [k]: v }; });
+  const TESTS = [['coin', 'هدية'], ['chime', 'هدية كبيرة'], ['drum', 'تغيّر المتصدر'], ['whistle', 'صفّارة'], ['goal', 'هدف'], ['fanfare', 'البطل'], ['sweep', 'الدقيقة الذهبية'], ['ding', 'سؤال'], ['success', 'جواب صحيح'], ['hit', 'ضربة']];
+  return (
+    <Section title="🔊 المؤثرات الصوتية" className="span-2"
+      desc="أصوات للهدايا والأهداف والفائز وتغيّر المتصدر تصدر من واجهة OBS. في OBS فعّل «Control audio via OBS» في مصدر المتصفح لتصل للبث."
+      actions={<Toggle label="تشغيل المؤثرات" checked={s.enabled} onChange={set('enabled')} />}>
+      <div className="a-form">
+        <Field label="مستوى الصوت"><Range value={s.volume} min={0} max={1} step={0.05} onChange={set('volume')} /></Field>
+        <Toggle label="الهدايا العادية" checked={s.gifts} onChange={set('gifts')} />
+        <Toggle label="الهدايا الكبيرة" checked={s.bigGifts} onChange={set('bigGifts')} />
+        <Toggle label="تغيّر المتصدر" checked={s.lead} onChange={set('lead')} />
+        <Toggle label="أصوات الألعاب (أهداف، صفّارة، بطل)" checked={s.games} onChange={set('games')} />
+        <Toggle label="الإضافات (الدقيقة الذهبية، الأسئلة، العرش، المتابعة)" checked={s.extras} onChange={set('extras')} />
+      </div>
+      <h4 className="a-sub">جرّب الأصوات هنا</h4>
+      <div className="a-row">{TESTS.map(([k, l]) => <Btn key={k} size="sm" variant="ghost" onClick={() => playSfx(k, s.volume)}>{l}</Btn>)}</div>
+    </Section>
   );
 }

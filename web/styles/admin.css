@@ -670,3 +670,28 @@ html[data-admin-theme="light"] .admin-root .goal-pct { color: #1c1a22; text-shad
 html:has(.admin-root), body:has(.admin-root) { background: #09080d; }
 html[data-admin-theme="light"]:has(.admin-root), html[data-admin-theme="light"]:has(.admin-root) body { background: #f4f2ee; }
 .admin-root { min-height: 100vh; min-height: 100dvh; }
+.a-prog { display: flex; flex-direction: column; gap: 8px; }
+.a-prog-row { display: grid; grid-template-columns: auto minmax(0, 1fr) auto auto auto auto; gap: 8px; align-items: center; padding: 6px 8px; border-radius: 12px; border: 1px solid var(--line); background: var(--panel-2); }
+.a-prog-row.on { border-color: var(--gold); box-shadow: 0 0 0 2px rgba(245,179,1,.3); }
+.a-prog-n { width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center; background: var(--panel-3); font-weight: 900; }
+.a-prog-min { display: inline-flex; align-items: center; gap: 6px; }
+.a-prog-min .a-input { width: 74px; }
+.a-parts-pick { gap: 6px; }
+.a-chip-check { display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; border-radius: 999px; border: 1px solid var(--line-2); background: var(--panel-2); cursor: pointer; font-weight: 800; font-size: calc(13px * var(--a-fs, 1)); }
+.a-chip-check input { accent-color: var(--gold); }
+.a-chip-check.on { border-color: var(--gold); background: rgba(245,179,1,.12); }
+
+/* Guided tour */
+.a-tour { position: fixed; inset: 0; z-index: 300; }
+.a-tour-dim { position: absolute; inset: 0; background: rgba(0,0,0,.6); }
+.a-tour-hole { position: absolute; border-radius: 14px; box-shadow: 0 0 0 9999px rgba(0,0,0,.6), 0 0 0 3px var(--gold), 0 0 30px rgba(245,179,1,.6); pointer-events: none; transition: all .3s; }
+.a-tour-card { position: absolute; width: 350px; max-width: calc(100vw - 32px); display: flex; flex-direction: column; gap: 6px; padding: 18px; border-radius: 18px;
+  background: var(--panel); border: 1px solid var(--gold); color: var(--text); box-shadow: 0 20px 60px rgba(0,0,0,.6); }
+.a-tour-card.center { top: 50%; left: 50%; transform: translate(-50%, -50%); }
+.a-tour-card small { color: var(--muted); font-weight: 800; }
+.a-tour-card b { font-size: calc(19px * var(--a-fs, 1)); color: var(--gold-2); }
+.a-tour-card p { margin: 0; line-height: 1.8; color: var(--text-2); }
+.a-tour-nav { display: flex; gap: 6px; justify-content: space-between; margin-top: 8px; flex-wrap: wrap; }
+.a-tour-x { position: absolute; top: 10px; left: 10px; border: 0; background: none; color: var(--muted); cursor: pointer; }
+.a-tour-skip { align-self: center; border: 0; background: none; color: var(--muted); font: inherit; font-size: calc(12.5px * var(--a-fs, 1)); cursor: pointer; text-decoration: underline; }
+html[data-admin-theme="light"] .a-tour-card b { color: #a86e00; }

@@ -3,7 +3,7 @@
  * «الألعاب»: choose what plays on the stream: the million race, the Arab Cup (knockout matches)
  * or the Country Arena (HP battle), with each game's settings and live controls.
  */
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Cable, Castle, CircleHelp, Crown, Flag as FlagIco, FlagTriangleRight, Play, Rocket, SkipForward, Square, Swords, Trophy, Zap } from 'lucide-react';
 import { cmd } from '@/lib/store';
 import { ARAB_COUNTRIES, countryTeam } from '@/lib/flags';
@@ -138,6 +138,8 @@ export function GamesPage({ live, draft, edit, dirty, notice }) {
           </div>
         </Section>
       )}
+
+      <Program live={live} draft={draft} edit={edit} dirty={dirty} notice={notice} />
 
       {g.mode !== 'race' && <GameLook mode={g.mode} draft={draft} edit={edit} name={GAMES.find((x) => x[0] === g.mode)?.[2]} />}
 
@@ -287,6 +289,50 @@ function GameLook({ mode, draft, edit, name }) {
         <Toggle label="«أرسل 🎁» عند كل دولة" checked={ui.showSend !== false} onChange={(v) => setUi('showSend', v)} />
         <Toggle label="الأيقونات" checked={ui.showIcon !== false} onChange={(v) => setUi('showIcon', v)} />
       </div>
+    </Section>
+  );
+}
+
+/** Auto program: the games one after another with a duration each (config.game.playlist). */
+function Program({ live, draft, edit, dirty, notice }) {
+  const pl = draft.game?.playlist || { loop: true, items: [] };
+  const items = pl.items || [];
+  const setPl = (patch) => edit((c) => { c.game = { ...(c.game || {}), playlist: { ...pl, ...(c.game?.playlist || {}), ...patch } }; });
+  const setItem = (i, k, v) => setPl({ items: items.map((x, j) => (j === i ? { ...x, [k]: v } : x)) });
+  const move = (i, d) => { const a = [...items]; const j = i + d; if (j < 0 || j >= a.length) return; [a[i], a[j]] = [a[j], a[i]]; setPl({ items: a }); };
+  const run = async (action, payload, msg) => {
+    if (dirty) return notice('احفظ الإعدادات أولاً', 'err');
+    try { await cmd(action, payload); notice(msg); } catch (e) { notice(e.message, 'err'); }
+  };
+  const cur = live.playlist;
+  const [, tick] = useState(0);
+  useEffect(() => { if (!cur) return undefined; const t = setInterval(() => tick((x) => x + 1), 1000); return () => clearInterval(t); }, [cur]);
+  const left = cur ? Math.max(0, Math.round((cur.endsAtLocal - Date.now()) / 1000)) : 0;
+  const name = (m) => GAMES.find((x) => x[0] === m)?.[2] || m;
+  const total = items.reduce((n, x) => n + (Number(x.min) || 0), 0);
+  return (
+    <Section title="📋 البرنامج التلقائي" className="span-2"
+      desc={`رتّب الألعاب ومدة كل واحدة، ثم «ابدأ البرنامج»: تتغير اللعبة وحدها وتبدأ تلقائياً مع إعلان «اللعبة التالية». المجموع ${total} دقيقة.`}
+      actions={<Toggle label="تكرار من البداية" checked={pl.loop !== false} onChange={(v) => setPl({ loop: v })} />}>
+      <div className="a-prog">
+        {items.map((it, i) => (
+          <div key={i} className={`a-prog-row${cur && cur.index === i ? ' on' : ''}`}>
+            <span className="a-prog-n num-latin">{i + 1}</span>
+            <Select value={it.mode} onChange={(v) => setItem(i, 'mode', v)} options={GAMES.map(([id, , n]) => [id, n])} />
+            <span className="a-prog-min"><Num value={it.min} min={1} max={240} onChange={(v) => setItem(i, 'min', v)} /><small>دقيقة</small></span>
+            <button type="button" className="a-icon-btn" onClick={() => move(i, -1)} title="أعلى">↑</button>
+            <button type="button" className="a-icon-btn" onClick={() => move(i, 1)} title="أسفل">↓</button>
+            <button type="button" className="a-icon-btn danger" onClick={() => setPl({ items: items.filter((_, j) => j !== i) })} title="حذف"><Trash2 size={15} /></button>
+          </div>
+        ))}
+        <Btn size="sm" variant="ghost" icon="plus" onClick={() => setPl({ items: [...items, { mode: 'cup', min: 10 }] })}>إضافة لعبة</Btn>
+      </div>
+      <div className="a-row" style={{ marginTop: 12 }}>
+        <Btn variant="gold" onClick={() => run('playlistStart', { index: 0 }, 'بدأ البرنامج')}><Play className="lc-inline" /> {cur ? 'إعادة البرنامج' : 'ابدأ البرنامج'}</Btn>
+        {cur && <Btn variant="ghost" onClick={() => run('playlistNext', {}, 'اللعبة التالية')}><SkipForward className="lc-inline" /> اللعبة التالية الآن</Btn>}
+        {cur && <Btn variant="ghost" onClick={() => run('playlistStop', {}, 'توقف البرنامج')}><Square className="lc-inline" /> إيقاف البرنامج</Btn>}
+      </div>
+      {cur && <p className="a-gold" style={{ marginTop: 8 }}>يعمل الآن: <b>{name(cur.mode)}</b> ({cur.index + 1} من {cur.total}) · باقٍ <b className="num-latin">{Math.floor(left / 60)}:{String(left % 60).padStart(2, '0')}</b>{cur.next ? <> · التالية: <b>{name(cur.next)}</b></> : null}</p>}
     </Section>
   );
 }

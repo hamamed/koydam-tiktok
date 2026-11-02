@@ -156,6 +156,11 @@ export function Connection({ live, notice }) {
       </Section>
       </>}
 
+      <Section title="📱 التحكم من الجوال" desc="افتح هذا الرابط على جوالك (بعد تسجيل الدخول للوحة عليه): أزرار كبيرة لبدء اللعبة والدقيقة الذهبية والأسئلة والبرنامج أثناء البث.">
+        <CopyField value={`${origin}/remote/${q}`} />
+        <div className="a-row"><a className="a-btn ghost sm" href={`/remote/${q}`} target="_blank" rel="noopener"><Icon name="external" size={15} /><span>فتح جهاز التحكم</span></a></div>
+      </Section>
+
       <Section title="الصفحة المباشرة للجمهور" desc="شارك هذا الرابط مع المتابعين لمشاهدة الترتيب على الهاتف.">
         <CopyField value={`${origin}/${q}`} />
         <div className="a-row"><a className="a-btn ghost sm" href={`/${q}`} target="_blank" rel="noopener"><Icon name="external" size={15} /><span>فتح الصفحة</span></a></div>

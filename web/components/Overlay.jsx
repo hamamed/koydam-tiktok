@@ -7,6 +7,7 @@ import Speaker from './Speaker';
 import { AnimatedNumber, GiftLegend, GoalBar, Logo } from './bits';
 import GiftStrip from './GiftStrip';
 import GameView, { Activities } from './Games';
+import SoundFx from './SoundFx';
 import { gameUi } from '@/lib/gameText';
 import { Eye } from 'lucide-react';
 import { useGiftMap } from '@/lib/gifts';
@@ -174,6 +175,7 @@ export default function Overlay({ config, state, byId, status, gifts, round, gam
       {!gameMode && <Banner banner={banner} />}
       <WinnerScreen win={win} teams={config.teams} />
       {speak && !preview && <Speaker enabled={config.tts?.enabled} />}
+      {speak && !preview && <SoundFx config={config} />}
     </div>
   );
 }

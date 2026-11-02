@@ -7,6 +7,7 @@ import '../styles/skins.css';
 import '../styles/admin.css';
 import '../styles/teaser.css';
 import '../styles/games.css';
+import '../styles/remote.css';
 
 export const metadata = {
   title: 'تحدي المليون · Koydam',

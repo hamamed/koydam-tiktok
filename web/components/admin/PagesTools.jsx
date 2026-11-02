@@ -1,13 +1,14 @@
 'use client';
 import { useState } from 'react';
 import { cmd } from '@/lib/store';
+import { api } from '@/lib/api';
 import { confettiBurst, confettiRain } from '@/lib/confetti';
 import { Btn, Field, Num, Section, Select, Text, Toggle } from './ui';
 import { GiftIcon } from '../bits';
 import { GiftPickerModal } from './GiftPicker';
 import { findGift, useGiftMap } from '@/lib/gifts';
 
-export function Tools({ live, draft, save, notice }) {
+export function Tools({ live, draft, save, notice, myLives, currentLive }) {
   const teams = live.config.teams;
   const [g, setG] = useState({ nickname: 'مشاهد تجريبي', teamId: '', giftName: 'Galaxy', diamonds: 1000, count: 1 });
   const [c, setC] = useState({ nickname: 'مشاهد تجريبي', text: '🇲🇦 ديما مغرب' });
@@ -81,18 +82,71 @@ export function Tools({ live, draft, save, notice }) {
         </div>
       </Section>
 
-      <Section title="استيراد / تصدير الإعدادات (JSON)" className="span-2">
-        <textarea className="a-input a-code" dir="ltr" spellCheck={false} value={json} onChange={(e) => setJson(e.target.value)} placeholder="{ ... }" />
-        <div className="a-row">
-          <Btn variant="ghost" icon="file" onClick={() => setJson(JSON.stringify(draft, null, 2))}>عرض الإعدادات الحالية</Btn>
-          <Btn variant="ghost" icon="save" onClick={() => {
-            const blob = new Blob([JSON.stringify(draft, null, 2)], { type: 'application/json' });
-            const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'koydam-config.json'; a.click();
-            setTimeout(() => URL.revokeObjectURL(a.href), 1000);
-          }}>تنزيل ملف</Btn>
-          <Btn variant="gold" icon="check" onClick={() => { let cfg; try { cfg = JSON.parse(json); } catch (e) { return notice(`JSON غير صالح: ${e.message}`, 'err'); } save(cfg); }}>استيراد وحفظ</Btn>
-        </div>
-      </Section>
+      <SettingsFile draft={draft} notice={notice} myLives={myLives} currentLive={currentLive} />
     </div>
+  );
+}
+
+const PARTS = [['all', 'كل شيء'], ['look', 'الشكل والأصوات'], ['teams', 'الفرق والهدف'], ['games', 'الألعاب والبرنامج'], ['scoring', 'النقاط والتنبيهات والجولات'], ['voice', 'القراءة الصوتية'], ['text', 'العنوان']];
+
+/** Settings as a file: download, import (all or some parts), or copy to another live. */
+function SettingsFile({ draft, notice, myLives, currentLive }) {
+  const [file, setFile] = useState(null); // { name, config }
+  const [parts, setParts] = useState(['all']);
+  const [target, setTarget] = useState(currentLive || 'main');
+  const [busy, setBusy] = useState(false);
+  const lives = myLives || [];
+  const toggle = (k) => setParts((p) => (k === 'all' ? ['all'] : p.includes(k) ? p.filter((x) => x !== k) : [...p.filter((x) => x !== 'all'), k]));
+  const download = () => {
+    const data = { koydam: 1, exportedAt: new Date().toISOString(), live: currentLive, config: draft };
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `koydam-${currentLive || 'live'}-${new Date().toISOString().slice(0, 10)}.json`; a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+  };
+  const pick = () => {
+    const input = document.createElement('input'); input.type = 'file'; input.accept = 'application/json,.json';
+    input.onchange = async () => {
+      const f = input.files?.[0]; if (!f) return;
+      try { const j = JSON.parse(await f.text()); const config = j.config && typeof j.config === 'object' ? j.config : j; if (!config.teams && !config.theme) throw new Error('ليس ملف إعدادات'); setFile({ name: f.name, config }); }
+      catch (e) { notice(`ملف غير صالح: ${e.message}`, 'err'); }
+    };
+    input.click();
+  };
+  const apply = async (config, to) => {
+    if (!parts.length) return notice('اختر ما تريد نقله', 'err');
+    if (!confirm(`سيتم استبدال (${parts.map((p) => PARTS.find((x) => x[0] === p)?.[1]).join('، ')}) في البث «${to}». متابعة؟`)) return;
+    setBusy(true);
+    try { await api(`/api/config/apply?live=${encodeURIComponent(to)}`, { method: 'POST', body: { config, parts } }); notice('تم تطبيق الإعدادات'); setFile(null); }
+    catch (e) { notice(e.message, 'err'); } finally { setBusy(false); }
+  };
+  return (
+    <Section title="📁 ملف الإعدادات" className="span-2" desc="احفظ شكل البث وإعداداته كاملة في ملف، أو انقلها إلى بث آخر أو لمستخدم آخر. تختار ما تنقله: كل شيء أو الشكل فقط أو الفرق فقط…">
+      <div className="a-row">
+        <Btn variant="gold" icon="save" onClick={download}>تنزيل ملف الإعدادات</Btn>
+        <Btn variant="ghost" icon="file" onClick={pick}>فتح ملف…</Btn>
+      </div>
+      <h4 className="a-sub">ما الذي تنقله؟</h4>
+      <div className="a-row a-parts-pick">
+        {PARTS.map(([k, l]) => <label key={k} className={`a-chip-check${parts.includes(k) ? ' on' : ''}`}><input type="checkbox" checked={parts.includes(k)} onChange={() => toggle(k)} />{l}</label>)}
+      </div>
+      {file && (
+        <div className="a-alert gold" style={{ marginTop: 12 }}>
+          <div>الملف: <b dir="ltr">{file.name}</b> ({file.config.teams?.length || 0} فريق)</div>
+          <div className="a-row" style={{ marginTop: 8 }}>
+            <Btn variant="gold" size="sm" busy={busy} onClick={() => apply(file.config, currentLive)}>تطبيق على هذا البث</Btn>
+            <Btn variant="ghost" size="sm" onClick={() => setFile(null)}>إلغاء</Btn>
+          </div>
+        </div>
+      )}
+      {lives.length > 1 && (
+        <>
+          <h4 className="a-sub">نسخ إعدادات هذا البث إلى بث آخر</h4>
+          <div className="a-row">
+            <Select value={target} onChange={setTarget} options={lives.filter((x) => x.slug !== currentLive).map((x) => [x.slug, `${x.name} (${x.slug})`])} />
+            <Btn variant="ghost" busy={busy} onClick={() => apply(draft, target === currentLive ? lives.find((x) => x.slug !== currentLive)?.slug : target)}>نسخ</Btn>
+          </div>
+        </>
+      )}
+    </Section>
   );
 }

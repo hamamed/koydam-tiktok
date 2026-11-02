@@ -22,6 +22,7 @@ import { GuidePage } from './PagesGuide';
 import { LivesPage, UsersPage, AccountPage } from './PagesUsers';
 import { VideoPage } from './PagesVideo';
 import { GamesPage } from './PagesGames';
+import { Tour, useTour } from './Tour';
 
 export const NAV = [
   { id: 'guide', label: 'ابدأ هنا', icon: 'check' },
@@ -81,6 +82,7 @@ function Dashboard({ me, mustChange, onLogout, onMe }) {
   const nav = useMemo(() => NAV.filter((n) => owner || !n.owner), [owner]);
   const [tab, setTab] = useState('overview');
   const [menuOpen, setMenuOpen] = useState(false);
+  const tour = useTour(me.id);
   const [draft, setDraft] = useState(null);
   const [dirty, setDirty] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -180,6 +182,7 @@ function Dashboard({ me, mustChange, onLogout, onMe }) {
   const currentName = myLives?.find((l) => l.slug === current)?.name;
   return (
     <div className={`admin-root${menuOpen ? ' menu-open' : ''}`}>
+      <Tour open={tour.open} onClose={tour.close} go={go} />
       <aside className="a-side">
         <div className="a-brand">
           <Logo small className="a-brand-logo" />
@@ -198,7 +201,7 @@ function Dashboard({ me, mustChange, onLogout, onMe }) {
           {nav.map((n, i) => n.sep
             ? <div key={i} className="a-nav-sep">{n.sep}</div>
             : (
-              <button key={n.id} className={`a-nav-item${tab === n.id ? ' active' : ''}${n.live && noLives ? ' off' : ''}`} onClick={() => go(n.id)}>
+              <button key={n.id} data-tour={n.id} className={`a-nav-item${tab === n.id ? ' active' : ''}${n.live && noLives ? ' off' : ''}`} onClick={() => go(n.id)}>
                 <Icon name={n.icon} /><span>{n.label}</span>
                 {n.draft && dirty && <i className="a-dot" title="تغييرات غير محفوظة" />}
               </button>
@@ -218,6 +221,7 @@ function Dashboard({ me, mustChange, onLogout, onMe }) {
           {navItem.live && currentName && <span className="a-chip hide-sm">{currentName}</span>}
           {navItem.live && <span className={`a-status ${connLabel[0]}`}><span className="a-status-dot" />{connLabel[1]}</span>}
           <span className="a-top-spacer" />
+          <button className="a-btn ghost sm hide-sm" onClick={tour.start} title="جولة تعريفية"><Icon name="eye" size={15} /><span>جولة</span></button>
           <ThemeBtn />
           {current && <a className="a-btn ghost sm hide-sm" href={`/${live.config?.theme?.portraitOnly !== false ? 'overlay-vertical' : 'overlay'}/${q}`} target="_blank" rel="noopener"><Icon name="external" size={15} /><span>واجهة OBS</span></a>}
           <div className="a-user">

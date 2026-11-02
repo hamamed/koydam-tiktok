@@ -12,7 +12,7 @@ const listeners = new Set();
 const eventListeners = new Set();
 const speakListeners = new Set();
 const pending = new Map();
-let snap = { config: null, state: null, byId: new Map(), status: {}, gifts: [], connected: false, isAdmin: false, version: '', everConnected: false, round: null, game: null, acts: null };
+let snap = { config: null, state: null, byId: new Map(), status: {}, gifts: [], connected: false, isAdmin: false, version: '', everConnected: false, round: null, game: null, acts: null, playlist: null };
 
 /** Round with endsAt converted to this device's clock (server and device clocks can differ). */
 /** Game state with server times turned into local times (endsAt / nextAt). */
@@ -25,6 +25,7 @@ const localGame = (g) => {
   if (g.endsAt) out.endsAtLocal = g.endsAt - off;
   return out;
 };
+const localPlaylist = (p) => (p ? { ...p, endsAtLocal: p.endsAt - ((p.serverNow || Date.now()) - Date.now()) } : null);
 /** Activities (golden minute, quiz, throne) with local times. */
 const localActs = (a) => {
   if (!a) return null;
@@ -50,8 +51,9 @@ let liveSlug = null; // admin: the selected live; public pages: ?live=<slug> (de
 const currentLive = () => liveSlug || (typeof location !== 'undefined' && new URLSearchParams(location.search).get('live')) || 'main';
 
 function wsUrl() {
+  // ?ws= override (development only): same host only, so a link can never point the panel at another server.
   const q = new URLSearchParams(location.search).get('ws');
-  if (q) return q;
+  if (q) { try { const u = new URL(q); if (/^wss?:$/.test(u.protocol) && u.hostname === location.hostname) return q; } catch { /* ignore */ } }
   return `${location.protocol === 'https:' ? 'wss' : 'ws'}://${location.host}/?live=${encodeURIComponent(currentLive())}`;
 }
 
@@ -78,7 +80,7 @@ function connect() {
         set({
           config: m.config, state: m.state, byId: new Map(m.state.teams.map((t) => [t.id, t])),
           status: m.status || {}, gifts: m.gifts || [], isAdmin: Boolean(m.isAdmin), version: m.version || '',
-          connected: true, everConnected: true, round: localRound(m.round), game: localGame(m.game), acts: localActs(m.acts),
+          connected: true, everConnected: true, round: localRound(m.round), game: localGame(m.game), acts: localActs(m.acts), playlist: localPlaylist(m.playlist),
         });
         break;
       case 'state': set({ state: m.state, byId: new Map(m.state.teams.map((t) => [t.id, t])) }); break;
@@ -88,6 +90,7 @@ function connect() {
       case 'round': set({ round: localRound(m.round) }); break;
       case 'game': set({ game: localGame(m.game) }); break;
       case 'acts': set({ acts: localActs(m.acts) }); break;
+      case 'playlist': set({ playlist: localPlaylist(m.playlist) }); break;
       case 'speak': for (const l of speakListeners) { try { l(m); } catch (err) { console.error(err); } } break;
       case 'event': for (const l of eventListeners) { try { l(m.event); } catch (err) { console.error(err); } } break;
       case 'ack': {

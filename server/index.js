@@ -32,6 +32,7 @@ const { WebSocketServer, WebSocket } = require('ws');
 const { createTTS, fillTemplate, VOICES, VOICE_IDS, TTS_RE } = require('./tts');
 const { Reports } = require('./reports');
 const { GameManager, Activities } = require('./games');
+const GAME_NAMES = { race: 'سباق المليون', cup: 'كأس العرب', arena: 'حلبة الدول', tug: 'شد الحبل', horses: 'سباق الخيول', rockets: 'سباق الصواريخ', castle: 'حماية العاصمة' };
 
 /* ----------------------------------------------------------------------------
  * 0. Runtime settings (CLI flags > env vars > defaults)
@@ -208,7 +209,12 @@ const DEFAULT_CONFIG = {
     boost: { mult: 3, sec: 60, auto: false, everyMin: 10 },
     quiz: { points: 100, sec: 30, auto: false, everyMin: 3, kinds: 'both' },
     throne: { enabled: true },
+    // auto program: games one after another; min = minutes for each game
+    playlist: { loop: true, items: [{ mode: 'cup', min: 20 }, { mode: 'tug', min: 10 }, { mode: 'arena', min: 15 }] },
   },
+
+  // Sound effects played by the OBS overlay (generated in the browser, no files)
+  sounds: { enabled: false, volume: 0.6, gifts: true, bigGifts: true, lead: true, games: true, extras: true },
 
   // Followers & shares: points for the viewer's team, alerts, follow goal.
   social: {
@@ -526,6 +532,12 @@ function sanitizeConfig(input) {
     out.game.boost = { mult: numIn(bo.mult, 1.5, 10, DG.boost.mult), sec: Math.round(numIn(bo.sec, 10, 600, DG.boost.sec)), auto: bool(bo.auto, DG.boost.auto), everyMin: numIn(bo.everyMin, 1, 120, DG.boost.everyMin) };
     out.game.quiz = { points: Math.round(numIn(qz.points, 0, 1e7, DG.quiz.points)), sec: Math.round(numIn(qz.sec, 10, 300, DG.quiz.sec)), auto: bool(qz.auto, DG.quiz.auto), everyMin: numIn(qz.everyMin, 1, 120, DG.quiz.everyMin), kinds: oneOf(qz.kinds, ['both', 'trivia', 'flag'], DG.quiz.kinds) };
     out.game.throne = { enabled: bool(th2.enabled, DG.throne.enabled) };
+    const pl = o('playlist');
+    out.game.playlist = {
+      loop: bool(pl.loop, DG.playlist.loop),
+      items: (Array.isArray(pl.items) ? pl.items : DG.playlist.items).slice(0, 20)
+        .map((it) => (isObj(it) ? { mode: oneOf(it.mode, ['race', 'cup', 'arena', 'tug', 'horses', 'rockets', 'castle'], 'cup'), min: Math.round(numIn(it.min, 1, 240, 10)) } : null)).filter(Boolean),
+    };
     // per-game display: texts (empty = hidden) and what shows around each game
     const ui = isObj(gm.ui) ? gm.ui : {};
     out.game.ui = {};
@@ -535,6 +547,13 @@ function sanitizeConfig(input) {
       for (const f of ['showHeader', 'showSub', 'showGoal', 'showStrip', 'showIcon', 'showSend']) if (typeof u[f] === 'boolean') o2[f] = u[f];
       if (Object.keys(o2).length) out.game.ui[k] = o2;
     }
+  }
+
+  // ---- Sounds ----
+  {
+    const so = isObj(src.sounds) ? src.sounds : {}; const DS2 = D.sounds;
+    out.sounds = { enabled: bool(so.enabled, DS2.enabled), volume: numIn(so.volume, 0, 1, DS2.volume) };
+    for (const k of ['gifts', 'bigGifts', 'lead', 'games', 'extras']) out.sounds[k] = bool(so[k], DS2[k]);
   }
 
   // ---- Goal ----
@@ -1601,7 +1620,7 @@ function loginFailed(ip) {
  * 12. File editor backend (limited to the app folder)
  * ------------------------------------------------------------------------- */
 const APP_ROOT = path.resolve(__dirname, '..');
-const SKIP_DIRS = new Set(['node_modules', '.git', '.next', '.npm', '.cache', '.config', '.local']);
+const SKIP_DIRS = new Set(['node_modules', '.git', '.next', '.npm', '.cache', '.config', '.local', '.browsers', 'videos']);
 const SKIP_REL = new Set(['web/out', 'data/uploads', 'data/gift-images', 'data/tts-cache']); // build output + uploaded images (binary)
 const skipRel = (rel) => [...SKIP_REL].some((d) => rel === d || rel.startsWith(d + '/'));
 const MAX_EDIT_BYTES = 2 * 1024 * 1024;
@@ -1621,7 +1640,7 @@ function resolveAppPath(rel) {
   if (!inside(real) && real !== fs.realpathSync(APP_ROOT)) throw httpErr(403, 'المسار خارج مجلد التطبيق');
   const relNorm = path.relative(APP_ROOT, abs);
   if (relNorm.split(path.sep).some((seg) => SKIP_DIRS.has(seg)) || skipRel(relNorm.split(path.sep).join('/'))) throw httpErr(403, 'لا يمكن تعديل هذا المجلد');
-  if (abs === SETTINGS_FILE || abs === INITIAL_PW_FILE || abs === BACKUP_DIR || abs.startsWith(BACKUP_DIR + path.sep)) {
+  if (abs === SETTINGS_FILE || abs === INITIAL_PW_FILE || abs === USERS_FILE || abs === BACKUP_DIR || abs.startsWith(BACKUP_DIR + path.sep)) {
     throw httpErr(403, 'ملف محمي. استخدم صفحة «الخادم» للمفاتيح وكلمة المرور.');
   }
   return { abs, rel: relNorm.split(path.sep).join('/') };
@@ -1635,7 +1654,7 @@ async function listAppFiles() {
     try { entries = await fsp.readdir(dir, { withFileTypes: true }); } catch { return; }
     for (const e of entries.sort((a, b) => a.name.localeCompare(b.name))) {
       const abs = path.join(dir, e.name);
-      if (SKIP_DIRS.has(e.name) || skipRel(path.relative(APP_ROOT, abs).split(path.sep).join('/')) || abs === BACKUP_DIR || abs === SETTINGS_FILE || abs === INITIAL_PW_FILE || e.name.endsWith('.tmp')) continue;
+      if (SKIP_DIRS.has(e.name) || skipRel(path.relative(APP_ROOT, abs).split(path.sep).join('/')) || abs === BACKUP_DIR || abs === SETTINGS_FILE || abs === INITIAL_PW_FILE || abs === USERS_FILE || e.name.endsWith('.tmp')) continue;
       if (e.isDirectory()) await walk(abs, depth + 1);
       else if (e.isFile()) {
         const st = await fsp.stat(abs).catch(() => null);
@@ -2064,7 +2083,7 @@ class Live {
   hello(ws) {
     return {
       type: 'hello', version: VERSION, config: this.config, state: this.board.snapshot(), status: this.publicStatus(),
-      gifts: catalog.list(), isAdmin: ws.isAdmin, round: this.rounds.public(), game: this.game.public(), acts: this.acts.public(), live: { slug: this.slug, name: this.meta.name },
+      gifts: catalog.list(), isAdmin: ws.isAdmin, round: this.rounds.public(), game: this.game.public(), acts: this.acts.public(), playlist: this.playlistPublic(), live: { slug: this.slug, name: this.meta.name },
     };
   }
 
@@ -2159,11 +2178,38 @@ class Live {
         : ev.type === 'boost' ? `الدقيقة الذهبية! كل النقاط مضاعفة ${ev.mult} مرات`
         : ev.type === 'quiz' ? `سؤال: ${ev.q}`
         : ev.type === 'quizWin' ? `أحسنت ${ev.name}! الجواب ${ev.answer}`
-        : ev.type === 'throne' ? `${ev.name} يجلس على العرش!` : '';
+        : ev.type === 'throne' ? `${ev.name} يجلس على العرش!`
+        : ev.type === 'playlistNext' ? `اللعبة التالية: ${GAME_NAMES[ev.mode] || ''}` : '';
     } else if (ev.kind === 'follow' && t.readFollows) {
       text = fillTemplate(t.followTemplate, { name: ev.user.nickname });
     }
     if (text) this.sayText(text).catch(() => {});
+  }
+
+  /* ---- auto program (playlist): next game every N minutes ---- */
+  playlistPublic() { const p = this.pl; return p ? { index: p.index, mode: p.mode, endsAt: p.endsAt, next: p.next, total: p.total, serverNow: Date.now() } : null; }
+  async playlistGo(index) {
+    const items = this.config.game.playlist.items;
+    if (!items.length) throw new Error('البرنامج فارغ: أضف ألعاباً أولاً');
+    if (index >= items.length) {
+      if (!this.config.game.playlist.loop) return this.playlistStop(true);
+      index = 0;
+    }
+    const it = items[index];
+    clearTimeout(this.plTimer);
+    await this.applyNewConfig({ ...this.config, game: { ...this.config.game, mode: it.mode } });
+    if (it.mode !== 'race') this.game.start();
+    const nextIt = items[index + 1] || (this.config.game.playlist.loop ? items[0] : null);
+    this.pl = { index, mode: it.mode, endsAt: Date.now() + it.min * 60000, next: nextIt ? nextIt.mode : null, total: items.length };
+    this.plTimer = setTimeout(() => this.playlistGo(index + 1).catch((e) => log.warn(`[${this.slug}] Playlist:`, e.message)), it.min * 60000);
+    this.broadcast({ type: 'playlist', playlist: this.playlistPublic() });
+    this.broadcast({ type: 'event', event: { kind: 'game', type: 'playlistNext', mode: it.mode, ts: Date.now() } });
+    log.info(`[${this.slug}] Program: game ${index + 1}/${items.length} (${it.mode}, ${it.min} min)`);
+  }
+  playlistStop(finished) {
+    clearTimeout(this.plTimer); this.pl = null;
+    this.broadcast({ type: 'playlist', playlist: null });
+    if (finished) this.broadcast({ type: 'event', event: { kind: 'game', type: 'playlistEnd', ts: Date.now() } });
   }
 
   /* ---- panel commands for this live ---- */
@@ -2217,6 +2263,9 @@ class Live {
       case 'gameStart': this.game.start(); return null;
       case 'gameStop': this.game.stop(); return null;
       case 'gameNext': this.game.next(); return null;
+      case 'playlistStart': await this.playlistGo(Math.max(0, Math.round(num(p.index, 0)))); return null;
+      case 'playlistNext': await this.playlistGo(this.pl ? this.pl.index + 1 : 0); return null;
+      case 'playlistStop': this.playlistStop(false); return null;
       case 'actBoost': this.acts.startBoost(num(p.mult, 0), num(p.sec, 0)); return null;
       case 'actBoostStop': this.acts.stopBoost(); return null;
       case 'actQuiz': this.acts.ask(p.kind); return null;
@@ -2259,6 +2308,7 @@ class Live {
     await this.stop();
     this.rounds.destroy();
     this.game.destroy();
+    clearTimeout(this.plTimer);
     this.acts.destroy();
     for (const ws of this.clients) ws.close(4004, 'Live deleted');
   }
@@ -2401,7 +2451,7 @@ const httpServer = http.createServer(async (req, res) => {
       const ext = path.extname(target.file).toLowerCase();
       const cache = p.startsWith('/_next/static/') ? 'public, max-age=31536000, immutable' : 'no-cache';
       const headers = { 'Content-Type': MIME[ext] || 'application/octet-stream', 'Cache-Control': cache, 'X-Content-Type-Options': 'nosniff', 'Referrer-Policy': 'no-referrer', 'Content-Length': target.size };
-      if (p.startsWith('/admin')) headers['X-Frame-Options'] = 'DENY';
+      if (p.startsWith('/admin') || p.startsWith('/remote')) { headers['X-Frame-Options'] = 'DENY'; headers['Content-Security-Policy'] = "frame-ancestors 'none'"; }
       res.writeHead(hit ? 200 : 404, headers);
       if (req.method === 'HEAD') return res.end();
       return fs.createReadStream(target.file).on('error', () => res.destroy()).pipe(res);
@@ -2572,6 +2622,20 @@ const httpServer = http.createServer(async (req, res) => {
     }
 
     // ---- Live-scoped: rounds, reports, voice test ----
+    // ---- Settings file: apply all or some parts of a config to a live (import / copy between lives) ----
+    if (p === '/api/config/apply' && req.method === 'POST') {
+      const l = reqLive(); const b = await readJsonBody(req, 1024 * 1024);
+      if (!isObj(b.config)) throw httpErr(400, 'ملف الإعدادات غير صالح');
+      const PARTS = { look: ['theme', 'sounds'], teams: ['teams', 'category', 'goal'], games: ['game'], scoring: ['scoring', 'alerts', 'social', 'rounds'], voice: ['tts'], text: ['title', 'subtitle'] };
+      const parts = Array.isArray(b.parts) && b.parts.length ? b.parts.filter((x) => x === 'all' || PARTS[x]) : ['all'];
+      let next;
+      if (parts.includes('all')) next = { ...b.config, advanced: l.config.advanced };
+      else { next = clone(l.config); for (const k of parts) for (const key of PARTS[k]) if (key in b.config) next[key] = b.config[key]; }
+      const cfg = await l.applyNewConfig(next);
+      log.info(`[${l.slug}] Settings imported (${parts.join(', ')}) by ${me.email}`);
+      return json(200, { ok: true, teams: cfg.teams.length });
+    }
+
     // ---- Promo videos (per live) ----
     if (p === '/api/promo' && req.method === 'GET') {
       const l = reqLive();
