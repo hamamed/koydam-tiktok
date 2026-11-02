@@ -9,6 +9,10 @@ import { cmd } from '@/lib/store';
 import { ARAB_COUNTRIES, countryTeam } from '@/lib/flags';
 import { Flag } from '../bits';
 import { Btn, Field, Num, Section, Select, Toggle } from './ui';
+import Overlay from '../Overlay';
+import { FitStage } from './PagesConfig';
+import { iconize } from './icons';
+import { Dices, Gift, Monitor, Smartphone } from 'lucide-react';
 
 const GAMES = [
   ['race', Trophy, 'سباق المليون', 'الترتيب الكلاسيكي: كل الدول تتسابق نحو المليون نقطة.'],
@@ -53,7 +57,11 @@ export function GamesPage({ live, draft, edit, dirty, notice }) {
   const running = st && st.status !== 'idle';
   const stateText = !st || st.status === 'idle' ? 'لم تبدأ' : st.status === 'done' ? 'انتهت (يوجد بطل)' : st.status === 'break' ? 'استراحة بين المباريات' : 'تعمل الآن';
 
-  return (
+  return iconize(
+    <div className="a-studio a-gstudio">
+      <GamePreview live={live} draft={draft} notice={notice} />
+      <div className="a-studio-panel">
+      <div className="a-studio-body">
     <div className="a-grid">
       <Section title="🎮 اختر اللعبة" className="span-2" desc="اللعبة تظهر في OBS والصفحة المباشرة مكان لوحة الترتيب، بنفس الشكل والألوان. كل الهدايا والانضمام بالشات والمتابعات تُحسب في اللعبة.">
         <div className="a-games">
@@ -181,6 +189,51 @@ export function GamesPage({ live, draft, edit, dirty, notice }) {
           {dirty && <p className="a-muted">لديك تغييرات غير محفوظة: احفظها قبل البدء.</p>}
         </Section>
       )}
+    </div>
+      </div>
+      </div>
+    </div>,
+  );
+}
+
+/** Live preview of the game (same overlay as OBS) + test tools: demo gifts, a gift for one team, quiz. */
+function GamePreview({ live, draft, notice }) {
+  const [view, setView] = useState(draft.theme?.portraitOnly !== false ? 'v' : 'h');
+  const [size, setSize] = useState('small');
+  const demoOn = Boolean(live.status?.demo);
+  const send = async (t) => {
+    const big = size === 'big';
+    try {
+      await cmd('simulateGift', { teamId: t.id, giftName: t.gifts?.[0] || 'Rose', count: big ? 10 : 3, diamonds: big ? 100 : 10, nickname: 'تجربة' });
+    } catch (e) { notice(e.message, 'err'); }
+  };
+  const teams = (live.config?.teams || []).slice(0, 22);
+  return (
+    <div className="a-studio-preview">
+      <div className="a-studio-head">
+        <b>معاينة اللعبة</b>
+        <div className="a-seg">
+          <button className={view === 'v' ? 'on' : ''} onClick={() => setView('v')}><Smartphone className="lc-inline" /> عمودي</button>
+          <button className={view === 'h' ? 'on' : ''} onClick={() => setView('h')}><Monitor className="lc-inline" /> أفقي</button>
+        </div>
+      </div>
+      <div className="a-gtest">
+        <Btn size="sm" variant={demoOn ? 'red' : 'gold'} onClick={async () => { try { await cmd('demo', { enabled: !demoOn }); } catch (e) { notice(e.message, 'err'); } }}>
+          <Dices className="lc-inline" /> {demoOn ? 'إيقاف الهدايا التجريبية' : 'هدايا تجريبية تلقائية'}
+        </Btn>
+        <div className="a-seg a-gsize">
+          <button className={size === 'small' ? 'on' : ''} onClick={() => setSize('small')}>صغيرة</button>
+          <button className={size === 'big' ? 'on' : ''} onClick={() => setSize('big')}>كبيرة</button>
+        </div>
+      </div>
+      <div className="a-gtest-flags" title="اضغط على علم لإرسال هدية تجريبية لتلك الدولة">
+        <Gift className="lc-inline a-gold" />
+        {teams.map((t) => <button key={t.id} type="button" className="a-gflag" onClick={() => send(t)} title={`هدية لـ ${t.name}`}><Flag team={t} /></button>)}
+      </div>
+      {view === 'v'
+        ? <FitStage w={1080} h={1920}><div className="a-tiktok-safe"><span className="top">واجهة تيك توك العلوية</span><span className="bottom">التعليقات وأزرار تيك توك</span></div><Overlay config={draft} state={live.state} byId={live.byId} status={live.status} gifts={live.gifts} round={live.round} game={live.game} acts={live.acts} orientation="portrait" preview /></FitStage>
+        : <FitStage w={1920} h={1080}><Overlay config={draft} state={live.state} byId={live.byId} status={live.status} gifts={live.gifts} round={live.round} game={live.game} acts={live.acts} preview /></FitStage>}
+      <p className="a-muted a-studio-note">احفظ ثم «ابدأ اللعبة»، وجرّبها بالهدايا التجريبية أو اضغط على علم دولة. الهدايا التجريبية تُحسب في النتائج: صفّر الجولة من «الأدوات» قبل البث الحقيقي.</p>
     </div>
   );
 }

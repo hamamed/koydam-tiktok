@@ -306,7 +306,7 @@ export function Scoring({ live, draft, edit, dirty, notice }) {
 }
 
 /** Stage scaled to fit BOTH the width and the height of its box (studio preview). */
-function FitStage({ w, h, children }) {
+export function FitStage({ w, h, children }) {
   const box = useRef(null);
   const [scale, setScale] = useState(0.3);
   useLayoutEffect(() => {
