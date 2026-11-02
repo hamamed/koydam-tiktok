@@ -652,3 +652,10 @@ html[data-admin-theme="light"] .admin-root .goal-pct { color: #1c1a22; text-shad
 .a-gflag img { width: 100%; height: 100%; object-fit: cover; }
 .a-gflag:hover { border-color: var(--gold); transform: scale(1.12); }
 .a-gflag:active { transform: scale(.9); }
+.a-gtexts { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 12px; }
+.a-gtext-row { display: flex; gap: 6px; align-items: center; }
+.a-gtext-row .a-input { flex: 1; min-width: 0; }
+.a-gstudio .a-studio-body, .a-gstudio .a-studio-body > .a-grid, .a-gstudio .a-card { min-width: 0; }
+.a-gstudio .a-form, .a-gstudio .a-gtexts, .a-gstudio .a-acts { grid-template-columns: repeat(auto-fill, minmax(min(230px, 100%), 1fr)); }
+.a-gstudio .a-act .a-form { grid-template-columns: repeat(auto-fill, minmax(min(150px, 100%), 1fr)); }
+.a-gstudio .a-field { min-width: 0; }

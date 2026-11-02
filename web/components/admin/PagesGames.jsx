@@ -12,7 +12,8 @@ import { Btn, Field, Num, Section, Select, Toggle } from './ui';
 import Overlay from '../Overlay';
 import { FitStage } from './PagesConfig';
 import { iconize } from './icons';
-import { Dices, Gift, Monitor, Smartphone } from 'lucide-react';
+import { Dices, Gift, Monitor, RotateCcw, Smartphone, Trash2 } from 'lucide-react';
+import { GAME_UI_DEFAULTS, gameUi } from '@/lib/gameText';
 
 const GAMES = [
   ['race', Trophy, 'سباق المليون', 'الترتيب الكلاسيكي: كل الدول تتسابق نحو المليون نقطة.'],
@@ -138,6 +139,8 @@ export function GamesPage({ live, draft, edit, dirty, notice }) {
         </Section>
       )}
 
+      {g.mode !== 'race' && <GameLook mode={g.mode} draft={draft} edit={edit} name={GAMES.find((x) => x[0] === g.mode)?.[2]} />}
+
       <Section title="✨ إضافات تعمل مع أي لعبة" className="span-2" desc="تظهر فوق اللعبة أو الترتيب في OBS والصفحة المباشرة. شغّلها يدوياً بالأزرار أو تلقائياً كل عدة دقائق.">
         <div className="a-acts">
           <div className="a-act">
@@ -235,5 +238,55 @@ function GamePreview({ live, draft, notice }) {
         : <FitStage w={1920} h={1080}><Overlay config={draft} state={live.state} byId={live.byId} status={live.status} gifts={live.gifts} round={live.round} game={live.game} acts={live.acts} preview /></FitStage>}
       <p className="a-muted a-studio-note">احفظ ثم «ابدأ اللعبة»، وجرّبها بالهدايا التجريبية أو اضغط على علم دولة. الهدايا التجريبية تُحسب في النتائج: صفّر الجولة من «الأدوات» قبل البث الحقيقي.</p>
     </div>
+  );
+}
+
+/** Display settings of ONE game (saved under config.game.ui[mode]): its texts and what shows around it. */
+function GameLook({ mode, draft, edit, name }) {
+  const ui = gameUi(draft, mode);
+  const saved = draft.game?.ui?.[mode] || {};
+  const setUi = (k, v) => edit((c) => {
+    const all = { ...(c.game?.ui || {}) }; const cur = { ...(all[mode] || {}) };
+    if (v === undefined) delete cur[k]; else cur[k] = v;
+    all[mode] = cur; c.game = { ...(c.game || {}), ui: all };
+  });
+  const TEXTS = [
+    ['label', 'عنوان اللعبة', 'يظهر أعلى اللعبة'],
+    ['waitTitle', 'عنوان الانتظار', 'قبل أن تبدأ اللعبة'],
+    ['waitSub', 'جملة الانتظار', ''],
+    ['champ', 'عنوان الفائز', 'تحت اسم الدولة الفائزة'],
+    ['hint', 'السطر الإرشادي', '{n} = الرقم (نقاط الهدف، المسافة…)'],
+  ];
+  const def = GAME_UI_DEFAULTS[mode] || {};
+  const reset = () => edit((c) => { const all = { ...(c.game?.ui || {}) }; delete all[mode]; c.game = { ...(c.game || {}), ui: all }; });
+  return (
+    <Section title={`🎨 شكل «${name}»`} className="span-2" desc="هذه الإعدادات لهذه اللعبة فقط. كل لعبة تحفظ نصوصها وشكلها الخاص. اترك النص فارغاً أو اضغط سلة المهملات لإخفائه."
+      actions={<Btn size="sm" variant="ghost" onClick={reset}><RotateCcw className="lc-inline" /> الافتراضي</Btn>}>
+      <h4 className="a-sub">النصوص</h4>
+      <div className="a-gtexts">
+        {TEXTS.map(([k, label, hint]) => (
+          <Field key={k} label={label} hint={hint}>
+            <div className="a-gtext-row">
+              <input className="a-input" value={ui[k] ?? ''} placeholder="مخفي" onChange={(e) => setUi(k, e.target.value)} />
+              <button type="button" className="a-icon-btn" title="إخفاء" onClick={() => setUi(k, '')}><Trash2 size={16} /></button>
+              {k in saved && <button type="button" className="a-icon-btn" title={`إرجاع: ${def[k] || 'مخفي'}`} onClick={() => setUi(k, undefined)}><RotateCcw size={16} /></button>}
+            </div>
+          </Field>
+        ))}
+      </div>
+      <h4 className="a-sub">ما يظهر مع هذه اللعبة</h4>
+      <div className="a-form">
+        <Toggle label="بطاقة الرأس (العنوان والشعار)" checked={ui.showHeader !== false} onChange={(v) => setUi('showHeader', v)} />
+        {ui.showHeader !== false && <>
+          <Field label="عنوان الرأس لهذه اللعبة" hint={`فارغ = «${draft.title}»`}><input className="a-input" value={ui.headerTitle || ''} placeholder={draft.title} onChange={(e) => setUi('headerTitle', e.target.value)} /></Field>
+          <Toggle label="العنوان الفرعي" checked={ui.showSub !== false} onChange={(v) => setUi('showSub', v)} />
+          {ui.showSub !== false && <Field label="العنوان الفرعي لهذه اللعبة" hint="فارغ = العنوان الفرعي العام"><input className="a-input" value={ui.headerSub || ''} placeholder={draft.subtitle} onChange={(e) => setUi('headerSub', e.target.value)} /></Field>}
+          <Toggle label="شريط هدف المليون" checked={Boolean(ui.showGoal)} onChange={(v) => setUi('showGoal', v)} />
+        </>}
+        <Toggle label="شريط الدول والهدايا" checked={ui.showStrip !== false} onChange={(v) => setUi('showStrip', v)} />
+        <Toggle label="«أرسل 🎁» عند كل دولة" checked={ui.showSend !== false} onChange={(v) => setUi('showSend', v)} />
+        <Toggle label="الأيقونات" checked={ui.showIcon !== false} onChange={(v) => setUi('showIcon', v)} />
+      </div>
+    </Section>
   );
 }

@@ -526,6 +526,15 @@ function sanitizeConfig(input) {
     out.game.boost = { mult: numIn(bo.mult, 1.5, 10, DG.boost.mult), sec: Math.round(numIn(bo.sec, 10, 600, DG.boost.sec)), auto: bool(bo.auto, DG.boost.auto), everyMin: numIn(bo.everyMin, 1, 120, DG.boost.everyMin) };
     out.game.quiz = { points: Math.round(numIn(qz.points, 0, 1e7, DG.quiz.points)), sec: Math.round(numIn(qz.sec, 10, 300, DG.quiz.sec)), auto: bool(qz.auto, DG.quiz.auto), everyMin: numIn(qz.everyMin, 1, 120, DG.quiz.everyMin), kinds: oneOf(qz.kinds, ['both', 'trivia', 'flag'], DG.quiz.kinds) };
     out.game.throne = { enabled: bool(th2.enabled, DG.throne.enabled) };
+    // per-game display: texts (empty = hidden) and what shows around each game
+    const ui = isObj(gm.ui) ? gm.ui : {};
+    out.game.ui = {};
+    for (const k of ['cup', 'arena', 'tug', 'horses', 'rockets', 'castle']) {
+      const u = isObj(ui[k]) ? ui[k] : {}; const o2 = {};
+      for (const f of ['label', 'waitTitle', 'waitSub', 'champ', 'hint', 'headerTitle', 'headerSub']) if (typeof u[f] === 'string') o2[f] = str(u[f], 120);
+      for (const f of ['showHeader', 'showSub', 'showGoal', 'showStrip', 'showIcon', 'showSend']) if (typeof u[f] === 'boolean') o2[f] = u[f];
+      if (Object.keys(o2).length) out.game.ui[k] = o2;
+    }
   }
 
   // ---- Goal ----

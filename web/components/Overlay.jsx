@@ -7,6 +7,7 @@ import Speaker from './Speaker';
 import { AnimatedNumber, GiftLegend, GoalBar, Logo } from './bits';
 import GiftStrip from './GiftStrip';
 import GameView, { Activities } from './Games';
+import { gameUi } from '@/lib/gameText';
 import { Eye } from 'lucide-react';
 import { useGiftMap } from '@/lib/gifts';
 import { ensureFont, fmt, partsProps, safeUrl, themeVars } from '@/lib/format';
@@ -28,6 +29,7 @@ export function ScenePhoto({ theme }) {
  */
 export default function Overlay({ config, state, byId, status, gifts, round, game, acts, preview = false, orientation = 'landscape', speak = false }) {
   const gameMode = config.game?.mode && config.game.mode !== 'race' ? config.game.mode : null;
+  const gUi = gameMode ? gameUi(config, gameMode) : null; // each game has its own header / strip / goal settings
   const th = config.theme;
   const portrait = orientation === 'portrait';
   const v = th.vertical || {};
@@ -42,7 +44,7 @@ export default function Overlay({ config, state, byId, status, gifts, round, gam
   // header 'compact' | 'full' | 'off'; alerts as small pills, at most v.maxToasts.
   const vLayout = ['grid', 'side', 'list'].includes(v.layout) ? v.layout : 'grid';
   const vHeader = v.showHeader === false ? 'off' : ['compact', 'full', 'off'].includes(v.header) ? v.header : 'compact';
-  const showHeader = portrait ? vHeader !== 'off' : th.showHeader;
+  const showHeader = (portrait ? vHeader !== 'off' : th.showHeader) && (!gUi || gUi.showHeader !== false);
   const showToasts = portrait ? v.showToasts !== false : true;
   const showTicker = portrait ? Boolean(v.showTicker) : th.showTicker;
   const fg = config.social?.followGoal;
@@ -52,7 +54,7 @@ export default function Overlay({ config, state, byId, status, gifts, round, gam
   const fitRef = useRef(1); fitRef.current = fit;
   const [cap, setCap] = useState(0); // fewer visible teams when they cannot fit at this size
   // Top bar with EVERY team's flag + gift, so viewers know how to push a team that is not on the board.
-  const stripTeams = th.giftStrip !== false ? config.teams.filter((t) => t.gifts?.length) : [];
+  const stripTeams = th.giftStrip !== false && (!gUi || gUi.showStrip !== false) ? config.teams.filter((t) => t.gifts?.length) : [];
   const [stripH, setStripH] = useState(0);
   // Placement: top or bottom, distance from that edge, width and alignment (theme.strip).
   const strip = { mode: 'scroll', pos: 'top', offset: 14, width: 100, align: 'panel', speed: 60, dir: 'right', label: '', ...(th.strip || {}) };
@@ -143,15 +145,15 @@ export default function Overlay({ config, state, byId, status, gifts, round, gam
           <header className={`ov-header glass${portrait && vHeader === 'compact' ? ' hdr-compact' : ''}`}>
             {th.showLogo && <Logo small className="ov-logo" src={th.logo} alt={config.title} />}
             <div className="ov-head-main">
-              {on('title') && <div className="ov-title">{config.title}</div>}
-              {on('subtitle') && config.subtitle && <div className="ov-sub">{config.subtitle}</div>}
+              {on('title') && <div className="ov-title">{(gUi && gUi.headerTitle) || config.title}</div>}
+              {on('subtitle') && (!gUi || gUi.showSub !== false) && ((gUi && gUi.headerSub) || config.subtitle) && <div className="ov-sub">{(gUi && gUi.headerSub) || config.subtitle}</div>}
               <div className="chips">
                 {on('category') && <span className="chip"><span className="live-dot" />{config.category || 'مباشر'}</span>}
                 {on('points') && <span className="chip accent"><AnimatedNumber value={state?.total || 0} /> نقطة</span>}
                 {th.showViewers && <span className="chip"><Eye className="lc-inline" /> {fmt(status?.viewers || 0)}</span>}
                 <RoundTimer round={round} enabled={config.rounds?.showTimer !== false} className="in-chips" />
               </div>
-              {on('goal') && <GoalBar total={state?.total || 0} goal={config.goal} compact />}
+              {on('goal') && (!gUi || gUi.showGoal) && <GoalBar total={state?.total || 0} goal={config.goal} compact />}
               {on('followGoal') && fg?.enabled && <GoalBar total={state?.social?.follows || 0} goal={fg} compact variant="follow" />}
               {!stripTeams.length && th.showGiftLegend !== false && <GiftLegend teams={legendTeams} giftMap={giftMap} />}
             </div>
