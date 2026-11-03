@@ -125,7 +125,17 @@ export function ensureSocket() {
 /** Re-open the socket (e.g. after login, so it carries the session cookie). */
 export function reconnectSocket() {
   retry = 0;
-  if (ws) ws.close(); else connect();
+  const old = ws;
+  if (!old) return connect();
+  // Detach the old socket and open the new one right away. A socket that is still connecting is
+  // closed only once it opens (closing it earlier logs "WebSocket is closed before the connection is established").
+  old.onclose = null; old.onmessage = null; old.onerror = null;
+  if (old.readyState === WebSocket.CONNECTING) old.onopen = () => old.close();
+  else old.close();
+  for (const [, p] of pending) p.reject(new Error('انقطع الاتصال بالخادم'));
+  pending.clear();
+  ws = null; set({ connected: false });
+  connect();
 }
 
 export function cmd(action, payload = {}) {
