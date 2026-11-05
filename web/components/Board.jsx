@@ -8,7 +8,7 @@ import { memo, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'rea
 import { AnimatedNumber, Avatar, Flag, GiftIcon } from './bits';
 import { Crown, Medal } from 'lucide-react';
 import { findGift, useGiftMap } from '@/lib/gifts';
-import { fmt } from '@/lib/format';
+import { fmt, isSafe } from '@/lib/format';
 
 const MEDALS = { 2: 'silver', 3: 'bronze' };
 
@@ -191,7 +191,7 @@ export default function Board({ config, state, byId, layout = 'list', maxVisible
             y={row * (cardH + gap)}
             showContributors={showContributors}
             contributorsCount={contributorsCount}
-            teamGifts={showTeamGifts ? r.t.gifts.slice(0, 2).map((n) => ({ name: n, gift: findGift(giftMap, n) })) : null}
+            teamGifts={showTeamGifts && !isSafe(config) ? r.t.gifts.slice(0, 2).map((n) => ({ name: n, gift: findGift(giftMap, n) })) : null}
             tile={tile}
           />
         );

@@ -11,7 +11,7 @@ import SoundFx from './SoundFx';
 import { gameUi } from '@/lib/gameText';
 import { Eye } from 'lucide-react';
 import { useGiftMap } from '@/lib/gifts';
-import { ensureFont, fmt, partsProps, safeUrl, themeVars } from '@/lib/format';
+import { ensureFont, fmt, isSafe, partsProps, safeText, safeUrl, themeVars } from '@/lib/format';
 import { skinTone, skinVars, useActiveSkin } from '@/lib/skins';
 
 /** Background picture layer (dimmed, optional blur). */
@@ -55,7 +55,7 @@ export default function Overlay({ config, state, byId, status, gifts, round, gam
   const fitRef = useRef(1); fitRef.current = fit;
   const [cap, setCap] = useState(0); // fewer visible teams when they cannot fit at this size
   // Top bar with EVERY team's flag + gift, so viewers know how to push a team that is not on the board.
-  const stripTeams = th.giftStrip !== false && (!gUi || gUi.showStrip !== false) ? config.teams.filter((t) => t.gifts?.length) : [];
+  const stripTeams = !isSafe(config) && th.giftStrip !== false && (!gUi || gUi.showStrip !== false) ? config.teams.filter((t) => t.gifts?.length) : [];
   const [stripH, setStripH] = useState(0);
   // Placement: top or bottom, distance from that edge, width and alignment (theme.strip).
   const strip = { mode: 'scroll', pos: 'top', offset: 14, width: 100, align: 'panel', speed: 60, dir: 'right', label: '', ...(th.strip || {}) };
@@ -147,7 +147,7 @@ export default function Overlay({ config, state, byId, status, gifts, round, gam
             {th.showLogo && <Logo small className="ov-logo" src={th.logo} alt={config.title} />}
             <div className="ov-head-main">
               {on('title') && <div className="ov-title">{(gUi && gUi.headerTitle) || config.title}</div>}
-              {on('subtitle') && (!gUi || gUi.showSub !== false) && ((gUi && gUi.headerSub) || config.subtitle) && <div className="ov-sub">{(gUi && gUi.headerSub) || config.subtitle}</div>}
+              {on('subtitle') && (!gUi || gUi.showSub !== false) && safeText((gUi && gUi.headerSub) || config.subtitle, config) && <div className="ov-sub">{safeText((gUi && gUi.headerSub) || config.subtitle, config)}</div>}
               <div className="chips">
                 {on('category') && <span className="chip"><span className="live-dot" />{config.category || 'مباشر'}</span>}
                 {on('points') && <span className="chip accent"><AnimatedNumber value={state?.total || 0} /> نقطة</span>}
@@ -156,7 +156,7 @@ export default function Overlay({ config, state, byId, status, gifts, round, gam
               </div>
               {on('goal') && (!gUi || gUi.showGoal) && <GoalBar total={state?.total || 0} goal={config.goal} compact />}
               {on('followGoal') && fg?.enabled && <GoalBar total={state?.social?.follows || 0} goal={fg} compact variant="follow" />}
-              {!stripTeams.length && th.showGiftLegend !== false && <GiftLegend teams={legendTeams} giftMap={giftMap} />}
+              {!stripTeams.length && !isSafe(config) && th.showGiftLegend !== false && <GiftLegend teams={legendTeams} giftMap={giftMap} />}
             </div>
           </header>
         )}

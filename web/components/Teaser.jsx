@@ -8,7 +8,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { AtSign, CalendarClock, Clock3 } from 'lucide-react';
 import { Flag, GiftIcon, Logo } from './bits';
 import { findGift, useGiftMap } from '@/lib/gifts';
-import { ensureFont, fontVars, themeVars } from '@/lib/format';
+import { ensureFont, fontVars, isSafe, safeText, themeVars } from '@/lib/format';
 import { skinTone, skinVars, useActiveSkin } from '@/lib/skins';
 
 /** Seconds of the whole animation for n teams (also used by the recorder). */
@@ -44,7 +44,8 @@ export default function Teaser({ config, gifts, params = {}, preview = false, po
   const cols = tall ? (n <= 4 ? 2 : n <= 9 ? 3 : n <= 12 ? 4 : 3) : (n <= 6 ? n : n <= 12 ? 6 : 5);
   const teamsEnd = 4 + Math.min(n, 24) * 0.28;
   const category = config.category || 'الدول';
-  const cta = params.cta || `كن جاهزاً! اكتب اسم ${category === 'الدول' ? 'دولتك' : 'فريقك'} في الشات وأرسل هديته`;
+  const safe = isSafe(config);
+  const cta = safeText(params.cta || `كن جاهزاً! اكتب اسم ${category === 'الدول' ? 'دولتك' : 'فريقك'} في الشات${safe ? '' : ' وأرسل هديته'}`, config);
   const vars = useMemo(() => ({ ...themeVars(th), ...skinVars(th), ...fontVars(th), '--cols': cols, '--t-end': `${teamsEnd}s`, '--n': n }), [th, cols, teamsEnd, n]);
 
   return (
@@ -66,7 +67,7 @@ export default function Teaser({ config, gifts, params = {}, preview = false, po
               <div key={t.id || i} className="tz-team" style={{ '--i': i, '--team': t.color }}>
                 <span className="tz-flag"><Flag team={t} /></span>
                 <b className="tz-name">{t.name}</b>
-                {g && <span className="tz-gift"><span>أرسل</span><GiftIcon gift={findGift(giftMap, g)} name={g} className="tz-gimg" /></span>}
+                {g && !safe && <span className="tz-gift"><span>أرسل</span><GiftIcon gift={findGift(giftMap, g)} name={g} className="tz-gimg" /></span>}
               </div>
             );
           })}

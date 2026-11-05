@@ -321,7 +321,8 @@ class Activities extends EventEmitter {
     if (this.s.quiz && this.s.quiz.done && now >= this.s.quiz.closeAt) this.stopQuiz();
     // automatic golden minute / questions
     const b = g.boost || {}; const q = g.quiz || {};
-    if (b.auto && !this.s.boost) { if (!this.next.boost) this.next.boost = now + (Number(b.everyMin) || 10) * 60000; else if (now >= this.next.boost) { this.next.boost = 0; this.startBoost(); } } else if (!b.auto) this.next.boost = 0;
+    const safe = this.h.getConfig().safe?.enabled !== false; // TikTok-safe: no automatic urgency pushes
+    if (b.auto && !safe && !this.s.boost) { if (!this.next.boost) this.next.boost = now + (Number(b.everyMin) || 10) * 60000; else if (now >= this.next.boost) { this.next.boost = 0; this.startBoost(); } } else if (!b.auto || safe) this.next.boost = 0;
     if (q.auto && !this.s.quiz) { if (!this.next.quiz) this.next.quiz = now + (Number(q.everyMin) || 3) * 60000; else if (now >= this.next.quiz) { this.next.quiz = 0; this.ask(); } } else if (!q.auto) this.next.quiz = 0;
   }
 }

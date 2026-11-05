@@ -9,7 +9,7 @@ import { cmd } from '@/lib/store';
 import { oneCoinGifts } from '@/lib/gifts';
 import { ARAB_COUNTRIES, countryTeam } from '@/lib/flags';
 import { Flag } from '../bits';
-import { Btn, Field, Num, Section, Select, Toggle } from './ui';
+import { Btn, Field, Num, SafeMode, Section, Select, Toggle } from './ui';
 import Overlay from '../Overlay';
 import { FitStage } from './PagesConfig';
 import { iconize } from './icons';
@@ -65,6 +65,7 @@ export function GamesPage({ live, draft, edit, dirty, notice }) {
       <div className="a-studio-panel">
       <div className="a-studio-body">
     <div className="a-grid">
+      <SafeMode draft={draft} edit={edit} />
       <Section title="🎮 اختر اللعبة" className="span-2" desc="اللعبة تظهر في OBS والصفحة المباشرة مكان لوحة الترتيب، بنفس الشكل والألوان. كل الهدايا والانضمام بالشات والمتابعات تُحسب في اللعبة.">
         <div className="a-games">
           {GAMES.map(([id, Ico, name, desc]) => (
@@ -246,7 +247,7 @@ function GamePreview({ live, draft, notice }) {
 
 /** Display settings of ONE game (saved under config.game.ui[mode]): its texts and what shows around it. */
 function GameLook({ mode, draft, edit, name }) {
-  const ui = gameUi(draft, mode);
+  const ui = gameUi({ ...draft, safe: { enabled: false } }, mode); // the saved values (safe mode only changes what is shown)
   const saved = draft.game?.ui?.[mode] || {};
   const setUi = (k, v) => edit((c) => {
     const all = { ...(c.game?.ui || {}) }; const cur = { ...(all[mode] || {}) };

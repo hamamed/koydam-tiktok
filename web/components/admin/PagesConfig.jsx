@@ -14,7 +14,7 @@ import { SKINS, SKIN_CATS, activeSkin, skinName, skinTone, skinVars } from '@/li
 import { pickFile, uploadImage } from '@/lib/upload';
 import { safeUrl } from '@/lib/format';
 import { cmd } from '@/lib/store';
-import { Btn, Color, Field, Icon, Num, Range, Section, Select, Text, Toggle, useNotice } from './ui';
+import { Btn, Color, Field, Icon, Num, Range, SafeMode, Section, Select, Text, Toggle, useNotice } from './ui';
 import { iconize } from './icons';
 
 /** Upload button: picks an image, shrinks it, uploads it and returns its /uploads/ URL. */
@@ -141,6 +141,7 @@ export function Teams({ live, draft, edit }) {
   return (
     <div className="a-grid">
       <GiftDatalist gifts={live.gifts} />
+      <SafeMode draft={d} edit={edit} />
       <Section title="العنوان" desc="يظهر في الصفحة المباشرة وواجهة OBS">
         <div className="a-form">
           <Field label="العنوان"><Text value={d.title} onChange={(v) => edit((c) => { c.title = v; })} /></Field>

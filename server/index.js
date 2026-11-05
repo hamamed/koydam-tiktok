@@ -86,7 +86,8 @@ const log = {
  * ------------------------------------------------------------------------- */
 const DEFAULT_CONFIG = {
   title: 'تحدي المليون',
-  subtitle: 'اكتب اسم فريقك في الشات وأرسل الهدايا!',
+  subtitle: 'اكتب اسم دولتك في الشات!',
+  safe: { enabled: true },
   category: 'الدول', // free label: الدول / الأندية / القبائل ...
 
   // The 1M goal shown on the live page and the overlay header
@@ -583,6 +584,7 @@ function sanitizeConfig(input) {
     shareAlerts: bool(so.shareAlerts, DSo.shareAlerts),
     followGoal: { enabled: bool(fg.enabled, DSo.followGoal.enabled), target: Math.round(numIn(fg.target, 1, 1e7, DSo.followGoal.target)), label: str(fg.label ?? DSo.followGoal.label, 60) },
   };
+  out.safe = { enabled: bool(isObj(src.safe) ? src.safe.enabled : undefined, true) };
   // ---- Voice ----
   const tt = isObj(src.tts) ? src.tts : {}; const DTt = D.tts;
   const tpl = (v, d) => str(v ?? d, 200);

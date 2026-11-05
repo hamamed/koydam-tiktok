@@ -6,7 +6,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { onLiveEvent } from '@/lib/store';
 import { confettiBurst, confettiRain } from '@/lib/confetti';
-import { fmt, safeUrl } from '@/lib/format';
+import { fmt, isSafe, safeUrl } from '@/lib/format';
 import { Avatar, Flag, TeamName, teamImage } from './bits';
 import { Crown, Flame, Gift, Hand, Heart, RefreshCw, Repeat2, Trophy } from 'lucide-react';
 
@@ -78,7 +78,9 @@ export function useAlerts(config, { confetti = true, toasts = true } = {}) {
           break;
         case 'unassigned':
           if (a.showUnassigned) {
-            addTick(null, c.scoring?.giftMode === 'giftOnly'
+            addTick(null, isSafe(c)
+              ? [['b', ev.user.nickname], ['', ' اكتب اسم دولتك في الشات للانضمام']]
+              : c.scoring?.giftMode === 'giftOnly'
               ? [['b', ev.user.nickname], ['', ' أرسل '], ['g', ev.gift.name], ['', ' ولا تُحسب. أرسل هدية دولتك لتُحسب!'], ['ico', 'gift']]
               : [['b', ev.user.nickname], ['', ` أرسل ${ev.gift.name}. اكتب اسم فريقك في الشات لتُحسب!`]]);
           }
@@ -101,7 +103,7 @@ export function useAlerts(config, { confetti = true, toasts = true } = {}) {
           break;
         }
         case 'roundStart':
-          addTick(null, [['b', `بدأت الجولة ${ev.number}! أرسل هدية دولتك الآن`]]);
+          addTick(null, [['b', isSafe(c) ? `بدأت الجولة ${ev.number}!` : `بدأت الجولة ${ev.number}! أرسل هدية دولتك الآن`]]);
           break;
         case 'roundEnd':
           addTick(ev.winner ? teamOf(ev.winner.id) : null, [['ico', 'trophy'], ['b', ev.winner ? `${ev.winner.name} بطل الجولة ${ev.number}!` : `انتهت الجولة ${ev.number}`]]);

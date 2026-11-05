@@ -131,3 +131,20 @@ export function JobView({ job, title }) {
     </div>
   );
 }
+
+/** «وضع آمن لتيك توك»: one switch per live (on by default) that removes every gift prompt from the screens. */
+export function SafeMode({ draft, edit, className = 'span-2' }) {
+  const on = draft?.safe?.enabled !== false;
+  return (
+    <section className={`a-card a-safe${on ? ' on' : ''} ${className}`}>
+      <div className="a-card-head">
+        <div>
+          <h3>{iconize('🛡️ وضع آمن لتيك توك')}</h3>
+          <p className="a-muted">تيك توك يعاقب على «طلب الهدايا» (تعليق الهدايا وتقييد ظهور البث). هذا الوضع يُخفي كل عبارات «أرسل» وأيقونات هدايا الدول وشريط الهدايا، ويحذف طلب الهدايا من العنوان الفرعي والنصوص، ويوقف الدقيقة الذهبية التلقائية. المنافسة والنقاط تعمل كما هي.</p>
+        </div>
+        <div className="a-actions"><Toggle label={on ? 'مفعّل' : 'متوقف'} checked={on} onChange={(v) => edit((c) => { c.safe = { ...(c.safe || {}), enabled: v }; })} /></div>
+      </div>
+      {!on && <p className="a-safe-warn">{iconize('⚠️ الوضع الآمن متوقف: عبارات طلب الهدايا ظاهرة على الشاشة وقد يعرّض حسابك للعقوبة.')}</p>}
+    </section>
+  );
+}

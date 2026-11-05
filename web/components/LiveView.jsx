@@ -11,7 +11,7 @@ import { ScenePhoto } from './Overlay';
 import { RoundTimer, WinnerScreen, useRoundWinner } from './Rounds';
 import { AnimatedNumber, Avatar, Flag, GiftIcon, GoalBar, Logo, TeamName } from './bits';
 import { findGift, useGiftMap } from '@/lib/gifts';
-import { ensureFont, fmt, fontVars, partsProps, safeUrl } from '@/lib/format';
+import { ensureFont, fmt, fontVars, isSafe, partsProps, safeText, safeUrl } from '@/lib/format';
 import { useEffect } from 'react';
 import { skinTone, skinVars, useActiveSkin } from '@/lib/skins';
 import { Gift, Trophy } from 'lucide-react';
@@ -48,6 +48,8 @@ export default function LiveView({ config, state, byId, status, gifts, round, ga
   const totalSupporters = state.teams.reduce((n, t) => n + (t.supporters || 0), 0);
   const isLive = status?.state === 'connected' || status?.demo;
   const leader = config.teams.find((t) => t.id === state.leaderId);
+  const safe = isSafe(config);
+  const cat = (config.category || 'الدول') === 'الدول' ? 'دولتك' : 'فريقك';
 
   return (
     <div {...rootProps}>
@@ -58,7 +60,7 @@ export default function LiveView({ config, state, byId, status, gifts, round, ga
         <div className="live-hero-text">
           <span className={`live-badge${isLive ? ' on' : ''}`}><span className="live-dot" />{isLive ? 'مباشر الآن' : 'البث متوقف'}{status?.username ? ` · @${status.username}` : ''}</span>
           <h1 className="live-title">{config.title}</h1>
-          {config.subtitle && <p className="live-sub">{config.subtitle}</p>}
+          {safeText(config.subtitle, config) && <p className="live-sub">{safeText(config.subtitle, config)}</p>}
           <div className="live-stats">
             <div className="stat"><span className="stat-v num-latin"><AnimatedNumber value={state.total} /></span><span className="stat-l">إجمالي النقاط</span></div>
             <div className="stat"><span className="stat-v">{leader ? <><span className="stat-flag"><Flag team={leader} /></span> {leader.name}</> : '—'}</span><span className="stat-l">المتصدر</span></div>
@@ -124,7 +126,12 @@ export default function LiveView({ config, state, byId, status, gifts, round, ga
           <section className="surface how">
             <div className="surface-head"><h2>كيف تشارك؟</h2></div>
             <ol className="steps">
-              {config.scoring?.giftMode === 'giftOnly' ? (
+              {safe ? (
+                <>
+                  <li><b>اكتب اسم {cat}</b> في الشات لتنضم إليها.</li>
+                  <li><b>تفاعلك يُحسب لها:</b> الإعجابات والمتابعات والمشاركات والهدايا.</li>
+                </>
+              ) : config.scoring?.giftMode === 'giftOnly' ? (
                 <>
                   <li><b>كل دولة لها هدية:</b> انظر الهدية بجانب علم دولتك أدناه.</li>
                   <li><b>أرسل هدية دولتك:</b> كل هدية تضيف نقاطاً لدولتك تلقائياً.</li>
@@ -135,13 +142,13 @@ export default function LiveView({ config, state, byId, status, gifts, round, ga
                   <li><b>أو اكتب اسم فريقك</b> في الشات ثم أرسل أي هدية.</li>
                 </>
               )}
-              <li><b>ساعد فريقك على الوصول للمليون!</b> <Trophy className="lc-inline" /></li>
+              <li><b>{safe ? 'تابع الترتيب مباشرة!' : 'ساعد فريقك على الوصول للمليون!'}</b> <Trophy className="lc-inline" /></li>
             </ol>
             <div className="team-chips">
               {config.teams.map((t) => (
                 <span key={t.id} className="team-chip" style={{ '--team': t.color }}>
                   <span className="chip-flag"><Flag team={t} /></span> {t.name}
-                  {t.gifts.length > 0 && <span className="chip-gifts">{t.gifts.map((n) => <span key={n} className="chip-gift"><GiftIcon gift={findGift(giftMap, n)} name={n} className="gift-icon sm" /><small>{n}</small></span>)}</span>}
+                  {!safe && t.gifts.length > 0 && <span className="chip-gifts">{t.gifts.map((n) => <span key={n} className="chip-gift"><GiftIcon gift={findGift(giftMap, n)} name={n} className="gift-icon sm" /><small>{n}</small></span>)}</span>}
                 </span>
               ))}
             </div>

@@ -74,3 +74,17 @@ export function partsProps(th = {}) {
   for (const k of SIZE_KEYS) if (s[k] && s[k] !== 1) style[`--sz-${k}`] = s[k];
   return { 'data-hide': PART_KEYS.filter((k) => p[k] === false).join(' ') || undefined, style };
 }
+
+/**
+ * TikTok-safe mode (config.safe.enabled, on by default): no "send a gift" prompts on screen.
+ * TikTok restricts LIVEs for "inorganic gift solicitation" (repetitive triggers, pressure, promises).
+ */
+export const isSafe = (config) => config?.safe?.enabled !== false;
+/** Removes gift-asking phrases from a text shown on screen ("…في الشات وأرسل الهدايا!" -> "…في الشات!"). */
+export function safeText(text, config) {
+  if (!text || !isSafe(config)) return text;
+  return String(text)
+    .replace(/\s*[وو]?\s*أرسل(ي|وا)?\s+(ال)?(هدايا|هدية|هديتها|هديته|هديتك|الهدية)[^!؟.،]*/g, '')
+    .replace(/\s*أرسل(ي|وا)?\s+[^!؟.،]*هد(ية|ايا)[^!؟.،]*/g, '')
+    .replace(/\s{2,}/g, ' ').replace(/\s+([!؟.،])/g, '$1').replace(/^[\s،,.]+/, '').trim();
+}
